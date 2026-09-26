@@ -388,7 +388,7 @@ class ColonyRepository {
     feeding['acceptance'] = acceptance;
     // The server replaces details as a whole – always send them completely.
     feeding['items'] = [
-      for (final i in (feeding['items'] as List? ?? const []).cast<Map>())
+      for (final i in (feeding['items'] as List? ?? const []).cast<Map<String, dynamic>>())
         {
           for (final e in i.entries)
             if (e.key != 'feeding_id') e.key as String: e.value,
@@ -404,7 +404,7 @@ class ColonyRepository {
 
   String createLocation(String name, {String? parentId}) => _write(() {
     final parent = parentId == null ? null : _locations()[parentId];
-    final data = _create('locations', {'name': name.trim(), if (parentId != null) 'parent_id': parentId});
+    final data = _create('locations', {'name': name.trim(), 'parent_id': ?parentId});
     // path is computed by the server; show it right away locally
     db.putRecord('locations', {
       ...data,

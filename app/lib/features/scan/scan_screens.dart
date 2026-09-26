@@ -13,7 +13,7 @@ import '../../shared/widgets.dart';
 
 final _tokenRe = RegExp(r'^[0-9A-Za-z]{16}$');
 
-/// Extracts the scan token from a pasted link (…/c/<token>) or a bare code.
+/// Extracts the scan token from a pasted link (`…/c/<token>`) or a bare code.
 String? parseScanInput(String input) {
   final s = input.trim();
   if (_tokenRe.hasMatch(s)) return s;

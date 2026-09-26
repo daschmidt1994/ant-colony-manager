@@ -169,13 +169,10 @@ class AuthController extends Notifier<AuthState> {
     'display_name': name.trim(),
   });
 
-  Future<void> register(String email, String password, String name, {String? invite}) =>
-      _signIn('/api/v1/auth/register', {
-        'email': email.trim(),
-        'password': password,
-        'display_name': name.trim(),
-        if (invite != null) 'invite_token': invite,
-      });
+  Future<void> register(String email, String password, String name, {String? invite}) => _signIn(
+    '/api/v1/auth/register',
+    {'email': email.trim(), 'password': password, 'display_name': name.trim(), 'invite_token': ?invite},
+  );
 
   Future<void> _signIn(String path, Map<String, dynamic> body) async {
     final url = switch (state) {

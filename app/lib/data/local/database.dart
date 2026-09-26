@@ -261,7 +261,7 @@ class AppDatabase {
 
   List<LocalRecord> records(String entity, {String? colonyId, String orderBy = 'ts DESC'}) => select(
     'SELECT * FROM records WHERE entity = ?${colonyId != null ? ' AND colony_id = ?' : ''} ORDER BY $orderBy',
-    [entity, if (colonyId != null) colonyId],
+    [entity, ?colonyId],
   ).map(LocalRecord.fromRow).toList();
 
   void putRecord(String entity, Map<String, dynamic> data, {int? version, bool pending = false}) {

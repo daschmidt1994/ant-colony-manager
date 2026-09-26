@@ -96,7 +96,6 @@ class _SheetFrame extends StatelessWidget {
   final ValueChanged<DateTime?> onWhen;
   final List<Widget> children;
   final VoidCallback? onSave;
-  final String saveLabel;
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
@@ -115,7 +114,7 @@ class _SheetFrame extends StatelessWidget {
         const SizedBox(height: 12),
         ...children,
         const SizedBox(height: 20),
-        FilledButton(onPressed: onSave, child: Text(saveLabel)),
+        FilledButton(onPressed: onSave, child: const Text('Speichern')),
       ],
     ),
   );
