@@ -2,7 +2,7 @@
 # Runs the Go toolchain in a container (no local Go installation needed).
 # Usage: scripts/go.sh go test ./...
 set -eu
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 exec docker run --rm \
   -v "$ROOT":/src -w /src/server \
   -v acm-gomod:/go/pkg/mod -v acm-gobuild:/root/.cache/go-build \

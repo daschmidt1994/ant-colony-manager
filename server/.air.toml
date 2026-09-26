@@ -1,0 +1,14 @@
+root = "."
+tmp_dir = "/root/.air"   # /tmp is a noexec tmpfs (compose.yml)
+
+[build]
+  cmd = "go build -o /root/.air/acm ./cmd/acm"
+  entrypoint = ["/root/.air/acm", "serve"]
+  include_ext = ["go", "sql", "html", "js", "css", "txt"]
+  exclude_dir = ["tmp"]
+  exclude_regex = ["_test\\.go$"]
+  delay = 300
+  kill_delay = "2s"
+
+[log]
+  time = true

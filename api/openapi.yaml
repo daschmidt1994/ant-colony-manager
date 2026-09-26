@@ -14,8 +14,6 @@ info:
       sync operations carry an `op_id`.
     - Optimistic concurrency: send `If-Match: "<version>"` on PATCH; conflicting fields are merged
       (see `WriteResponse.conflicts`).
-  license:
-    name: AGPL-3.0-or-later
 servers:
   - url: "{publicUrl}"
     variables:

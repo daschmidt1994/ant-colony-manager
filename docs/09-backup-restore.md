@@ -6,7 +6,7 @@
 |---|---|
 | PostgreSQL | `pg_dump --format=custom --compress=zstd` (konsistenter Snapshot im laufenden Betrieb) |
 | Fotos/Uploads | `rsync --link-dest=<vorheriges Backup>` → jedes Backup ist ein vollständiger Ordner, unveränderte Dateien sind Hardlinks und belegen keinen zusätzlichen Platz |
-| Konfiguration | `.env` **nur** mit `BACKUP_INCLUDE_ENV=true` (enthält Secrets), sonst eine Kopie mit geschwärzten Secrets zur Dokumentation |
+| Konfiguration | `.env` **nur** mit `BACKUP_INCLUDE_ENV=true` (enthält Secrets), sonst eine Kopie mit geschwärzten Secrets zur Dokumentation. `data/secrets/` wird nicht mitgesichert – separat aufbewahren (README) |
 | Metadaten | `manifest.json`: App-Version, Schema-Version, Zeitpunkt, Zeilenzahlen je Tabelle, Anzahl/Größe Fotos, SHA-256 aller Dateien der Sicherung |
 
 Weil Fotos content-adressiert und unveränderlich gespeichert werden, sind tägliche Backups auch bei vielen GB Fotos schnell und klein.
@@ -64,12 +64,13 @@ Ablauf des Skripts:
 Weitere Fälle:
 - **Umzug auf neuen Server:** Repo klonen, `.env` übernehmen (oder aus Backup mit `BACKUP_INCLUDE_ENV=true`), Backup-Ordner kopieren, `restore.sh` ausführen. Dokumentiert als eigener Abschnitt „Migration auf neue Hardware“.
 - **Backup einer neueren App-Version** in ältere Installation → Skript bricht ab (Schema neuer als App).
-- **Clients nach Restore:** Der Server erhöht beim Restore eine `restore_epoch` in `instance_settings`. Apps erkennen den Wechsel beim nächsten Sync, pushen ihre ausstehende Outbox (idempotent, dadurch gehen Offline-Einträge seit dem Backup **nicht verloren**) und führen danach einen Snapshot-Resync durch.
+- **Clients nach Restore (umgesetzt):** Das Restore setzt den Änderungszähler auf einen Wert oberhalb aller bisher vergebenen (`max(aktuell, Epoch-Millisekunden)`) und hebt den Tombstone-Horizont darauf an. Jeder Pull mit altem Cursor bekommt damit `410 sync.resync_required`; Apps pushen zuerst ihre Outbox (idempotent – Offline-Einträge seit dem Backup gehen **nicht verloren**) und laden dann einen Snapshot. Es ist kein zusätzlicher Mechanismus nötig.
 
 ## 5. „Erst fertig, wenn Restore getestet wurde“
 
 - **CI-Test (`scripts/test-backup-restore.sh`):** Stack starten → Testdaten (Nutzer, 50 Kolonien, Events, Fotos) per API anlegen → Backup → Daten verändern/löschen → Restore → Zeilenzahlen, Stichproben per API und SHA-256 der Fotos vergleichen. Läuft bei jedem Release.
-- **Für Betreiber:** `./scripts/verify-backup.sh <backup>` stellt ein Backup in einen **temporären** PostgreSQL-Container wieder her (ohne die laufende Instanz anzufassen) und gibt einen Bericht aus. Empfehlung in der README: einmal pro Quartal ausführen.
+- **Für Betreiber:** `./scripts/verify-backup.sh <backup>` prüft alle Prüfsummen und stellt das Backup in eine **temporäre Datenbank** auf demselben PostgreSQL-Server wieder her (die laufende Datenbank bleibt unberührt), vergleicht die Datensatzzahlen und löscht die Test-DB wieder. Empfehlung: einmal pro Quartal.
+- **Umgesetzt in Phase 4:** `scripts/test-stack.sh` (auch in der CI) installiert den Stack frisch, legt Daten an, sichert, verifiziert, zerstört Daten, stellt wieder her (Foto bytegleich, Zählerstände identisch, alte Sync-Cursor ungültig), startet neu und prüft Retention und HTTPS-Proxy.
 
 ## 6. Abgrenzung: Export vs. Backup
 

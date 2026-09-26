@@ -53,3 +53,13 @@
 | Tests | `scripts/test-server.sh` – Unit- und Integrationstests gegen echtes PostgreSQL 18 |
 
 Abweichungen vom Plan: siehe Hinweis in [01-produkt-und-stack.md](01-produkt-und-stack.md) (pgx statt sqlc/goose, Go 1.26).
+
+## Phase 4 – Docker & Betrieb (umgesetzt)
+
+| Bereich | Stand |
+|---|---|
+| Stack | [`compose.yml`](../compose.yml): `init`, `db`, `app`, `backup`, optional `proxy` (Caddy); Dev: [`compose.dev.yml`](../compose.dev.yml) |
+| Konfiguration | [`.env.example`](../.env.example), [`.env.production.example`](../.env.production.example); Secrets werden automatisch erzeugt |
+| Betrieb | `scripts/init-env.sh`, `backup.sh`, `verify-backup.sh`, `restore.sh`, `update.sh` |
+| Proxy-Beispiele | [`deploy/examples/`](../deploy/examples) (Nginx, Traefik, Nginx Proxy Manager, restic) |
+| Test | `scripts/test-stack.sh` – End-to-End inkl. Restore und HTTPS; CI in `.github/workflows/` |

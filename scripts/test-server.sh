@@ -2,7 +2,7 @@
 # Runs all backend tests against a throw-away PostgreSQL 18 (in RAM).
 # Usage: scripts/test-server.sh [go test args…]   e.g. -run TestSync -v
 set -eu
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 NAME=acm-test-db
 PORT=${TEST_DB_PORT:-55432}
 

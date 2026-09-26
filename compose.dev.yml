@@ -1,0 +1,50 @@
+# Development overlay: hot reload, open registration, mail catcher, DB port.
+#
+#   cp .env.example .env
+#   docker compose -f compose.yml -f compose.dev.yml up
+#
+#   Web/API:  http://localhost:8080     Mailpit: http://localhost:8025
+#   DB:       localhost:5432 (user/db acm, password: data/secrets/postgres_password)
+#   Flutter:  flutter run -d chrome   (outside Docker, against http://localhost:8080)
+services:
+  app:
+    image: ant-colony-manager-dev
+    build:
+      context: .
+      dockerfile: server/Dockerfile.dev
+    user: "0:0"
+    read_only: false
+    # root inside the dev container still needs to read the generated secrets
+    # (compose.yml drops all capabilities; lists are merged, so add back one).
+    cap_add: [DAC_OVERRIDE]
+    environment:
+      APP_ENV: development
+      LOG_FORMAT: text
+      LOG_LEVEL: debug
+      REGISTRATION_MODE: open
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_TLS: none
+      SMTP_USER: ""
+      SMTP_FROM: ants@localhost
+    volumes:
+      - ./server:/src/server
+      - ./test-vectors:/src/test-vectors
+      - acm-gomod:/go/pkg/mod
+      - acm-gobuild:/root/.cache/go-build
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/readyz"]
+      start_period: 3m
+
+  db:
+    ports:
+      - "127.0.0.1:${DEV_DB_PORT:-5432}:5432"
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "127.0.0.1:8025:8025"
+
+volumes:
+  acm-gomod:
+  acm-gobuild:

@@ -7,108 +7,23 @@
 | `app` | `ghcr.io/<org>/ant-colony-manager` (amd64 + arm64) | ✔ | Go-API + eingebettete Flutter-Web-App + Hintergrundjobs + Migrationen |
 | `db` | `postgres:18-alpine` | ✔ | Datenbank |
 | `backup` | `ghcr.io/<org>/ant-colony-manager-backup` | ✔ (abschaltbar) | geplante Backups, Retention, manuelle Backups/Restores |
+| `init` | Backup-Image | ✔ (einmalig) | Verzeichnisse + Rechte + Secrets beim Start |
 | `proxy` | `caddy:2-alpine` | Profil `proxy` | HTTPS (Let's Encrypt oder interne CA) |
 
 **Bewusst weggelassen:** separater Web-Container (Web ist im `app`-Image eingebettet), Redis (Rate-Limits/Jobs in-process bzw. in PostgreSQL), Worker (Goroutinen), MinIO/Storage-Container (Dateisystem-Volume; S3 optional per ENV). Weniger Container = weniger RAM auf Pi/NAS und weniger Update-Aufwand.
 
-## 2. compose.yml (Entwurf)
+## 2. compose.yml (umgesetzt in Phase 4)
 
-```yaml
-name: ant-colony-manager
+Die verbindliche Datei ist [`compose.yml`](../compose.yml). Gegenüber dem ursprünglichen Entwurf:
 
-x-logging: &logging
-  driver: json-file
-  options: { max-size: "10m", max-file: "5" }
-
-services:
-  app:
-    image: ghcr.io/<org>/ant-colony-manager:${ACM_VERSION:-latest}
-    build: { context: ., dockerfile: server/Dockerfile }
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
-      STORAGE_PATH: /data/uploads
-    volumes:
-      - ${DATA_DIR:-./data}/uploads:/data/uploads
-      - ${DATA_DIR:-./data}/backups:/data/backups:ro      # nur Status-Anzeige
-    ports:
-      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-8080}:8080"
-    depends_on:
-      db: { condition: service_healthy }
-    healthcheck:
-      test: ["CMD", "/acm", "healthcheck"]                  # distroless: kein curl nötig
-      interval: 30s
-      timeout: 5s
-      start_period: 30s
-      retries: 3
-    read_only: true
-    tmpfs: [/tmp]
-    security_opt: [no-new-privileges:true]
-    user: "${PUID:-1000}:${PGID:-1000}"
-    logging: *logging
-
-  db:
-    image: postgres:18-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - ${DATA_DIR:-./data}/postgres:/var/lib/postgresql   # PG18: Datenverzeichnis liegt versioniert darunter
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    shm_size: 128m
-    logging: *logging
-    # kein Port nach außen
-
-  backup:
-    image: ghcr.io/<org>/ant-colony-manager-backup:${ACM_VERSION:-latest}
-    build: { context: deploy/backup }
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      PGHOST: db
-    volumes:
-      - ${DATA_DIR:-./data}/uploads:/data/uploads:ro
-      - ${DATA_DIR:-./data}/backups:/data/backups
-    depends_on:
-      db: { condition: service_healthy }
-    healthcheck:
-      test: ["CMD", "/app/healthcheck.sh"]                  # letztes erfolgreiches Backup < 26 h?
-      interval: 1h
-      start_period: 5m
-    logging: *logging
-
-  proxy:
-    profiles: [proxy]
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports: ["80:80", "443:443", "443:443/udp"]
-    environment:
-      ACM_DOMAIN: ${ACM_DOMAIN}
-    volumes:
-      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ${DATA_DIR:-./data}/caddy:/data
-    depends_on:
-      app: { condition: service_healthy }
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2019/config/"]
-      interval: 30s
-    logging: *logging
-
-networks:
-  default:
-    name: acm
-```
-
-- **Ohne Proxy** (LAN): `docker compose up -d` → `http://192.168.1.50:8080`.
-- **Mit Caddy**: `COMPOSE_PROFILES=proxy` in `.env` → `https://ants.example.com` automatisch mit Let's Encrypt. Für rein lokale Domains (`ants.home.arpa`) nutzt Caddy seine interne CA (`tls internal`), das Root-Zertifikat wird einmal auf dem Handy installiert.
-- **Eigener Proxy** (Traefik, Nginx, Nginx Proxy Manager): Profil weglassen, auf `app:8080` zeigen; Beispielkonfigurationen in `deploy/examples/`. `TRUSTED_PROXIES` setzen.
+| Punkt | Umsetzung |
+|---|---|
+| **`init`-Dienst** | Einmal-Container (Backup-Image) legt `uploads/`, `backups/`, `secrets/` mit `PUID:PGID` an und **erzeugt fehlende Secrets** → `cp .env.example .env && docker compose up -d` genügt |
+| Secrets | `data/secrets/{postgres_password,jwt_secret,instance_secret}` (0440); Übergabe per `*_FILE`-Variablen, Werte aus `.env` haben Vorrang |
+| `app` | läuft als `PUID:PGID`, `read_only`, `cap_drop: ALL`, `no-new-privileges`, Healthcheck `/acm healthcheck` |
+| `backup` | basiert auf `postgres:18-alpine` (identische `pg_dump`-Version), liest Fotos nur lesend |
+| Netzwerk | eigenes Subnetz `ACM_SUBNET` (für `TRUSTED_PROXIES` berechenbar), kein fester Netzwerkname → mehrere Stacks parallel möglich |
+| Images ohne Registry | fehlt ein Image auf GHCR, baut Compose es lokal (`build:` ist hinterlegt) |
 
 ## 3. compose.dev.yml (Entwicklung)
 
@@ -126,6 +41,7 @@ services:
     image: axllent/mailpit
     ports: ["8025:8025"]
 ```
+Umgesetzt mit `air` (Hot Reload, getestet) und Mailpit; `/tmp` ist in Produktion ein `noexec`-tmpfs, daher baut `air` nach `/root/.air`.
 Flutter läuft in der Entwicklung außerhalb von Docker (`flutter run -d chrome` / Android-Gerät) mit Hot Reload gegen `http://localhost:8080`.
 Aufruf: `docker compose -f compose.yml -f compose.dev.yml up`.
 
@@ -140,7 +56,7 @@ Stage 3  gcr.io/distroless/static:nonroot                         → /acm  (~25
 ```
 Beide Build-Stufen laufen nativ auf der Build-Maschine, nur das Ziel-Binary wird cross-kompiliert → schnelle Builds für `linux/amd64` und `linux/arm64` ohne QEMU. CI: `docker buildx build --platform linux/amd64,linux/arm64 --push`.
 
-**`deploy/backup/Dockerfile`**: `alpine` + `postgresql18-client` + `rsync` + `zstd` + `supercronic` (Cron ohne Root).
+**`deploy/backup/Dockerfile`**: `postgres:18-alpine` + `rsync` + `zstd` + `supercronic` (Cron ohne Root) + `jq`. Das Server-Image wurde lokal für `amd64` und `arm64` gebaut (24 MB); das Backup-Image enthält `RUN`-Schritte und wird für `arm64` in der CI mit QEMU gebaut.
 
 ## 5. Persistente Daten
 
@@ -208,7 +124,7 @@ LOG_FORMAT=json                      # json | text
 TZ=Europe/Vienna
 ```
 
-Der Server **startet nicht**, wenn Pflicht-Secrets fehlen, zu kurz sind oder Beispielwerte enthalten (klare Fehlermeldung im Log). `scripts/init-env.sh` erzeugt eine `.env` mit Zufalls-Secrets.
+Der Server **startet nicht**, wenn Pflicht-Secrets fehlen, zu kurz sind oder Beispielwerte enthalten (klare Fehlermeldung im Log). Leere Secrets in der `.env` erzeugt der `init`-Dienst automatisch; `scripts/init-env.sh` trägt zusätzlich die öffentliche Adresse ein.
 
 ## 7. Healthchecks & Logs
 

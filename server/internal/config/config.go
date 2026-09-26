@@ -66,8 +66,32 @@ func Load() (*Config, error) { return LoadFrom(os.Getenv) }
 
 var weakMarkers = []string{"change-me", "changeme", "example", "secret", "password"}
 
-func LoadFrom(get Getenv) (*Config, error) {
+// ReadFile is used for *_FILE variables (replaceable in tests).
+var ReadFile = os.ReadFile
+
+// fileSecrets may be given as KEY or KEY_FILE (Docker secrets, generated files).
+var fileSecrets = []string{"JWT_SECRET", "INSTANCE_SECRET", "POSTGRES_PASSWORD", "SMTP_PASSWORD"}
+
+func LoadFrom(getenv Getenv) (*Config, error) {
 	var errs []error
+	get := func(k string) string {
+		if v := getenv(k); v != "" {
+			return v
+		}
+		for _, s := range fileSecrets {
+			if s == k {
+				if path := getenv(k + "_FILE"); path != "" {
+					b, err := ReadFile(path)
+					if err != nil {
+						errs = append(errs, fmt.Errorf("%s_FILE: %w", k, err))
+						return ""
+					}
+					return strings.TrimSpace(string(b))
+				}
+			}
+		}
+		return ""
+	}
 	str := func(key, def string) string {
 		if v := strings.TrimSpace(get(key)); v != "" {
 			return v

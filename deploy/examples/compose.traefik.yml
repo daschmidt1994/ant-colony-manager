@@ -1,0 +1,19 @@
+# Overlay for an existing Traefik (v3) that watches Docker labels.
+#   docker compose -f compose.yml -f deploy/examples/compose.traefik.yml up -d
+# .env: PUBLIC_APP_URL=https://ants.example.com  APP_BIND=127.0.0.1
+#       TRUSTED_PROXIES=<subnet of the traefik network, e.g. 172.18.0.0/16>
+services:
+  app:
+    networks: [default, traefik]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: traefik
+      traefik.http.routers.ants.rule: Host(`ants.example.com`)
+      traefik.http.routers.ants.entrypoints: websecure
+      traefik.http.routers.ants.tls.certresolver: letsencrypt
+      traefik.http.services.ants.loadbalancer.server.port: "8080"
+      # Traefik streams responses by default – SSE works without extra settings.
+
+networks:
+  traefik:
+    external: true

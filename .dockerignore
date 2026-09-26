@@ -1,0 +1,13 @@
+.git
+.github
+data
+**/data
+docs
+*.md
+!server/README.md
+.env
+.env.*
+!.env.example
+!.env.production.example
+app/build
+app/.dart_tool

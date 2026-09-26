@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -66,5 +67,34 @@ func TestRejectsMissingAndWeakSecrets(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("expected error containing %q, got %v", want, err)
 		}
+	}
+}
+
+func TestSecretsFromFiles(t *testing.T) {
+	m := valid()
+	delete(m, "JWT_SECRET")
+	delete(m, "POSTGRES_PASSWORD")
+	m["JWT_SECRET_FILE"] = "/run/secrets/jwt"
+	m["POSTGRES_PASSWORD_FILE"] = "/run/secrets/pg"
+	files := map[string]string{"/run/secrets/jwt": "Qm2Lr7Vt4Np9Ks3Hd6Wf1Yb5Gc0Ja8Ue2Io7Zx8\n", "/run/secrets/pg": "db-pass\n"}
+	ReadFile = func(p string) ([]byte, error) {
+		v, ok := files[p]
+		if !ok {
+			return nil, os.ErrNotExist
+		}
+		return []byte(v), nil
+	}
+	defer func() { ReadFile = os.ReadFile }()
+	c, err := LoadFrom(env(m))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(c.JWTSecret) != "Qm2Lr7Vt4Np9Ks3Hd6Wf1Yb5Gc0Ja8Ue2Io7Zx8" || !strings.Contains(c.DatabaseURL, "acm:db-pass@") {
+		t.Fatalf("file secrets not used: %s", c.DatabaseURL)
+	}
+	m["INSTANCE_SECRET_FILE"] = "/missing"
+	delete(m, "INSTANCE_SECRET")
+	if _, err := LoadFrom(env(m)); err == nil || !strings.Contains(err.Error(), "INSTANCE_SECRET_FILE") {
+		t.Fatalf("missing file must be reported, got %v", err)
 	}
 }

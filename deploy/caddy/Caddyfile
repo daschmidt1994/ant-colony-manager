@@ -1,0 +1,45 @@
+# Caddy reverse proxy for Ant Colony Manager (compose profile "proxy").
+#
+#   ACM_DOMAIN      e.g. ants.example.com (public) or ants.home.arpa (LAN)
+#   ACM_TLS_MODE    acme     – Let's Encrypt (domain must be reachable on ports 80/443)
+#                   internal – Caddy's own CA (LAN only; install its root cert once on your devices:
+#                              data/caddy/data/caddy/pki/authorities/local/root.crt)
+
+{
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+(tls-acme) {
+}
+
+(tls-internal) {
+	tls internal
+}
+
+{$ACM_DOMAIN} {
+	import tls-{$ACM_TLS_MODE:acme}
+	encode zstd gzip
+	request_body {
+		max_size 64MB
+	}
+	reverse_proxy app:8080 {
+		# Server-Sent Events (/api/v1/sync/events) must not be buffered.
+		flush_interval -1
+	}
+	log {
+		output stdout
+		format filter {
+			wrap console
+			fields {
+				request>uri query {
+					delete sig
+					delete exp
+				}
+				request>headers>Authorization delete
+				request>headers>Cookie delete
+			}
+		}
+	}
+}

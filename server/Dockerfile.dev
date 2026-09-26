@@ -1,0 +1,5 @@
+# Development image: rebuilds and restarts the server on every code change.
+FROM golang:1.26-alpine
+RUN go install github.com/air-verse/air@latest
+WORKDIR /src/server
+CMD ["air", "-c", ".air.toml"]
