@@ -30,6 +30,8 @@ fail() { printf '  \033[31m✘ %s\033[0m\n' "$*" >&2; cd "$WORK" && docker compo
 cleanup() {
   if [ "$KEEP" = 1 ]; then echo "kept: $WORK (docker compose -p $PROJECT …)"; return; fi
   cd "$WORK" 2>/dev/null && docker compose -p "$PROJECT" --profile proxy down -v --remove-orphans >/dev/null 2>&1 || true
+  # data/ contains files of other users (postgres uid 70) – remove them from a container
+  docker run --rm -v "$WORK":/w alpine rm -rf /w/data >/dev/null 2>&1 || true
   rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -49,6 +51,10 @@ cp .env.example .env
 sed -i "s#^PUBLIC_APP_URL=.*#PUBLIC_APP_URL=$BASE#; s#^APP_PORT=.*#APP_PORT=$PORT#; s#^APP_BIND=.*#APP_BIND=127.0.0.1#;
         s#^ACM_SUBNET=.*#ACM_SUBNET=172.30.199.0/24#; s#^BACKUP_KEEP_DAILY=.*#BACKUP_KEEP_DAILY=3#;
         s#^ACM_VERSION=.*#ACM_VERSION=e2e#" .env
+# Like scripts/init-env.sh: files belong to the user running the stack.
+if [ "$(id -u)" != 0 ]; then
+  sed -i "s#^PUID=.*#PUID=$(id -u)#; s#^PGID=.*#PGID=$(id -g)#" .env
+fi
 export COMPOSE_PROJECT_NAME=$PROJECT
 dc() { docker compose -p "$PROJECT" "$@"; }
 ok ".env aus .env.example – ohne Secrets"
