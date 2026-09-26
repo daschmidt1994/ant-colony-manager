@@ -12,8 +12,5 @@ Future<void> main() async {
   usePathUrlStrategy(); // real paths like /c/<code> instead of /#/c/<code>
   await initializeDateFormatting('de');
   final db = await AppDatabase.open();
-  runApp(ProviderScope(
-    overrides: [databaseProvider.overrideWithValue(db)],
-    child: const App(),
-  ));
+  runApp(ProviderScope(overrides: [databaseProvider.overrideWithValue(db)], child: const App()));
 }

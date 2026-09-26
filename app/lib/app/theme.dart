@@ -44,11 +44,11 @@ class AppColors extends ThemeExtension<AppColors> {
   );
 
   Color due(DueStatus s) => switch (s) {
-        DueStatus.overdue => overdue,
-        DueStatus.soon => soon,
-        DueStatus.ok => ok,
-        DueStatus.paused => winter,
-      };
+    DueStatus.overdue => overdue,
+    DueStatus.soon => soon,
+    DueStatus.ok => ok,
+    DueStatus.paused => winter,
+  };
 
   @override
   AppColors copyWith() => this;

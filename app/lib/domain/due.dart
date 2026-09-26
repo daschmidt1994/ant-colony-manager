@@ -57,15 +57,15 @@ class Schedule {
   });
 
   factory Schedule.fromJson(Map<String, dynamic> j) => Schedule(
-        id: j['id'] as String,
-        colonyId: j['colony_id'] as String,
-        taskType: j['task_type'] as String,
-        intervalDays: (j['interval_days'] as num).toDouble(),
-        startsAt: DateTime.parse(j['starts_at'] as String),
-        title: j['title'] as String?,
-        active: j['active'] as bool? ?? true,
-        winterMode: j['winter_mode'] as String?,
-      );
+    id: j['id'] as String,
+    colonyId: j['colony_id'] as String,
+    taskType: j['task_type'] as String,
+    intervalDays: (j['interval_days'] as num).toDouble(),
+    startsAt: DateTime.parse(j['starts_at'] as String),
+    title: j['title'] as String?,
+    active: j['active'] as bool? ?? true,
+    winterMode: j['winter_mode'] as String?,
+  );
 
   final String id;
   final String colonyId;
@@ -99,14 +99,14 @@ class LastCare {
   final Map<String, DateTime> bySchedule;
 
   DateTime? forSchedule(Schedule s) => switch (s.taskType) {
-        'feeding' => feeding,
-        'protein' => protein,
-        'carbohydrate' => carbohydrate,
-        'water' => water,
-        'cleaning' => cleaning,
-        'check' => check,
-        _ => bySchedule[s.id],
-      };
+    'feeding' => feeding,
+    'protein' => protein,
+    'carbohydrate' => carbohydrate,
+    'water' => water,
+    'cleaning' => cleaning,
+    'check' => check,
+    _ => bySchedule[s.id],
+  };
 }
 
 class DueTask {
@@ -141,12 +141,14 @@ List<DueTask> computeDue({
   for (final s in schedules.where((s) => s.active)) {
     final l = last.forSchedule(s);
     final n = nextDue(s, l, winter);
-    tasks.add(DueTask(
-      schedule: s,
-      lastDone: l,
-      nextDue: n,
-      classification: classify(n, now, soonDays: soonDays, toLocal: toLocal),
-    ));
+    tasks.add(
+      DueTask(
+        schedule: s,
+        lastDone: l,
+        nextDue: n,
+        classification: classify(n, now, soonDays: soonDays, toLocal: toLocal),
+      ),
+    );
   }
   tasks.sort((a, b) {
     final pa = a.status == DueStatus.paused, pb = b.status == DueStatus.paused;
@@ -157,5 +159,4 @@ List<DueTask> computeDue({
 }
 
 /// Most urgent (non-paused) task, if any.
-DueTask? worstOf(List<DueTask> tasks) =>
-    tasks.isEmpty || tasks.first.status == DueStatus.paused ? null : tasks.first;
+DueTask? worstOf(List<DueTask> tasks) => tasks.isEmpty || tasks.first.status == DueStatus.paused ? null : tasks.first;

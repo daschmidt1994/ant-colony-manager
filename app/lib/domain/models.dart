@@ -33,7 +33,8 @@ class Colony {
 
   double? get lastTemperature => _double((json['last_measurement'] as Map?)?['temperature']?['value']);
   double? get lastHumidity => _double((json['last_measurement'] as Map?)?['humidity']?['value']);
-  DateTime? get lastMeasurementAt => _date((json['last_measurement'] as Map?)?['temperature']?['at']) ??
+  DateTime? get lastMeasurementAt =>
+      _date((json['last_measurement'] as Map?)?['temperature']?['at']) ??
       _date((json['last_measurement'] as Map?)?['humidity']?['at']);
 
   bool get isCareActive => !archived && const {'founding', 'active', 'hibernating'}.contains(status);

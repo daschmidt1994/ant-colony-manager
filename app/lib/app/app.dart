@@ -13,10 +13,10 @@ final themeModeProvider = NotifierProvider<ThemeModeController, ThemeMode>(Theme
 class ThemeModeController extends Notifier<ThemeMode> {
   @override
   ThemeMode build() => switch (ref.read(databaseProvider).getMeta('theme')) {
-        'light' => ThemeMode.light,
-        'system' => ThemeMode.system,
-        _ => ThemeMode.dark, // dark is the default – pleasant in dim ant rooms
-      };
+    'light' => ThemeMode.light,
+    'system' => ThemeMode.system,
+    _ => ThemeMode.dark, // dark is the default – pleasant in dim ant rooms
+  };
 
   void set(ThemeMode m) {
     ref.read(databaseProvider).setMeta('theme', m.name);
@@ -29,18 +29,18 @@ class App extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
-        title: S.appName,
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
-        themeMode: ref.watch(themeModeProvider),
-        routerConfig: ref.watch(routerProvider),
-        locale: const Locale('de'),
-        supportedLocales: const [Locale('de')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-      );
+    title: S.appName,
+    debugShowCheckedModeBanner: false,
+    theme: buildTheme(Brightness.light),
+    darkTheme: buildTheme(Brightness.dark),
+    themeMode: ref.watch(themeModeProvider),
+    routerConfig: ref.watch(routerProvider),
+    locale: const Locale('de'),
+    supportedLocales: const [Locale('de')],
+    localizationsDelegates: const [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+  );
 }

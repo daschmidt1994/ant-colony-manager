@@ -27,9 +27,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
   final _notes = TextEditingController();
   final _seller = TextEditingController();
   final _findLocation = TextEditingController();
-  final _intervals = <String, TextEditingController>{
-    for (final t in defaultIntervals.keys) t: TextEditingController(),
-  };
+  final _intervals = <String, TextEditingController>{for (final t in defaultIntervals.keys) t: TextEditingController()};
   String _status = 'active';
   String _gyne = 'unknown';
   String? _origin;
@@ -89,7 +87,13 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
   void _suggestName() {
     if (_nameTouched || !_isNew) return;
     final genus = _species.text.trim().split(' ').first;
-    final next = (ref.read(repositoryProvider)!.colonies(includeArchived: true).map((c) => c.number).fold<int>(0, (a, b) => a > b ? a : b)) + 1;
+    final next =
+        (ref
+            .read(repositoryProvider)!
+            .colonies(includeArchived: true)
+            .map((c) => c.number)
+            .fold<int>(0, (a, b) => a > b ? a : b)) +
+        1;
     _name.text = genus.isEmpty ? '' : '$genus #$next';
   }
 
@@ -105,156 +109,209 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
       ),
       body: Form(
         key: _form,
-        child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 40), children: [
-          ContentWidth(
-            maxWidth: 640,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              RawAutocomplete<String>(
-                textEditingController: _species,
-                focusNode: _speciesFocus,
-                optionsBuilder: (v) => v.text.isEmpty
-                    ? const Iterable.empty()
-                    : suggestions.where((s) => s.toLowerCase().contains(v.text.toLowerCase()) && s != v.text),
-                fieldViewBuilder: (context, ctl, focus, onSubmit) => TextFormField(
-                  controller: ctl,
-                  focusNode: focus,
-                  autofocus: _isNew,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(labelText: 'Art *', hintText: 'Messor barbarus'),
-                  validator: (v) => (v ?? '').trim().isEmpty ? 'Bitte die Art angeben' : null,
-                ),
-                optionsViewBuilder: (context, onSelected, options) => Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(12),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 240, maxWidth: 420),
-                      child: ListView(padding: EdgeInsets.zero, shrinkWrap: true, children: [
-                        for (final o in options)
-                          ListTile(title: Text(o, style: const TextStyle(fontStyle: FontStyle.italic)), onTap: () => onSelected(o)),
-                      ]),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _name,
-                decoration: const InputDecoration(labelText: 'Name'),
-                onChanged: (_) => _nameTouched = true,
-                validator: (v) => (v ?? '').trim().isEmpty ? 'Bitte einen Namen angeben' : null,
-              ),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: TextFormField(controller: _code, decoration: const InputDecoration(labelText: 'Interner Code'))),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String?>(
-                    initialValue: _locationId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Standort'),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('–')),
-                      for (final l in locations) DropdownMenuItem(value: l.id, child: Text(l.path, overflow: TextOverflow.ellipsis)),
-                      const DropdownMenuItem(value: '__new', child: Text('+ Neuer Standort …')),
-                    ],
-                    onChanged: (v) async {
-                      if (v == '__new') {
-                        final id = await _newLocation(locations);
-                        setState(() => _locationId = id ?? _locationId);
-                      } else {
-                        setState(() => _locationId = v);
-                      }
-                    },
-                  ),
-                ),
-              ]),
-              const SectionHeader('Status'),
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                for (final s in const ['founding', 'active', 'paused', 'given_away', 'sold', 'deceased'])
-                  ChoiceChip(label: Text(S.statusNames[s]!), selected: _status == s, onSelected: (_) => setState(() => _status = s)),
-              ]),
-              const SectionHeader('Königinnen'),
-              SegmentedButton<String>(
-                segments: [for (final g in const ['monogyne', 'polygyne', 'unknown']) ButtonSegment(value: g, label: Text(S.gyneNames[g]!))],
-                selected: {_gyne},
-                onSelectionChanged: (v) => setState(() => _gyne = v.first),
-                showSelectedIcon: false,
-              ),
-              if (_isNew) ...[
-                const SectionHeader('Koloniegröße (Schätzung)'),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  for (final r in workerRanges)
-                    ChoiceChip(
-                      label: Text(S.workers(r.$1, r.$2)),
-                      selected: _workers == r,
-                      onSelected: (v) => setState(() => _workers = v ? r : null),
-                    ),
-                ]),
-              ],
-              const SectionHeader('Pflegeintervalle (Tage)'),
-              Row(children: [
-                for (final t in defaultIntervals.keys) ...[
-                  Expanded(
-                    child: TextFormField(
-                      controller: _intervals[t],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
-                      decoration: InputDecoration(labelText: S.taskNames[t]),
-                    ),
-                  ),
-                  if (t != defaultIntervals.keys.last) const SizedBox(width: 8),
-                ],
-              ]),
-              const SizedBox(height: 4),
-              Text('Leer lassen = keine Erinnerung.', style: TextStyle(color: context.colors.muted, fontSize: 12)),
-              const SizedBox(height: 8),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: const Text('Herkunft & Daten'),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+          children: [
+            ContentWidth(
+              maxWidth: 640,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  DropdownButtonFormField<String?>(
-                    initialValue: _origin,
-                    decoration: const InputDecoration(labelText: 'Herkunft'),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('–')),
-                      DropdownMenuItem(value: 'wild_caught', child: Text('Selbst gefangen')),
-                      DropdownMenuItem(value: 'bought', child: Text('Gekauft')),
-                      DropdownMenuItem(value: 'bred', child: Text('Eigene Zucht')),
-                      DropdownMenuItem(value: 'traded', child: Text('Getauscht')),
-                      DropdownMenuItem(value: 'gift', child: Text('Geschenkt')),
-                      DropdownMenuItem(value: 'other', child: Text('Sonstiges')),
+                  RawAutocomplete<String>(
+                    textEditingController: _species,
+                    focusNode: _speciesFocus,
+                    optionsBuilder: (v) => v.text.isEmpty
+                        ? const Iterable.empty()
+                        : suggestions.where((s) => s.toLowerCase().contains(v.text.toLowerCase()) && s != v.text),
+                    fieldViewBuilder: (context, ctl, focus, onSubmit) => TextFormField(
+                      controller: ctl,
+                      focusNode: focus,
+                      autofocus: _isNew,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(labelText: 'Art *', hintText: 'Messor barbarus'),
+                      validator: (v) => (v ?? '').trim().isEmpty ? 'Bitte die Art angeben' : null,
+                    ),
+                    optionsViewBuilder: (context, onSelected, options) => Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(12),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 240, maxWidth: 420),
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            children: [
+                              for (final o in options)
+                                ListTile(
+                                  title: Text(o, style: const TextStyle(fontStyle: FontStyle.italic)),
+                                  onTap: () => onSelected(o),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _name,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    onChanged: (_) => _nameTouched = true,
+                    validator: (v) => (v ?? '').trim().isEmpty ? 'Bitte einen Namen angeben' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _code,
+                          decoration: const InputDecoration(labelText: 'Interner Code'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String?>(
+                          initialValue: _locationId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(labelText: 'Standort'),
+                          items: [
+                            const DropdownMenuItem(value: null, child: Text('–')),
+                            for (final l in locations)
+                              DropdownMenuItem(
+                                value: l.id,
+                                child: Text(l.path, overflow: TextOverflow.ellipsis),
+                              ),
+                            const DropdownMenuItem(value: '__new', child: Text('+ Neuer Standort …')),
+                          ],
+                          onChanged: (v) async {
+                            if (v == '__new') {
+                              final id = await _newLocation(locations);
+                              setState(() => _locationId = id ?? _locationId);
+                            } else {
+                              setState(() => _locationId = v);
+                            }
+                          },
+                        ),
+                      ),
                     ],
-                    onChanged: (v) => setState(() => _origin = v),
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(controller: _findLocation, decoration: const InputDecoration(labelText: 'Fundort (bleibt privat)')),
-                  const SizedBox(height: 12),
-                  TextFormField(controller: _seller, decoration: const InputDecoration(labelText: 'Verkäufer / Züchter')),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Gründungsdatum'),
-                    subtitle: Text(_founded == null ? '–' : S.date(_founded!)),
-                    trailing: const Icon(Icons.edit_calendar),
-                    onTap: () async {
-                      final d = await showDatePicker(
-                          context: context,
-                          firstDate: DateTime(1990),
-                          lastDate: DateTime.now(),
-                          initialDate: _founded ?? DateTime.now());
-                      if (d != null) setState(() => _founded = d);
-                    },
+                  const SectionHeader('Status'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final s in const ['founding', 'active', 'paused', 'given_away', 'sold', 'deceased'])
+                        ChoiceChip(
+                          label: Text(S.statusNames[s]!),
+                          selected: _status == s,
+                          onSelected: (_) => setState(() => _status = s),
+                        ),
+                    ],
                   ),
+                  const SectionHeader('Königinnen'),
+                  SegmentedButton<String>(
+                    segments: [
+                      for (final g in const ['monogyne', 'polygyne', 'unknown'])
+                        ButtonSegment(value: g, label: Text(S.gyneNames[g]!)),
+                    ],
+                    selected: {_gyne},
+                    onSelectionChanged: (v) => setState(() => _gyne = v.first),
+                    showSelectedIcon: false,
+                  ),
+                  if (_isNew) ...[
+                    const SectionHeader('Koloniegröße (Schätzung)'),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final r in workerRanges)
+                          ChoiceChip(
+                            label: Text(S.workers(r.$1, r.$2)),
+                            selected: _workers == r,
+                            onSelected: (v) => setState(() => _workers = v ? r : null),
+                          ),
+                      ],
+                    ),
+                  ],
+                  const SectionHeader('Pflegeintervalle (Tage)'),
+                  Row(
+                    children: [
+                      for (final t in defaultIntervals.keys) ...[
+                        Expanded(
+                          child: TextFormField(
+                            controller: _intervals[t],
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+                            decoration: InputDecoration(labelText: S.taskNames[t]),
+                          ),
+                        ),
+                        if (t != defaultIntervals.keys.last) const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Leer lassen = keine Erinnerung.', style: TextStyle(color: context.colors.muted, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('Herkunft & Daten'),
+                    children: [
+                      DropdownButtonFormField<String?>(
+                        initialValue: _origin,
+                        decoration: const InputDecoration(labelText: 'Herkunft'),
+                        items: const [
+                          DropdownMenuItem(value: null, child: Text('–')),
+                          DropdownMenuItem(value: 'wild_caught', child: Text('Selbst gefangen')),
+                          DropdownMenuItem(value: 'bought', child: Text('Gekauft')),
+                          DropdownMenuItem(value: 'bred', child: Text('Eigene Zucht')),
+                          DropdownMenuItem(value: 'traded', child: Text('Getauscht')),
+                          DropdownMenuItem(value: 'gift', child: Text('Geschenkt')),
+                          DropdownMenuItem(value: 'other', child: Text('Sonstiges')),
+                        ],
+                        onChanged: (v) => setState(() => _origin = v),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _findLocation,
+                        decoration: const InputDecoration(labelText: 'Fundort (bleibt privat)'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _seller,
+                        decoration: const InputDecoration(labelText: 'Verkäufer / Züchter'),
+                      ),
+                      const SizedBox(height: 12),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Gründungsdatum'),
+                        subtitle: Text(_founded == null ? '–' : S.date(_founded!)),
+                        trailing: const Icon(Icons.edit_calendar),
+                        onTap: () async {
+                          final d = await showDatePicker(
+                            context: context,
+                            firstDate: DateTime(1990),
+                            lastDate: DateTime.now(),
+                            initialDate: _founded ?? DateTime.now(),
+                          );
+                          if (d != null) setState(() => _founded = d);
+                        },
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    controller: _notes,
+                    minLines: 2,
+                    maxLines: 6,
+                    decoration: const InputDecoration(labelText: 'Notizen'),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(onPressed: _save, child: Text(_isNew ? 'Kolonie anlegen' : 'Speichern')),
                 ],
               ),
-              TextFormField(controller: _notes, minLines: 2, maxLines: 6, decoration: const InputDecoration(labelText: 'Notizen')),
-              const SizedBox(height: 24),
-              FilledButton(onPressed: _save, child: Text(_isNew ? 'Kolonie anlegen' : 'Speichern')),
-            ]),
-          ),
-        ]),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -267,20 +324,27 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
       builder: (c) => StatefulBuilder(
         builder: (c, set) => AlertDialog(
           title: const Text('Neuer Standort'),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(controller: name, autofocus: true, decoration: const InputDecoration(labelText: 'Name', hintText: 'Regal A')),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              initialValue: parent,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Liegt in'),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('– (oberste Ebene)')),
-                for (final l in existing) DropdownMenuItem(value: l.id, child: Text(l.path)),
-              ],
-              onChanged: (v) => set(() => parent = v),
-            ),
-          ]),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Name', hintText: 'Regal A'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                initialValue: parent,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Liegt in'),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('– (oberste Ebene)')),
+                  for (final l in existing) DropdownMenuItem(value: l.id, child: Text(l.path)),
+                ],
+                onChanged: (v) => set(() => parent = v),
+              ),
+            ],
+          ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
             FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Anlegen')),
@@ -315,17 +379,29 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
     };
     final intervals = {for (final t in defaultIntervals.keys) t: _interval(t)};
     if (_isNew) {
-      final id = repo.createColony(fields..removeWhere((_, v) => v == null),
-          intervals: {for (final e in intervals.entries) if (e.value > 0) e.key: e.value});
+      final id = repo.createColony(
+        fields..removeWhere((_, v) => v == null),
+        intervals: {
+          for (final e in intervals.entries)
+            if (e.value > 0) e.key: e.value,
+        },
+      );
       if (_workers != null) {
-        repo.logEvent(id, 'census', details: {
-          'census': {'estimate_min': _workers!.$1, 'estimate_max': _workers!.$2},
-        });
+        repo.logEvent(
+          id,
+          'census',
+          details: {
+            'census': {'estimate_min': _workers!.$1, 'estimate_max': _workers!.$2},
+          },
+        );
       }
       context.go('/colonies/$id');
     } else {
       final c = repo.colony(widget.colonyId!)!;
-      final changed = {for (final e in fields.entries) if (c.json[e.key] != e.value) e.key: e.value};
+      final changed = {
+        for (final e in fields.entries)
+          if (c.json[e.key] != e.value) e.key: e.value,
+      };
       if (changed.isNotEmpty) repo.updateColony(c.id, changed);
       repo.setIntervals(c.id, intervals);
       context.pop();

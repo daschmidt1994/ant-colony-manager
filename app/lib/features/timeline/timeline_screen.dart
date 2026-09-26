@@ -45,35 +45,45 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
         rows.add(SectionHeader(d));
         day = d;
       }
-      rows.add(Card(child: EventTile(event: e, canEdit: role != 'viewer')));
+      rows.add(
+        Card(
+          child: EventTile(event: e, canEdit: role != 'viewer'),
+        ),
+      );
       rows.add(const SizedBox(height: 6));
     }
 
     return Scaffold(
       appBar: AppBar(title: Text(colony == null ? 'Timeline' : 'Timeline · ${colony.name}')),
       body: ContentWidth(
-        child: Column(children: [
-          SizedBox(
-            height: 48,
-            child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), children: [
-              for (final (type, label) in _filterTypes)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    avatar: Icon(eventIcon(type), size: 18),
-                    label: Text(label),
-                    selected: _types.contains(type),
-                    onSelected: (v) => setState(() => v ? _types.add(type) : _types.remove(type)),
-                  ),
-                ),
-            ]),
-          ),
-          Expanded(
-            child: events.isEmpty
-                ? const EmptyState(icon: Icons.timeline, title: 'Keine Einträge')
-                : ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: rows),
-          ),
-        ]),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  for (final (type, label) in _filterTypes)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        avatar: Icon(eventIcon(type), size: 18),
+                        label: Text(label),
+                        selected: _types.contains(type),
+                        onSelected: (v) => setState(() => v ? _types.add(type) : _types.remove(type)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: events.isEmpty
+                  ? const EmptyState(icon: Icons.timeline, title: 'Keine Einträge')
+                  : ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: rows),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -95,36 +105,51 @@ class EventTile extends ConsumerWidget {
       'feeding' => context.colors.carbs,
       _ => context.colors.muted,
     };
-    final acceptance = event.type == 'feeding' && event.acceptance != 'unknown' ? ' · ${S.acceptance[event.acceptance]}' : '';
+    final acceptance = event.type == 'feeding' && event.acceptance != 'unknown'
+        ? ' · ${S.acceptance[event.acceptance]}'
+        : '';
     return ListTile(
       leading: Icon(eventIcon(event.type), color: color),
       title: Text(S.eventSummary(event), maxLines: 2, overflow: TextOverflow.ellipsis),
-      subtitle: Text('${S.time(event.occurredAt)} · ${S.eventTypes[event.type] ?? event.type}$acceptance'
-          '${event.note != null && event.type == 'feeding' ? ' · ${event.note}' : ''}'),
-      trailing: pending ? Tooltip(message: 'noch nicht synchronisiert', child: Icon(Icons.cloud_upload_outlined, size: 18, color: context.colors.muted)) : null,
+      subtitle: Text(
+        '${S.time(event.occurredAt)} · ${S.eventTypes[event.type] ?? event.type}$acceptance'
+        '${event.note != null && event.type == 'feeding' ? ' · ${event.note}' : ''}',
+      ),
+      trailing: pending
+          ? Tooltip(
+              message: 'noch nicht synchronisiert',
+              child: Icon(Icons.cloud_upload_outlined, size: 18, color: context.colors.muted),
+            )
+          : null,
       onTap: () => _details(context, ref),
     );
   }
 
   Future<void> _details(BuildContext context, WidgetRef ref) => showModalBottomSheet<void>(
-        context: context,
-        builder: (c) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Row(children: [
+    context: context,
+    builder: (c) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
                 Icon(eventIcon(event.type)),
                 const SizedBox(width: 10),
-                Expanded(
-                    child: Text(S.eventTypes[event.type] ?? event.type, style: Theme.of(c).textTheme.titleLarge)),
+                Expanded(child: Text(S.eventTypes[event.type] ?? event.type, style: Theme.of(c).textTheme.titleLarge)),
                 Text(S.dateTime(event.occurredAt), style: TextStyle(color: c.colors.muted)),
-              ]),
-              const SizedBox(height: 12),
-              Text(S.eventSummary(event), style: const TextStyle(fontSize: 16)),
-              if (event.note != null && event.type == 'feeding') ...[const SizedBox(height: 8), Text(event.note!)],
-              if (canEdit && event.type == 'feeding') ...[
-                const SectionHeader('Annahme'),
-                Wrap(spacing: 8, children: [
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(S.eventSummary(event), style: const TextStyle(fontSize: 16)),
+            if (event.note != null && event.type == 'feeding') ...[const SizedBox(height: 8), Text(event.note!)],
+            if (canEdit && event.type == 'feeding') ...[
+              const SectionHeader('Annahme'),
+              Wrap(
+                spacing: 8,
+                children: [
                   for (final a in const ['accepted', 'partial', 'ignored', 'unknown'])
                     ChoiceChip(
                       label: Text(S.acceptance[a]!),
@@ -134,34 +159,36 @@ class EventTile extends ConsumerWidget {
                         Navigator.pop(c);
                       },
                     ),
-                ]),
-              ],
-              if (canEdit) ...[
-                const SizedBox(height: 20),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(foregroundColor: c.colors.overdue),
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Eintrag löschen'),
-                  onPressed: () async {
-                    final ok = await showDialog<bool>(
-                      context: c,
-                      builder: (d) => AlertDialog(
-                        title: const Text('Eintrag löschen?'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
-                          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Löschen')),
-                        ],
-                      ),
-                    );
-                    if (ok == true) {
-                      ref.read(repositoryProvider)!.deleteEvent(event.id);
-                      if (c.mounted) Navigator.pop(c);
-                    }
-                  },
-                ),
-              ],
-            ]),
-          ),
+                ],
+              ),
+            ],
+            if (canEdit) ...[
+              const SizedBox(height: 20),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(foregroundColor: c.colors.overdue),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Eintrag löschen'),
+                onPressed: () async {
+                  final ok = await showDialog<bool>(
+                    context: c,
+                    builder: (d) => AlertDialog(
+                      title: const Text('Eintrag löschen?'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
+                        FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Löschen')),
+                      ],
+                    ),
+                  );
+                  if (ok == true) {
+                    ref.read(repositoryProvider)!.deleteEvent(event.id);
+                    if (c.mounted) Navigator.pop(c);
+                  }
+                },
+              ),
+            ],
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }

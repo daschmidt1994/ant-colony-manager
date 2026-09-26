@@ -20,14 +20,14 @@ class LocalRecord {
   });
 
   factory LocalRecord.fromRow(Row r) => LocalRecord(
-        entity: r['entity'] as String,
-        id: r['id'] as String,
-        colonyId: r['colony_id'] as String?,
-        ts: r['ts'] as int?,
-        version: r['version'] as int,
-        pending: (r['pending'] as int) == 1,
-        data: r['data'] as String,
-      );
+    entity: r['entity'] as String,
+    id: r['id'] as String,
+    colonyId: r['colony_id'] as String?,
+    ts: r['ts'] as int?,
+    version: r['version'] as int,
+    pending: (r['pending'] as int) == 1,
+    data: r['data'] as String,
+  );
 
   final String entity, id;
   final String? colonyId;
@@ -56,18 +56,18 @@ class OutboxOp {
   });
 
   factory OutboxOp.fromRow(Row r) => OutboxOp(
-        seq: r['seq'] as int,
-        opId: r['op_id'] as String,
-        entity: r['entity'] as String,
-        entityId: r['entity_id'] as String,
-        op: r['op'] as String,
-        payload: r['payload'] == null ? null : jsonDecode(r['payload'] as String) as Map<String, dynamic>,
-        baseVersion: r['base_version'] as int?,
-        createdAt: DateTime.fromMillisecondsSinceEpoch(r['created_at'] as int),
-        attempts: r['attempts'] as int,
-        lastError: r['last_error'] as String?,
-        failed: (r['failed'] as int) == 1,
-      );
+    seq: r['seq'] as int,
+    opId: r['op_id'] as String,
+    entity: r['entity'] as String,
+    entityId: r['entity_id'] as String,
+    op: r['op'] as String,
+    payload: r['payload'] == null ? null : jsonDecode(r['payload'] as String) as Map<String, dynamic>,
+    baseVersion: r['base_version'] as int?,
+    createdAt: DateTime.fromMillisecondsSinceEpoch(r['created_at'] as int),
+    attempts: r['attempts'] as int,
+    lastError: r['last_error'] as String?,
+    failed: (r['failed'] as int) == 1,
+  );
 
   final int seq;
   final String opId, entity, entityId, op;
@@ -80,14 +80,14 @@ class OutboxOp {
 
   /// Wire format of `POST /api/v1/sync/push`.
   Map<String, dynamic> toWire() => {
-        'op_id': opId,
-        'entity': entity,
-        'entity_id': entityId,
-        'op': op,
-        if (payload != null) 'payload': payload,
-        if (baseVersion != null && baseVersion! > 0) 'base_version': baseVersion,
-        'created_at': createdAt.toUtc().toIso8601String(),
-      };
+    'op_id': opId,
+    'entity': entity,
+    'entity_id': entityId,
+    'op': op,
+    if (payload != null) 'payload': payload,
+    if (baseVersion != null && baseVersion! > 0) 'base_version': baseVersion,
+    'created_at': createdAt.toUtc().toIso8601String(),
+  };
 }
 
 /// Result of queuing a delete: whether the record ever reached the server.
@@ -235,8 +235,11 @@ class AppDatabase {
     if (value == null) {
       execute('DELETE FROM meta WHERE key = ?', [key], {'meta'});
     } else {
-      execute('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
-          [key, value], {'meta'});
+      execute(
+        'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
+        [key, value],
+        {'meta'},
+      );
     }
   }
 
@@ -257,9 +260,9 @@ class AppDatabase {
   }
 
   List<LocalRecord> records(String entity, {String? colonyId, String orderBy = 'ts DESC'}) => select(
-        'SELECT * FROM records WHERE entity = ?${colonyId != null ? ' AND colony_id = ?' : ''} ORDER BY $orderBy',
-        [entity, if (colonyId != null) colonyId],
-      ).map(LocalRecord.fromRow).toList();
+    'SELECT * FROM records WHERE entity = ?${colonyId != null ? ' AND colony_id = ?' : ''} ORDER BY $orderBy',
+    [entity, if (colonyId != null) colonyId],
+  ).map(LocalRecord.fromRow).toList();
 
   void putRecord(String entity, Map<String, dynamic> data, {int? version, bool pending = false}) {
     execute(
@@ -286,17 +289,15 @@ class AppDatabase {
   void purgeColony(String colonyId) =>
       execute('DELETE FROM records WHERE colony_id = ? AND pending = 0', [colonyId], {'records'});
 
-  bool hasPendingOps(String entity, String id) => select(
-        'SELECT 1 FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0 LIMIT 1',
-        [entity, id],
-      ).isNotEmpty;
+  bool hasPendingOps(String entity, String id) =>
+      select('SELECT 1 FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0 LIMIT 1', [entity, id]).isNotEmpty;
 
   /// Deletes all local data (logout or another account).
   void wipe() => transaction(() {
-        execute('DELETE FROM records', const [], {'records'});
-        execute('DELETE FROM outbox', const [], {'outbox'});
-        execute('DELETE FROM meta', const [], {'meta'});
-      });
+    execute('DELETE FROM records', const [], {'records'});
+    execute('DELETE FROM outbox', const [], {'outbox'});
+    execute('DELETE FROM meta', const [], {'meta'});
+  });
 
   // ---------------------------------------------------------------------------
   // Outbox
@@ -330,19 +331,25 @@ class AppDatabase {
   /// Queues a delete. A record that never reached the server is dropped
   /// together with its unsent create.
   DeleteOutcome queueDelete(String opId, String entity, String id) => transaction(() {
-        final ops = select('SELECT * FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0 ORDER BY seq',
-            [entity, id]).map(OutboxOp.fromRow).toList();
-        final unsentCreate = ops.any((o) => o.op == 'create') &&
-            select('SELECT 1 FROM outbox WHERE entity = ? AND entity_id = ? AND inflight = 1', [entity, id]).isEmpty;
-        if (unsentCreate) {
-          execute('DELETE FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0', [entity, id], {'outbox'});
-          return DeleteOutcome.droppedLocally;
-        }
-        execute('DELETE FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0 AND inflight = 0 AND op = ?',
-            [entity, id, 'update'], {'outbox'});
-        _insertOp(opId, entity, id, 'delete', null, null);
-        return DeleteOutcome.queued;
-      });
+    final ops = select('SELECT * FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0 ORDER BY seq', [
+      entity,
+      id,
+    ]).map(OutboxOp.fromRow).toList();
+    final unsentCreate =
+        ops.any((o) => o.op == 'create') &&
+        select('SELECT 1 FROM outbox WHERE entity = ? AND entity_id = ? AND inflight = 1', [entity, id]).isEmpty;
+    if (unsentCreate) {
+      execute('DELETE FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0', [entity, id], {'outbox'});
+      return DeleteOutcome.droppedLocally;
+    }
+    execute(
+      'DELETE FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0 AND inflight = 0 AND op = ?',
+      [entity, id, 'update'],
+      {'outbox'},
+    );
+    _insertOp(opId, entity, id, 'delete', null, null);
+    return DeleteOutcome.queued;
+  });
 
   void _insertOp(String opId, String entity, String id, String op, Map<String, dynamic>? payload, int? base) {
     execute(
@@ -355,16 +362,17 @@ class AppDatabase {
 
   /// Takes up to [limit] sendable ops and marks them in flight.
   List<OutboxOp> takeOps(int limit) => transaction(() {
-        final rows = select(
-          'SELECT * FROM outbox WHERE failed = 0 AND inflight = 0 AND next_try_at <= ? ORDER BY seq LIMIT ?',
-          [DateTime.now().millisecondsSinceEpoch, limit],
-        ).map(OutboxOp.fromRow).toList();
-        if (rows.isNotEmpty) {
-          execute('UPDATE outbox SET inflight = 1 WHERE seq IN (${rows.map((o) => o.seq).join(',')})', const [],
-              {'outbox'});
-        }
-        return rows;
+    final rows = select(
+      'SELECT * FROM outbox WHERE failed = 0 AND inflight = 0 AND next_try_at <= ? ORDER BY seq LIMIT ?',
+      [DateTime.now().millisecondsSinceEpoch, limit],
+    ).map(OutboxOp.fromRow).toList();
+    if (rows.isNotEmpty) {
+      execute('UPDATE outbox SET inflight = 1 WHERE seq IN (${rows.map((o) => o.seq).join(',')})', const [], {
+        'outbox',
       });
+    }
+    return rows;
+  });
 
   void completeOp(int seq) => execute('DELETE FROM outbox WHERE seq = ?', [seq], {'outbox'});
 

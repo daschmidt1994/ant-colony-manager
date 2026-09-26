@@ -21,23 +21,25 @@ class AppShell extends StatelessWidget {
     final wide = MediaQuery.sizeOf(context).width >= 900;
     if (wide) {
       return Scaffold(
-        body: Row(children: [
-          NavigationRail(
-            selectedIndex: shell.currentIndex,
-            onDestinationSelected: _go,
-            labelType: NavigationRailLabelType.all,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Icon(Icons.hive_outlined, color: Theme.of(context).colorScheme.primary, size: 32),
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: shell.currentIndex,
+              onDestinationSelected: _go,
+              labelType: NavigationRailLabelType.all,
+              leading: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Icon(Icons.hive_outlined, color: Theme.of(context).colorScheme.primary, size: 32),
+              ),
+              destinations: [
+                for (final (icon, sel, label) in _items)
+                  NavigationRailDestination(icon: Icon(icon), selectedIcon: Icon(sel), label: Text(label)),
+              ],
             ),
-            destinations: [
-              for (final (icon, sel, label) in _items)
-                NavigationRailDestination(icon: Icon(icon), selectedIcon: Icon(sel), label: Text(label)),
-            ],
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(child: shell),
-        ]),
+            const VerticalDivider(width: 1),
+            Expanded(child: shell),
+          ],
+        ),
       );
     }
     return Scaffold(

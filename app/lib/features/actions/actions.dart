@@ -15,8 +15,12 @@ ColonyRepository _repo(WidgetRef ref) => ref.read(repositoryProvider)!;
 /// repository directly so it also works after a bottom sheet was closed.
 void _undoable(ScaffoldMessengerState m, ColonyRepository repo, ColonyEvent e, {VoidCallback? details}) {
   HapticFeedback.mediumImpact();
-  showUndoSnackOn(m, '${S.eventTypes[e.type]} gespeichert: ${S.eventSummary(e)}',
-      onUndo: () => repo.deleteEvent(e.id), onDetails: details);
+  showUndoSnackOn(
+    m,
+    '${S.eventTypes[e.type]} gespeichert: ${S.eventSummary(e)}',
+    onUndo: () => repo.deleteEvent(e.id),
+    onDetails: details,
+  );
 }
 
 /// „Letzte Fütterung wiederholen“ – one tap, with a guard against double taps.
@@ -44,32 +48,49 @@ Future<void> repeatFeeding(BuildContext context, WidgetRef ref, Colony colony) a
 void quickWater(BuildContext context, WidgetRef ref, Colony colony) {
   final repo = _repo(ref);
   final last = repo.events(colony.id, types: {'water'}, limit: 1);
-  final kinds = last.isNotEmpty && last.first.waterKinds.isNotEmpty ? last.first.waterKinds : const ['drinker_refilled'];
-  final e = repo.logEvent(colony.id, 'water', details: {
-    'water': {'kinds': kinds},
-  });
+  final kinds = last.isNotEmpty && last.first.waterKinds.isNotEmpty
+      ? last.first.waterKinds
+      : const ['drinker_refilled'];
+  final e = repo.logEvent(
+    colony.id,
+    'water',
+    details: {
+      'water': {'kinds': kinds},
+    },
+  );
   _undoable(ScaffoldMessenger.of(context), repo, e, details: () => showWaterSheet(context, ref, colony, edit: e));
 }
 
 void quickCheck(BuildContext context, WidgetRef ref, Colony colony) {
   final repo = _repo(ref);
   final e = repo.logEvent(colony.id, 'check');
-  _undoable(ScaffoldMessenger.of(context), repo, e,
-      details: () => showNoteSheet(context, ref, colony, type: 'check', edit: e));
+  _undoable(
+    ScaffoldMessenger.of(context),
+    repo,
+    e,
+    details: () => showNoteSheet(context, ref, colony, type: 'check', edit: e),
+  );
 }
 
 Future<T?> _sheet<T>(BuildContext context, Widget child) => showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (c) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
-        child: ContentWidth(maxWidth: 640, child: child),
-      ),
-    );
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  builder: (c) => Padding(
+    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
+    child: ContentWidth(maxWidth: 640, child: child),
+  ),
+);
 
 class _SheetFrame extends StatelessWidget {
-  const _SheetFrame({required this.title, required this.when, required this.onWhen, required this.children, required this.onSave, this.saveLabel = 'Speichern'});
+  const _SheetFrame({
+    required this.title,
+    required this.when,
+    required this.onWhen,
+    required this.children,
+    required this.onSave,
+    this.saveLabel = 'Speichern',
+  });
   final String title;
   final DateTime? when;
   final ValueChanged<DateTime?> onWhen;
@@ -79,18 +100,25 @@ class _SheetFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
+    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            ),
             WhenChip(value: when, onChanged: onWhen),
-          ]),
-          const SizedBox(height: 12),
-          ...children,
-          const SizedBox(height: 20),
-          FilledButton(onPressed: onSave, child: Text(saveLabel)),
-        ]),
-      );
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...children,
+        const SizedBox(height: 20),
+        FilledButton(onPressed: onSave, child: Text(saveLabel)),
+      ],
+    ),
+  );
 }
 
 // -----------------------------------------------------------------------------
@@ -142,25 +170,32 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
       final list = foods.where((f) => f.category == category).toList();
       final visible = _showAll ? list : list.take(5).toList();
       if (list.isEmpty) return const SizedBox.shrink();
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SectionHeader(title),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final f in visible)
-            FilterChip(
-              label: Text(f.name),
-              selected: _selected.containsKey(f.id),
-              onSelected: (v) => setState(() {
-                if (v) {
-                  _selected[f.id] = _Selected(f, 1, f.category == 'protein' ? 'small' : null);
-                } else {
-                  _selected.remove(f.id);
-                }
-              }),
-            ),
-          if (!_showAll && list.length > 5)
-            ActionChip(label: const Text('mehr …'), onPressed: () => setState(() => _showAll = true)),
-        ]),
-      ]);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(title),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final f in visible)
+                FilterChip(
+                  label: Text(f.name),
+                  selected: _selected.containsKey(f.id),
+                  onSelected: (v) => setState(() {
+                    if (v) {
+                      _selected[f.id] = _Selected(f, 1, f.category == 'protein' ? 'small' : null);
+                    } else {
+                      _selected.remove(f.id);
+                    }
+                  }),
+                ),
+              if (!_showAll && list.length > 5)
+                ActionChip(label: const Text('mehr …'), onPressed: () => setState(() => _showAll = true)),
+            ],
+          ),
+        ],
+      );
     }
 
     return _SheetFrame(
@@ -185,33 +220,40 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
         group('other', 'Sonstiges'),
         if (_selected.isNotEmpty) const SectionHeader('Menge'),
         for (final s in _selected.values)
-          Row(children: [
-            Expanded(child: Text(s.food.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-            IconButton.filledTonal(
-              onPressed: s.quantity > 1 ? () => setState(() => s.quantity--) : null,
-              icon: const Icon(Icons.remove),
-            ),
-            SizedBox(
-              width: 40,
-              child: Text(s.quantity.toInt().toString(),
-                  textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            ),
-            IconButton.filledTonal(onPressed: () => setState(() => s.quantity++), icon: const Icon(Icons.add)),
-            if (s.food.category == 'protein') ...[
-              const SizedBox(width: 8),
-              DropdownButton<String>(
-                value: s.size,
-                underline: const SizedBox.shrink(),
-                items: const [
-                  DropdownMenuItem(value: 'tiny', child: Text('winzig')),
-                  DropdownMenuItem(value: 'small', child: Text('klein')),
-                  DropdownMenuItem(value: 'medium', child: Text('mittel')),
-                  DropdownMenuItem(value: 'large', child: Text('groß')),
-                ],
-                onChanged: (v) => setState(() => s.size = v),
+          Row(
+            children: [
+              Expanded(
+                child: Text(s.food.name, style: const TextStyle(fontWeight: FontWeight.w600)),
               ),
+              IconButton.filledTonal(
+                onPressed: s.quantity > 1 ? () => setState(() => s.quantity--) : null,
+                icon: const Icon(Icons.remove),
+              ),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  s.quantity.toInt().toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton.filledTonal(onPressed: () => setState(() => s.quantity++), icon: const Icon(Icons.add)),
+              if (s.food.category == 'protein') ...[
+                const SizedBox(width: 8),
+                DropdownButton<String>(
+                  value: s.size,
+                  underline: const SizedBox.shrink(),
+                  items: const [
+                    DropdownMenuItem(value: 'tiny', child: Text('winzig')),
+                    DropdownMenuItem(value: 'small', child: Text('klein')),
+                    DropdownMenuItem(value: 'medium', child: Text('mittel')),
+                    DropdownMenuItem(value: 'large', child: Text('groß')),
+                  ],
+                  onChanged: (v) => setState(() => s.size = v),
+                ),
+              ],
             ],
-          ]),
+          ),
         const SectionHeader('Annahme'),
         SegmentedButton<String>(
           segments: [
@@ -223,7 +265,10 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
           showSelectedIcon: false,
         ),
         const SizedBox(height: 12),
-        TextField(controller: _note, decoration: const InputDecoration(labelText: 'Notiz (optional)')),
+        TextField(
+          controller: _note,
+          decoration: const InputDecoration(labelText: 'Notiz (optional)'),
+        ),
       ],
     );
   }
@@ -242,12 +287,15 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
     ];
     final m = ScaffoldMessenger.of(context);
     final repo = _repo(ref);
-    final e = repo.logEvent(widget.colony.id, 'feeding',
-        details: {
-          'feeding': {'acceptance': _acceptance, 'items': items},
-        },
-        note: _note.text,
-        at: _when);
+    final e = repo.logEvent(
+      widget.colony.id,
+      'feeding',
+      details: {
+        'feeding': {'acceptance': _acceptance, 'items': items},
+      },
+      note: _note.text,
+      at: _when,
+    );
     Navigator.pop(context);
     _undoable(m, repo, e);
   }
@@ -257,15 +305,21 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
 // Water & cleaning (kind chips)
 
 Future<void> showWaterSheet(BuildContext context, WidgetRef ref, Colony colony, {ColonyEvent? edit}) => _sheet(
-      context,
-      _KindsSheet(colony: colony, type: 'water', kinds: S.waterKinds, edit: edit, withMeasurements: true),
-    );
+  context,
+  _KindsSheet(colony: colony, type: 'water', kinds: S.waterKinds, edit: edit, withMeasurements: true),
+);
 
 Future<void> showCleaningSheet(BuildContext context, WidgetRef ref, Colony colony) =>
     _sheet(context, _KindsSheet(colony: colony, type: 'cleaning', kinds: S.cleaningKinds));
 
 class _KindsSheet extends ConsumerStatefulWidget {
-  const _KindsSheet({required this.colony, required this.type, required this.kinds, this.edit, this.withMeasurements = false});
+  const _KindsSheet({
+    required this.colony,
+    required this.type,
+    required this.kinds,
+    this.edit,
+    this.withMeasurements = false,
+  });
   final Colony colony;
   final String type;
   final Map<String, String> kinds;
@@ -300,31 +354,40 @@ class _KindsSheetState extends ConsumerState<_KindsSheet> {
 
   @override
   Widget build(BuildContext context) => _SheetFrame(
-        title: '${widget.type == 'water' ? 'Wasser' : 'Reinigen'} · ${widget.colony.name}',
-        when: _when,
-        onWhen: (v) => setState(() => _when = v),
-        onSave: _sel.isEmpty ? null : _save,
+    title: '${widget.type == 'water' ? 'Wasser' : 'Reinigen'} · ${widget.colony.name}',
+    when: _when,
+    onWhen: (v) => setState(() => _when = v),
+    onSave: _sel.isEmpty ? null : _save,
+    children: [
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final k in widget.kinds.entries)
-              FilterChip(
-                label: Text(k.value),
-                selected: _sel.contains(k.key),
-                onSelected: (v) => setState(() => v ? _sel.add(k.key) : _sel.remove(k.key)),
-              ),
-          ]),
-          if (widget.withMeasurements && widget.edit == null) ...[
-            const SectionHeader('Messwerte (optional)'),
-            Row(children: [
-              Expanded(child: _numberField(_temp, 'Temperatur', '°C')),
-              const SizedBox(width: 12),
-              Expanded(child: _numberField(_hum, 'Luftfeuchte', '%')),
-            ]),
-          ],
-          const SizedBox(height: 12),
-          TextField(controller: _note, decoration: const InputDecoration(labelText: 'Notiz (optional)')),
+          for (final k in widget.kinds.entries)
+            FilterChip(
+              label: Text(k.value),
+              selected: _sel.contains(k.key),
+              onSelected: (v) => setState(() => v ? _sel.add(k.key) : _sel.remove(k.key)),
+            ),
         ],
-      );
+      ),
+      if (widget.withMeasurements && widget.edit == null) ...[
+        const SectionHeader('Messwerte (optional)'),
+        Row(
+          children: [
+            Expanded(child: _numberField(_temp, 'Temperatur', '°C')),
+            const SizedBox(width: 12),
+            Expanded(child: _numberField(_hum, 'Luftfeuchte', '%')),
+          ],
+        ),
+      ],
+      const SizedBox(height: 12),
+      TextField(
+        controller: _note,
+        decoration: const InputDecoration(labelText: 'Notiz (optional)'),
+      ),
+    ],
+  );
 
   void _save() {
     final repo = _repo(ref);
@@ -348,11 +411,11 @@ class _KindsSheetState extends ConsumerState<_KindsSheet> {
 }
 
 Widget _numberField(TextEditingController c, String label, String suffix) => TextField(
-      controller: c,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[-0-9.,]'))],
-      decoration: InputDecoration(labelText: label, suffixText: suffix),
-    );
+  controller: c,
+  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[-0-9.,]'))],
+  decoration: InputDecoration(labelText: label, suffixText: suffix),
+);
 
 double? _parse(String s) => double.tryParse(s.trim().replaceAll(',', '.'));
 
@@ -370,8 +433,13 @@ Map<String, dynamic>? _measurements(TextEditingController temp, TextEditingContr
 // -----------------------------------------------------------------------------
 // Note / problem / check details
 
-Future<void> showNoteSheet(BuildContext context, WidgetRef ref, Colony colony, {String type = 'note', ColonyEvent? edit}) =>
-    _sheet(context, _NoteSheet(colony: colony, type: type, edit: edit));
+Future<void> showNoteSheet(
+  BuildContext context,
+  WidgetRef ref,
+  Colony colony, {
+  String type = 'note',
+  ColonyEvent? edit,
+}) => _sheet(context, _NoteSheet(colony: colony, type: type, edit: edit));
 
 class _NoteSheet extends ConsumerStatefulWidget {
   const _NoteSheet({required this.colony, required this.type, this.edit});
@@ -390,41 +458,41 @@ class _NoteSheetState extends ConsumerState<_NoteSheet> {
 
   @override
   Widget build(BuildContext context) => _SheetFrame(
-        title: widget.type == 'check' ? 'Kontrolle · ${widget.colony.name}' : 'Notiz · ${widget.colony.name}',
-        when: _when,
-        onWhen: (v) => setState(() => _when = v),
-        onSave: _save,
-        children: [
-          TextField(
-            controller: _text,
-            autofocus: widget.edit == null,
-            minLines: 3,
-            maxLines: 8,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(labelText: widget.type == 'check' ? 'Befund (optional)' : 'Notiz'),
+    title: widget.type == 'check' ? 'Kontrolle · ${widget.colony.name}' : 'Notiz · ${widget.colony.name}',
+    when: _when,
+    onWhen: (v) => setState(() => _when = v),
+    onSave: _save,
+    children: [
+      TextField(
+        controller: _text,
+        autofocus: widget.edit == null,
+        minLines: 3,
+        maxLines: 8,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(labelText: widget.type == 'check' ? 'Befund (optional)' : 'Notiz'),
+      ),
+      if (widget.type != 'check' && widget.edit == null) ...[
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Als Problem markieren'),
+          subtitle: const Text('erscheint als Warnung im Dashboard'),
+          value: _problem,
+          onChanged: (v) => setState(() => _problem = v),
+        ),
+        if (_problem)
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'info', label: Text('Hinweis')),
+              ButtonSegment(value: 'warning', label: Text('Warnung')),
+              ButtonSegment(value: 'critical', label: Text('Kritisch')),
+            ],
+            selected: {_severity},
+            onSelectionChanged: (v) => setState(() => _severity = v.first),
           ),
-          if (widget.type != 'check' && widget.edit == null) ...[
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Als Problem markieren'),
-              subtitle: const Text('erscheint als Warnung im Dashboard'),
-              value: _problem,
-              onChanged: (v) => setState(() => _problem = v),
-            ),
-            if (_problem)
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'info', label: Text('Hinweis')),
-                  ButtonSegment(value: 'warning', label: Text('Warnung')),
-                  ButtonSegment(value: 'critical', label: Text('Kritisch')),
-                ],
-                selected: {_severity},
-                onSelectionChanged: (v) => setState(() => _severity = v.first),
-              ),
-          ],
-        ],
-      );
+      ],
+    ],
+  );
 
   void _save() {
     final repo = _repo(ref);
@@ -439,8 +507,13 @@ class _NoteSheetState extends ConsumerState<_NoteSheet> {
     }
     if (widget.type != 'check' && _text.text.trim().isEmpty) return;
     final type = widget.type == 'check' ? 'check' : (_problem ? 'problem' : 'note');
-    final e = repo.logEvent(widget.colony.id, type,
-        details: {if (type == 'problem') 'severity': _severity}, note: _text.text, at: _when);
+    final e = repo.logEvent(
+      widget.colony.id,
+      type,
+      details: {if (type == 'problem') 'severity': _severity},
+      note: _text.text,
+      at: _when,
+    );
     _undoable(m, repo, e);
   }
 }
@@ -460,27 +533,31 @@ class _MeasurementSheet extends ConsumerStatefulWidget {
 
 class _MeasurementSheetState extends ConsumerState<_MeasurementSheet> {
   late final _temp = TextEditingController(
-      text: widget.colony.lastTemperature == null ? '' : S.decimal(widget.colony.lastTemperature!));
-  late final _hum =
-      TextEditingController(text: widget.colony.lastHumidity == null ? '' : '${widget.colony.lastHumidity!.round()}');
+    text: widget.colony.lastTemperature == null ? '' : S.decimal(widget.colony.lastTemperature!),
+  );
+  late final _hum = TextEditingController(
+    text: widget.colony.lastHumidity == null ? '' : '${widget.colony.lastHumidity!.round()}',
+  );
   DateTime? _when;
 
   @override
   Widget build(BuildContext context) => _SheetFrame(
-        title: 'Messung · ${widget.colony.name}',
-        when: _when,
-        onWhen: (v) => setState(() => _when = v),
-        onSave: _save,
+    title: 'Messung · ${widget.colony.name}',
+    when: _when,
+    onWhen: (v) => setState(() => _when = v),
+    onSave: _save,
+    children: [
+      Row(
         children: [
-          Row(children: [
-            Expanded(child: _numberField(_temp, 'Temperatur', '°C')),
-            const SizedBox(width: 12),
-            Expanded(child: _numberField(_hum, 'Luftfeuchte', '%')),
-          ]),
-          const SizedBox(height: 8),
-          Text('Vorausgefüllt mit den letzten Werten.', style: TextStyle(color: context.colors.muted, fontSize: 13)),
+          Expanded(child: _numberField(_temp, 'Temperatur', '°C')),
+          const SizedBox(width: 12),
+          Expanded(child: _numberField(_hum, 'Luftfeuchte', '%')),
         ],
-      );
+      ),
+      const SizedBox(height: 8),
+      Text('Vorausgefüllt mit den letzten Werten.', style: TextStyle(color: context.colors.muted, fontSize: 13)),
+    ],
+  );
 
   void _save() {
     final m = _measurements(_temp, _hum);

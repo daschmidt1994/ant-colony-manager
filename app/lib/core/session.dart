@@ -153,23 +153,21 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<Map<String, dynamic>> _device() async => {
-        'device_id': deviceIdOf(_db),
-        'device_name': kIsWeb ? 'Web-Browser' : 'Android',
-        'platform': kIsWeb ? 'web' : 'android',
-        'app_version': appVersion,
-      };
+    'device_id': deviceIdOf(_db),
+    'device_name': kIsWeb ? 'Web-Browser' : 'Android',
+    'platform': kIsWeb ? 'web' : 'android',
+    'app_version': appVersion,
+  };
 
-  Future<void> login(String email, String password) => _signIn('/api/v1/auth/login', {
-        'email': email.trim(),
-        'password': password,
-      });
+  Future<void> login(String email, String password) =>
+      _signIn('/api/v1/auth/login', {'email': email.trim(), 'password': password});
 
   Future<void> setup(String code, String email, String password, String name) => _signIn('/api/v1/setup', {
-        'setup_token': code.trim(),
-        'email': email.trim(),
-        'password': password,
-        'display_name': name.trim(),
-      });
+    'setup_token': code.trim(),
+    'email': email.trim(),
+    'password': password,
+    'display_name': name.trim(),
+  });
 
   Future<void> register(String email, String password, String name, {String? invite}) =>
       _signIn('/api/v1/auth/register', {

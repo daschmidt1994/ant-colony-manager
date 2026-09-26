@@ -16,14 +16,13 @@ class SyncStatus {
   final DateTime? lastSync;
   final String? message;
 
-  SyncStatus copyWith({SyncPhase? phase, int? pending, int? failed, DateTime? lastSync, String? message}) =>
-      SyncStatus(
-        phase: phase ?? this.phase,
-        pending: pending ?? this.pending,
-        failed: failed ?? this.failed,
-        lastSync: lastSync ?? this.lastSync,
-        message: message,
-      );
+  SyncStatus copyWith({SyncPhase? phase, int? pending, int? failed, DateTime? lastSync, String? message}) => SyncStatus(
+    phase: phase ?? this.phase,
+    pending: pending ?? this.pending,
+    failed: failed ?? this.failed,
+    lastSync: lastSync ?? this.lastSync,
+    message: message,
+  );
 }
 
 class DeviceIdentity {
@@ -129,13 +128,15 @@ class SyncEngine {
       if (ops.isEmpty) return needSnapshot;
       final Map<String, dynamic> res;
       try {
-        res = await api.post('/api/v1/sync/push', {
-          'device_id': device.id,
-          'device_name': device.name,
-          'platform': device.platform,
-          'app_version': device.appVersion,
-          'ops': ops.map((o) => o.toWire()).toList(),
-        }) as Map<String, dynamic>;
+        res =
+            await api.post('/api/v1/sync/push', {
+                  'device_id': device.id,
+                  'device_name': device.name,
+                  'platform': device.platform,
+                  'app_version': device.appVersion,
+                  'ops': ops.map((o) => o.toWire()).toList(),
+                })
+                as Map<String, dynamic>;
       } on NetworkException catch (e) {
         db.retryLater(ops.map((o) => o.seq).toList(), e.toString());
         rethrow;
@@ -143,9 +144,7 @@ class SyncEngine {
         db.retryLater(ops.map((o) => o.seq).toList(), e.toString());
         rethrow;
       }
-      final results = {
-        for (final r in (res['results'] as List).cast<Map<String, dynamic>>()) r['op_id'] as String: r,
-      };
+      final results = {for (final r in (res['results'] as List).cast<Map<String, dynamic>>()) r['op_id'] as String: r};
       db.transaction(() {
         for (final op in ops) {
           final r = results[op.opId];
@@ -224,8 +223,12 @@ class SyncEngine {
 
   /// Replaces local state with the server state (keeping unsent changes).
   Future<void> snapshot({Set<String>? onlyColonies}) async {
-    final res = await api.get('/api/v1/sync/snapshot',
-        query: onlyColonies == null ? null : {'colony_ids': onlyColonies.join(',')}) as Map<String, dynamic>;
+    final res =
+        await api.get(
+              '/api/v1/sync/snapshot',
+              query: onlyColonies == null ? null : {'colony_ids': onlyColonies.join(',')},
+            )
+            as Map<String, dynamic>;
     final entities = (res['entities'] as Map).cast<String, dynamic>();
     db.transaction(() {
       if (onlyColonies == null) {

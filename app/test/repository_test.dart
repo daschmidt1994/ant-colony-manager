@@ -21,8 +21,10 @@ void main() {
   tearDown(() => db.dispose());
 
   test('creating a colony works offline and brings schedules and a QR code', () {
-    final id = repo.createColony({'name': 'Messor #1', 'species_text': 'Messor barbarus'},
-        intervals: {'protein': 3, 'water': 2});
+    final id = repo.createColony(
+      {'name': 'Messor #1', 'species_text': 'Messor barbarus'},
+      intervals: {'protein': 3, 'water': 2},
+    );
     final c = repo.colony(id)!;
     expect(c.number, 1);
     expect(repo.schedules(colonyId: id), hasLength(2));
@@ -48,15 +50,19 @@ void main() {
   test('repeat last feeding copies items and resets acceptance', () {
     final id = repo.createColony({'name': 'A', 'species_text': 'x'});
     expect(repo.repeatLastFeeding(id), isNull);
-    repo.logEvent(id, 'feeding', details: {
-      'feeding': {
-        'acceptance': 'accepted',
-        'items': [
-          {'food_name': 'Schabe', 'category': 'protein', 'quantity': 2, 'unit': 'piece', 'size': 'small'},
-          {'food_name': 'Zuckerwasser', 'category': 'carbohydrate'},
-        ],
+    repo.logEvent(
+      id,
+      'feeding',
+      details: {
+        'feeding': {
+          'acceptance': 'accepted',
+          'items': [
+            {'food_name': 'Schabe', 'category': 'protein', 'quantity': 2, 'unit': 'piece', 'size': 'small'},
+            {'food_name': 'Zuckerwasser', 'category': 'carbohydrate'},
+          ],
+        },
       },
-    });
+    );
     expect(repo.fedJustNow(id), isTrue);
     now = now.add(const Duration(hours: 3));
     expect(repo.fedJustNow(id), isFalse);
@@ -75,13 +81,18 @@ void main() {
     for (final r in db.records('care_schedules')) {
       db.putRecord('care_schedules', {...r.json, 'starts_at': '2026-09-01T00:00:00Z'}, pending: true);
     }
-    repo.logEvent(id, 'feeding', at: now.subtract(const Duration(days: 5)), details: {
-      'feeding': {
-        'items': [
-          {'food_name': 'Schabe', 'category': 'protein'},
-        ],
+    repo.logEvent(
+      id,
+      'feeding',
+      at: now.subtract(const Duration(days: 5)),
+      details: {
+        'feeding': {
+          'items': [
+            {'food_name': 'Schabe', 'category': 'protein'},
+          ],
+        },
       },
-    });
+    );
     final due = {for (final t in repo.due(id)) t.schedule.taskType: t};
     expect(due['protein']!.days, -2);
     expect(due['protein']!.status, DueStatus.overdue);
@@ -91,13 +102,17 @@ void main() {
 
   test('acceptance is sent with the complete feeding details', () {
     final id = repo.createColony({'name': 'A', 'species_text': 'x'});
-    final e = repo.logEvent(id, 'feeding', details: {
-      'feeding': {
-        'items': [
-          {'food_name': 'Heimchen', 'category': 'protein'},
-        ],
+    final e = repo.logEvent(
+      id,
+      'feeding',
+      details: {
+        'feeding': {
+          'items': [
+            {'food_name': 'Heimchen', 'category': 'protein'},
+          ],
+        },
       },
-    });
+    );
     repo.setAcceptance(e.id, 'accepted');
     final op = db.select("SELECT payload FROM outbox WHERE entity = 'colony_events'").single['payload'] as String;
     // merged into the unsent create

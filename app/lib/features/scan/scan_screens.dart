@@ -48,9 +48,11 @@ Future<ScanOutcome> resolveScan(WidgetRef ref, String token) async {
     await ref.read(syncEngineProvider)?.sync();
     return OpenColony(res['colony_id'] as String);
   } on ApiException catch (e) {
-    return ScanMessage(e.status == 410
-        ? 'Dieser Code wurde deaktiviert.'
-        : 'Kein Kolonie-Code von dir – oder die Kolonie ist nicht mit dir geteilt.');
+    return ScanMessage(
+      e.status == 410
+          ? 'Dieser Code wurde deaktiviert.'
+          : 'Kein Kolonie-Code von dir – oder die Kolonie ist nicht mit dir geteilt.',
+    );
   } on NetworkException {
     return ScanMessage('Unbekannter Code. Offline – wird beim nächsten Sync geprüft.');
   }
@@ -89,37 +91,48 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Kolonie scannen'), actions: const [SyncBadge()]),
-        body: ContentWidth(
-          maxWidth: 560,
-          child: ListView(padding: const EdgeInsets.all(20), children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(children: [
+    appBar: AppBar(title: const Text('Kolonie scannen'), actions: const [SyncBadge()]),
+    body: ContentWidth(
+      maxWidth: 560,
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
                   Icon(Icons.qr_code_scanner, size: 64, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(height: 12),
                   const Text('Kamera- und NFC-Scan folgen mit dem nächsten Update.', textAlign: TextAlign.center),
                   const SizedBox(height: 4),
-                  Text('Bis dahin: Code vom Etikett oder den Link eingeben.',
-                      textAlign: TextAlign.center, style: TextStyle(color: context.colors.muted)),
-                ]),
+                  Text(
+                    'Bis dahin: Code vom Etikett oder den Link eingeben.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: context.colors.muted),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _code,
-              autocorrect: false,
-              decoration: const InputDecoration(labelText: 'Code oder Link', hintText: 'https://…/c/7Kq2mZr9XbT4pLwA'),
-              onSubmitted: (_) => _go(),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _code,
+            autocorrect: false,
+            decoration: const InputDecoration(labelText: 'Code oder Link', hintText: 'https://…/c/7Kq2mZr9XbT4pLwA'),
+            onSubmitted: (_) => _go(),
+          ),
+          const SizedBox(height: 12),
+          if (_message != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(_message!, style: TextStyle(color: context.colors.soon)),
             ),
-            const SizedBox(height: 12),
-            if (_message != null)
-              Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(_message!, style: TextStyle(color: context.colors.soon))),
-            FilledButton(onPressed: _busy ? null : _go, child: const Text('Kolonie öffnen')),
-          ]),
-        ),
-      );
+          FilledButton(onPressed: _busy ? null : _go, child: const Text('Kolonie öffnen')),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Target of QR/NFC links (…/c/<code>) – in the browser and, later, the app.
@@ -157,38 +170,41 @@ class _ScanLandingScreenState extends ConsumerState<ScanLandingScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(),
-        body: ContentWidth(
-          maxWidth: 480,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              if (_intent != null) ...[
-                FilledButton.icon(
-                  onPressed: () => openExternal(_intent),
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('In der App öffnen'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () {
-                    setState(() => _message = null);
-                    _resolve();
-                  },
-                  child: const Text('Hier im Browser fortfahren'),
-                ),
-              ] else if (_message == null)
-                const Center(child: CircularProgressIndicator()),
-              if (_message != null) ...[
-                const SizedBox(height: 16),
-                Text(_message!, textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                OutlinedButton(onPressed: () => context.go('/'), child: const Text('Zur Übersicht')),
-              ],
-            ]),
-          ),
+    appBar: AppBar(),
+    body: ContentWidth(
+      maxWidth: 480,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_intent != null) ...[
+              FilledButton.icon(
+                onPressed: () => openExternal(_intent),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('In der App öffnen'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () {
+                  setState(() => _message = null);
+                  _resolve();
+                },
+                child: const Text('Hier im Browser fortfahren'),
+              ),
+            ] else if (_message == null)
+              const Center(child: CircularProgressIndicator()),
+            if (_message != null) ...[
+              const SizedBox(height: 16),
+              Text(_message!, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              OutlinedButton(onPressed: () => context.go('/'), child: const Text('Zur Übersicht')),
+            ],
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// Opened when the „App verbinden“ QR is scanned with a normal camera app.
@@ -196,11 +212,11 @@ class DeviceLinkLandingScreen extends StatelessWidget {
   const DeviceLinkLandingScreen({super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(),
-        body: const EmptyState(
-          icon: Icons.phone_android,
-          title: 'Mit der Android-App scannen',
-          text: 'Dieser Code verbindet die Ant-Colony-Manager-App. Öffne die App und scanne ihn dort.',
-        ),
-      );
+    appBar: AppBar(),
+    body: const EmptyState(
+      icon: Icons.phone_android,
+      title: 'Mit der Android-App scannen',
+      text: 'Dieser Code verbindet die Ant-Colony-Manager-App. Öffne die App und scanne ihn dort.',
+    ),
+  );
 }

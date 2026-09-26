@@ -90,7 +90,11 @@ abstract final class S {
     return switch (t.status) {
       DueStatus.paused => 'pausiert',
       DueStatus.overdue => d == -1 ? '1 Tag überfällig' : '${-d} Tage überfällig',
-      _ => switch (d) { 0 => 'heute', 1 => 'morgen', _ => 'in $d Tagen' },
+      _ => switch (d) {
+        0 => 'heute',
+        1 => 'morgen',
+        _ => 'in $d Tagen',
+      },
     };
   }
 
@@ -112,7 +116,12 @@ abstract final class S {
     final q = i.quantity;
     if (q == null) return i.foodName;
     final n = q == q.roundToDouble() ? q.toInt().toString() : decimal(q);
-    final size = switch (i.size) { 'tiny' => ' (winzig)', 'small' => ' (klein)', 'large' => ' (groß)', _ => '' };
+    final size = switch (i.size) {
+      'tiny' => ' (winzig)',
+      'small' => ' (klein)',
+      'large' => ' (groß)',
+      _ => '',
+    };
     return switch (i.unit) {
       'drop' => '$n Tropfen ${i.foodName}',
       'ml' => '$n ml ${i.foodName}',

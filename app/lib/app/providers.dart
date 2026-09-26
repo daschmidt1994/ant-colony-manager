@@ -23,12 +23,14 @@ Stream<T> _watch<T>(Ref ref, T Function(ColonyRepository repo) query) {
 final coloniesProvider = StreamProvider<List<Colony>>((ref) => _watch(ref, (r) => r.colonies()));
 
 final archivedColoniesProvider = StreamProvider<List<Colony>>(
-    (ref) => _watch(ref, (r) => r.colonies(includeArchived: true).where((c) => c.archived).toList()));
+  (ref) => _watch(ref, (r) => r.colonies(includeArchived: true).where((c) => c.archived).toList()),
+);
 
 final colonyProvider = StreamProvider.family<Colony?, String>((ref, id) => _watch(ref, (r) => r.colony(id)));
 
-final colonyEventsProvider =
-    StreamProvider.family<List<ColonyEvent>, String>((ref, id) => _watch(ref, (r) => r.events(id)));
+final colonyEventsProvider = StreamProvider.family<List<ColonyEvent>, String>(
+  (ref, id) => _watch(ref, (r) => r.events(id)),
+);
 
 final colonyDueProvider = StreamProvider.family<List<DueTask>, String>((ref, id) => _watch(ref, (r) => r.due(id)));
 
@@ -40,18 +42,23 @@ final foodItemsProvider = StreamProvider<List<FoodItem>>((ref) => _watch(ref, (r
 
 final locationsProvider = StreamProvider<List<Location>>((ref) => _watch(ref, (r) => r.locations()));
 
-final scanLinksProvider =
-    StreamProvider.family<List<ScanLink>, String>((ref, id) => _watch(ref, (r) => r.scanLinks(id)));
+final scanLinksProvider = StreamProvider.family<List<ScanLink>, String>(
+  (ref, id) => _watch(ref, (r) => r.scanLinks(id)),
+);
 
 final roleProvider = StreamProvider.family<String, String>((ref, id) => _watch(ref, (r) => r.roleOn(id)));
 
 final schedulesProvider = StreamProvider.family<List<Schedule>, String>(
-    (ref, id) => _watch(ref, (r) => r.schedules(colonyId: id)));
+  (ref, id) => _watch(ref, (r) => r.schedules(colonyId: id)),
+);
 
 /// Species names already used – suggestions for the colony form.
-final speciesSuggestionsProvider = StreamProvider<List<String>>((ref) => _watch(ref, (r) {
-      final names = <String>{
-        for (final c in r.colonies(includeArchived: true)) if (c.species.isNotEmpty) c.species,
-      };
-      return names.toList()..sort();
-    }));
+final speciesSuggestionsProvider = StreamProvider<List<String>>(
+  (ref) => _watch(ref, (r) {
+    final names = <String>{
+      for (final c in r.colonies(includeArchived: true))
+        if (c.species.isNotEmpty) c.species,
+    };
+    return names.toList()..sort();
+  }),
+);

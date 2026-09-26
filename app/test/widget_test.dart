@@ -16,27 +16,28 @@ import 'helpers.dart';
 /// Signed in without a server (no sync) – enough for UI tests.
 class _FakeAuth extends AuthController {
   @override
-  AuthState build() => SignedIn('https://ants.test', User({'id': 'u1', 'email': 'a@ants.test', 'display_name': 'Anna'}));
+  AuthState build() =>
+      SignedIn('https://ants.test', User({'id': 'u1', 'email': 'a@ants.test', 'display_name': 'Anna'}));
 }
 
 Widget _app(AppDatabase db, Widget home) => ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(db),
-        authProvider.overrideWith(_FakeAuth.new),
-        syncEngineProvider.overrideWith((ref) => null),
-      ],
-      child: MaterialApp(
-        theme: buildTheme(Brightness.dark),
-        locale: const Locale('de'),
-        supportedLocales: const [Locale('de')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        home: home,
-      ),
-    );
+  overrides: [
+    databaseProvider.overrideWithValue(db),
+    authProvider.overrideWith(_FakeAuth.new),
+    syncEngineProvider.overrideWith((ref) => null),
+  ],
+  child: MaterialApp(
+    theme: buildTheme(Brightness.dark),
+    locale: const Locale('de'),
+    supportedLocales: const [Locale('de')],
+    localizationsDelegates: const [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    home: home,
+  ),
+);
 
 void main() {
   setUpAll(() => initializeDateFormatting('de'));
@@ -45,13 +46,18 @@ void main() {
     final db = memoryDb();
     final repo = ColonyRepository(db, userId: 'u1', onChanged: () {});
     final id = repo.createColony({'name': 'Messor #12', 'species_text': 'Messor barbarus'}, intervals: {'water': 2});
-    repo.logEvent(id, 'feeding', at: DateTime.now().subtract(const Duration(days: 2)), details: {
-      'feeding': {
-        'items': [
-          {'food_name': 'Schabe', 'category': 'protein', 'quantity': 2, 'unit': 'piece', 'size': 'small'},
-        ],
+    repo.logEvent(
+      id,
+      'feeding',
+      at: DateTime.now().subtract(const Duration(days: 2)),
+      details: {
+        'feeding': {
+          'items': [
+            {'food_name': 'Schabe', 'category': 'protein', 'quantity': 2, 'unit': 'piece', 'size': 'small'},
+          ],
+        },
       },
-    });
+    );
 
     await tester.binding.setSurfaceSize(const Size(430, 1600));
     await tester.pumpWidget(_app(db, ColonyDetailScreen(colonyId: id)));
@@ -84,7 +90,10 @@ void main() {
     final repo = ColonyRepository(db, userId: 'u1', onChanged: () {});
     final id = repo.createColony({'name': 'Lasius #3', 'species_text': 'Lasius niger'}, intervals: {'water': 2});
     for (final r in db.records('care_schedules')) {
-      db.putRecord('care_schedules', {...r.json, 'starts_at': DateTime.now().subtract(const Duration(days: 9)).toUtc().toIso8601String()});
+      db.putRecord('care_schedules', {
+        ...r.json,
+        'starts_at': DateTime.now().subtract(const Duration(days: 9)).toUtc().toIso8601String(),
+      });
     }
     repo.createColony({'name': 'Ohne Aufgaben', 'species_text': 'Camponotus ligniperda'});
 

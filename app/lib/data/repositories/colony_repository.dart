@@ -25,12 +25,7 @@ String newScanToken() {
 
 /// Everything the dashboard needs, computed from the local database.
 class DashboardData {
-  DashboardData({
-    required this.colonies,
-    required this.due,
-    required this.recent,
-    required this.hibernating,
-  });
+  DashboardData({required this.colonies, required this.due, required this.recent, required this.hibernating});
   final List<Colony> colonies;
   final Map<String, List<DueTask>> due;
   final List<(ColonyEvent, Colony?)> recent;
@@ -57,7 +52,7 @@ class ScanUnknown extends ScanResolution {}
 /// background sync – the UI never waits for the network.
 class ColonyRepository {
   ColonyRepository(this.db, {required this.userId, required this.onChanged, DateTime Function()? clock})
-      : now = clock ?? DateTime.now;
+    : now = clock ?? DateTime.now;
 
   final AppDatabase db;
   final String userId;
@@ -68,21 +63,26 @@ class ColonyRepository {
   // Reads (synchronous, for use inside db.watch)
 
   Map<String, Species> _species() => {for (final r in db.records('species', orderBy: 'id')) r.id: Species(r.json)};
-  Map<String, Location> _locations() =>
-      {for (final r in db.records('locations', orderBy: 'id')) r.id: Location(r.json)};
+  Map<String, Location> _locations() => {
+    for (final r in db.records('locations', orderBy: 'id')) r.id: Location(r.json),
+  };
 
   List<Colony> colonies({bool includeArchived = false}) {
     final sp = _species(), loc = _locations();
-    final list = db
-        .records('colonies', orderBy: 'id')
-        .map((r) {
-          final j = r.json;
-          return Colony(j,
-              speciesName: sp[j['species_id']]?.scientificName, locationPath: loc[j['location_id']]?.path);
-        })
-        .where((c) => includeArchived || !c.archived)
-        .toList()
-      ..sort((a, b) => a.number.compareTo(b.number));
+    final list =
+        db
+            .records('colonies', orderBy: 'id')
+            .map((r) {
+              final j = r.json;
+              return Colony(
+                j,
+                speciesName: sp[j['species_id']]?.scientificName,
+                locationPath: loc[j['location_id']]?.path,
+              );
+            })
+            .where((c) => includeArchived || !c.archived)
+            .toList()
+          ..sort((a, b) => a.number.compareTo(b.number));
     return list;
   }
 
@@ -90,8 +90,11 @@ class ColonyRepository {
     final r = db.record('colonies', id);
     if (r == null) return null;
     final j = r.json;
-    return Colony(j,
-        speciesName: _species()[j['species_id']]?.scientificName, locationPath: _locations()[j['location_id']]?.path);
+    return Colony(
+      j,
+      speciesName: _species()[j['species_id']]?.scientificName,
+      locationPath: _locations()[j['location_id']]?.path,
+    );
   }
 
   List<ColonyEvent> events(String colonyId, {Set<String>? types, int? limit}) {
@@ -109,13 +112,12 @@ class ColonyRepository {
     return e.isEmpty ? null : e.first;
   }
 
-  List<Schedule> schedules({String? colonyId}) => db
-      .records('care_schedules', colonyId: colonyId, orderBy: 'id')
-      .map((r) => Schedule.fromJson(r.json))
-      .toList();
+  List<Schedule> schedules({String? colonyId}) =>
+      db.records('care_schedules', colonyId: colonyId, orderBy: 'id').map((r) => Schedule.fromJson(r.json)).toList();
 
-  List<FoodItem> foodItems() => db.records('food_items', orderBy: 'id').map((r) => FoodItem(r.json)).where((f) => !f.archived).toList()
-    ..sort((a, b) => a.sortOrder != b.sortOrder ? a.sortOrder.compareTo(b.sortOrder) : a.name.compareTo(b.name));
+  List<FoodItem> foodItems() =>
+      db.records('food_items', orderBy: 'id').map((r) => FoodItem(r.json)).where((f) => !f.archived).toList()
+        ..sort((a, b) => a.sortOrder != b.sortOrder ? a.sortOrder.compareTo(b.sortOrder) : a.name.compareTo(b.name));
 
   List<Location> locations() => _locations().values.toList()..sort((a, b) => a.path.compareTo(b.path));
 
@@ -142,7 +144,8 @@ class ColonyRepository {
     DateTime? t(Object? v) => v == null ? null : DateTime.fromMillisecondsSinceEpoch(v as int);
     const hasCategory =
         "EXISTS (SELECT 1 FROM json_each(data, '\$.feeding.items') WHERE json_extract(value, '\$.category') = ?)";
-    final rows = db.select('''
+    final rows = db.select(
+      '''
       SELECT colony_id,
         max(CASE WHEN type = 'feeding' THEN ts END) AS feeding,
         max(CASE WHEN type = 'feeding' AND $hasCategory THEN ts END) AS protein,
@@ -151,7 +154,9 @@ class ColonyRepository {
         max(CASE WHEN type = 'cleaning' THEN ts END) AS cleaning,
         max(CASE WHEN type IN ('check', 'feeding', 'water', 'cleaning', 'census', 'brood') THEN ts END) AS chk
       FROM (SELECT colony_id, ts, data, json_extract(data, '\$.type') AS type FROM records WHERE entity = 'colony_events')
-      GROUP BY colony_id''', ['protein', 'carbohydrate']);
+      GROUP BY colony_id''',
+      ['protein', 'carbohydrate'],
+    );
     final bySchedule = <String, Map<String, DateTime>>{};
     for (final r in db.select('''
       SELECT colony_id, json_extract(data, '\$.schedule_id') AS sid, max(ts) AS last FROM records
@@ -232,7 +237,8 @@ class ColonyRepository {
         .toList();
     final winterStart = {
       for (final r in db.records('winter_rests', orderBy: 'id'))
-        if (r.json['ended_on'] == null) r.json['colony_id'] as String: DateTime.tryParse(r.json['started_on'] as String? ?? ''),
+        if (r.json['ended_on'] == null)
+          r.json['colony_id'] as String: DateTime.tryParse(r.json['started_on'] as String? ?? ''),
     };
     return DashboardData(
       colonies: cols,
@@ -244,10 +250,9 @@ class ColonyRepository {
 
   /// QR/NFC token → colony, entirely offline (scan_links are synced).
   ScanResolution resolveToken(String token) {
-    final r = db.select(
-      "SELECT data FROM records WHERE entity = 'scan_links' AND json_extract(data, '\$.token') = ?",
-      [token],
-    );
+    final r = db.select("SELECT data FROM records WHERE entity = 'scan_links' AND json_extract(data, '\$.token') = ?", [
+      token,
+    ]);
     if (r.isEmpty) return ScanUnknown();
     final link = ScanLink(_decode(r.first['data'] as String));
     if (!link.active) return ScanRevoked();
@@ -286,62 +291,67 @@ class ColonyRepository {
 
   /// Creates a colony with its care schedules and a QR code – works offline.
   String createColony(Map<String, dynamic> fields, {Map<String, double> intervals = const {}}) => _write(() {
-        final used = colonies(includeArchived: true).map((c) => c.number).fold<int>(0, max);
-        final c = _create('colonies', {'number': used + 1, 'status': 'active', ...fields});
-        final id = c['id'] as String;
-        final start = now().toUtc().toIso8601String();
-        intervals.forEach((type, days) {
-          _create('care_schedules', {'colony_id': id, 'task_type': type, 'interval_days': days, 'starts_at': start});
-        });
-        _create('scan_links', {'colony_id': id, 'token': newScanToken(), 'kind': 'qr', 'active': true});
-        // The owner membership is created by the server and arrives with the next pull.
-        return id;
-      });
+    final used = colonies(includeArchived: true).map((c) => c.number).fold<int>(0, max);
+    final c = _create('colonies', {'number': used + 1, 'status': 'active', ...fields});
+    final id = c['id'] as String;
+    final start = now().toUtc().toIso8601String();
+    intervals.forEach((type, days) {
+      _create('care_schedules', {'colony_id': id, 'task_type': type, 'interval_days': days, 'starts_at': start});
+    });
+    _create('scan_links', {'colony_id': id, 'token': newScanToken(), 'kind': 'qr', 'active': true});
+    // The owner membership is created by the server and arrives with the next pull.
+    return id;
+  });
 
   void updateColony(String id, Map<String, dynamic> patch) => _write(() => _update('colonies', id, patch));
 
   /// Sets interval days per task type; 0 removes the schedule.
   void setIntervals(String colonyId, Map<String, double> intervals) => _write(() {
-        final existing = {for (final s in schedules(colonyId: colonyId)) s.taskType: s};
-        intervals.forEach((type, days) {
-          final s = existing[type];
-          if (days <= 0) {
-            if (s != null) _delete('care_schedules', s.id);
-          } else if (s == null) {
-            _create('care_schedules', {
-              'colony_id': colonyId,
-              'task_type': type,
-              'interval_days': days,
-              'starts_at': now().toUtc().toIso8601String(),
-            });
-          } else if (s.intervalDays != days) {
-            _update('care_schedules', s.id, {'interval_days': days});
-          }
+    final existing = {for (final s in schedules(colonyId: colonyId)) s.taskType: s};
+    intervals.forEach((type, days) {
+      final s = existing[type];
+      if (days <= 0) {
+        if (s != null) _delete('care_schedules', s.id);
+      } else if (s == null) {
+        _create('care_schedules', {
+          'colony_id': colonyId,
+          'task_type': type,
+          'interval_days': days,
+          'starts_at': now().toUtc().toIso8601String(),
         });
-      });
+      } else if (s.intervalDays != days) {
+        _update('care_schedules', s.id, {'interval_days': days});
+      }
+    });
+  });
 
   void archiveColony(String id, bool archive) =>
       updateColony(id, {'archived_at': archive ? now().toUtc().toIso8601String() : null});
 
   void deleteColony(String id) => _write(() {
-        _delete('colonies', id);
-        db.purgeColony(id);
-      });
+    _delete('colonies', id);
+    db.purgeColony(id);
+  });
 
   /// Records an event. [details] are the type-specific parts (feeding, water …).
-  ColonyEvent logEvent(String colonyId, String type, {Map<String, dynamic> details = const {}, String? note, DateTime? at}) =>
-      _write(() {
-        final payload = {
-          'colony_id': colonyId,
-          'type': type,
-          'occurred_at': (at ?? now()).toUtc().toIso8601String(),
-          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
-          ...details,
-        };
-        final data = _create('colony_events', payload);
-        db.putRecord('colony_events', {...data, 'created_by': userId}, pending: true);
-        return ColonyEvent({...data, 'created_by': userId});
-      });
+  ColonyEvent logEvent(
+    String colonyId,
+    String type, {
+    Map<String, dynamic> details = const {},
+    String? note,
+    DateTime? at,
+  }) => _write(() {
+    final payload = {
+      'colony_id': colonyId,
+      'type': type,
+      'occurred_at': (at ?? now()).toUtc().toIso8601String(),
+      if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      ...details,
+    };
+    final data = _create('colony_events', payload);
+    db.putRecord('colony_events', {...data, 'created_by': userId}, pending: true);
+    return ColonyEvent({...data, 'created_by': userId});
+  });
 
   /// „Letzte Fütterung wiederholen“ – one tap. Returns null if there is none.
   ColonyEvent? repeatLastFeeding(String colonyId, {DateTime? at}) {
@@ -354,9 +364,14 @@ class ColonyRepository {
             if (i.json[k] != null) k: i.json[k],
         },
     ];
-    return logEvent(colonyId, 'feeding', details: {
-      'feeding': {'acceptance': 'unknown', 'items': items},
-    }, at: at);
+    return logEvent(
+      colonyId,
+      'feeding',
+      details: {
+        'feeding': {'acceptance': 'unknown', 'items': items},
+      },
+      at: at,
+    );
   }
 
   /// Duplicate guard: an identical feeding within the last 2 minutes.
@@ -367,30 +382,36 @@ class ColonyRepository {
 
   /// Sets acceptance later (often only known hours after feeding).
   void setAcceptance(String eventId, String acceptance) => _write(() {
-        final rec = db.record('colony_events', eventId);
-        if (rec == null) return;
-        final feeding = Map<String, dynamic>.from(rec.json['feeding'] as Map? ?? {});
-        feeding['acceptance'] = acceptance;
-        // The server replaces details as a whole – always send them completely.
-        feeding['items'] = [
-          for (final i in (feeding['items'] as List? ?? const []).cast<Map>())
-            {for (final e in i.entries) if (e.key != 'feeding_id') e.key as String: e.value},
-        ];
-        _update('colony_events', eventId, {'feeding': feeding});
-      });
+    final rec = db.record('colony_events', eventId);
+    if (rec == null) return;
+    final feeding = Map<String, dynamic>.from(rec.json['feeding'] as Map? ?? {});
+    feeding['acceptance'] = acceptance;
+    // The server replaces details as a whole – always send them completely.
+    feeding['items'] = [
+      for (final i in (feeding['items'] as List? ?? const []).cast<Map>())
+        {
+          for (final e in i.entries)
+            if (e.key != 'feeding_id') e.key as String: e.value,
+        },
+    ];
+    _update('colony_events', eventId, {'feeding': feeding});
+  });
 
-  void updateEvent(String eventId, Map<String, dynamic> patch) => _write(() => _update('colony_events', eventId, patch));
+  void updateEvent(String eventId, Map<String, dynamic> patch) =>
+      _write(() => _update('colony_events', eventId, patch));
 
   void deleteEvent(String eventId) => _write(() => _delete('colony_events', eventId));
 
   String createLocation(String name, {String? parentId}) => _write(() {
-        final parent = parentId == null ? null : _locations()[parentId];
-        final data = _create('locations', {'name': name.trim(), if (parentId != null) 'parent_id': parentId});
-        // path is computed by the server; show it right away locally
-        db.putRecord('locations', {...data, 'path': parent == null ? name.trim() : '${parent.path}/${name.trim()}'},
-            pending: true);
-        return data['id'] as String;
-      });
+    final parent = parentId == null ? null : _locations()[parentId];
+    final data = _create('locations', {'name': name.trim(), if (parentId != null) 'parent_id': parentId});
+    // path is computed by the server; show it right away locally
+    db.putRecord('locations', {
+      ...data,
+      'path': parent == null ? name.trim() : '${parent.path}/${name.trim()}',
+    }, pending: true);
+    return data['id'] as String;
+  });
 
   static Map<String, dynamic> _decode(String s) => jsonDecode(s) as Map<String, dynamic>;
 }

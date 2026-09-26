@@ -17,8 +17,13 @@ List<Colony> filterColonies(List<Colony> colonies, Map<String, List<DueTask>> du
   bool matches(Colony c) {
     if (q.isEmpty) return true;
     if (number != null && c.number == number) return true;
-    return [c.name, c.species, c.internalCode ?? '', c.locationPath ?? '', c.notes ?? '']
-        .any((s) => s.toLowerCase().contains(q));
+    return [
+      c.name,
+      c.species,
+      c.internalCode ?? '',
+      c.locationPath ?? '',
+      c.notes ?? '',
+    ].any((s) => s.toLowerCase().contains(q));
   }
 
   bool passes(Colony c) {
@@ -34,11 +39,10 @@ List<Colony> filterColonies(List<Colony> colonies, Map<String, List<DueTask>> du
   }
 
   int urgency(Colony c) => worstOf(due[c.id] ?? const [])?.days ?? 1 << 20;
-  return colonies.where((c) => matches(c) && passes(c)).toList()
-    ..sort((a, b) {
-      final u = urgency(a).compareTo(urgency(b));
-      return u != 0 ? u : a.number.compareTo(b.number);
-    });
+  return colonies.where((c) => matches(c) && passes(c)).toList()..sort((a, b) {
+    final u = urgency(a).compareTo(urgency(b));
+    return u != 0 ? u : a.number.compareTo(b.number);
+  });
 }
 
 class ColonyListScreen extends ConsumerStatefulWidget {
@@ -74,52 +78,61 @@ class _ColonyListScreenState extends ConsumerState<ColonyListScreen> {
         label: const Text('Kolonie'),
       ),
       body: ContentWidth(
-        child: Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: TextField(
-              controller: _search,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'Name, Art, Standort, #Nummer',
-                suffixIcon: _search.text.isEmpty
-                    ? null
-                    : IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(_search.clear)),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: TextField(
+                controller: _search,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Name, Art, Standort, #Nummer',
+                  suffixIcon: _search.text.isEmpty
+                      ? null
+                      : IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(_search.clear)),
+                ),
               ),
             ),
-          ),
-          SizedBox(
-            height: 44,
-            child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), children: [
-              for (final f in ColonyFilter.values)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(_labels[f]!),
-                    selected: _filters.contains(f),
-                    onSelected: (v) => setState(() => v ? _filters.add(f) : _filters.remove(f)),
-                  ),
-                ),
-            ]),
-          ),
-          Expanded(
-            child: list.isEmpty
-                ? EmptyState(
-                    icon: Icons.search_off,
-                    title: colonies.isEmpty ? 'Noch keine Kolonien' : 'Keine Treffer',
-                    action: colonies.isEmpty
-                        ? FilledButton(onPressed: () => context.go('/colonies/new'), child: const Text('Kolonie anlegen'))
-                        : null,
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.only(bottom: 96),
-                    itemCount: list.length,
-                    separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
-                    itemBuilder: (_, i) => ColonyDueTile(colony: list[i], tasks: due[list[i].id] ?? const []),
-                  ),
-          ),
-        ]),
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  for (final f in ColonyFilter.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(_labels[f]!),
+                        selected: _filters.contains(f),
+                        onSelected: (v) => setState(() => v ? _filters.add(f) : _filters.remove(f)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: list.isEmpty
+                  ? EmptyState(
+                      icon: Icons.search_off,
+                      title: colonies.isEmpty ? 'Noch keine Kolonien' : 'Keine Treffer',
+                      action: colonies.isEmpty
+                          ? FilledButton(
+                              onPressed: () => context.go('/colonies/new'),
+                              child: const Text('Kolonie anlegen'),
+                            )
+                          : null,
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(bottom: 96),
+                      itemCount: list.length,
+                      separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
+                      itemBuilder: (_, i) => ColonyDueTile(colony: list[i], tasks: due[list[i].id] ?? const []),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

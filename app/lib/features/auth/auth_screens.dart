@@ -24,32 +24,35 @@ class _AuthScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: AutofillGroup(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    Icon(Icons.hive_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(height: 12),
-                    Text(S.appName, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 28),
-                    Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 6),
-                      Text(subtitle!, style: TextStyle(color: context.colors.muted)),
-                    ],
-                    const SizedBox(height: 20),
-                    ...children,
-                  ]),
-                ),
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: AutofillGroup(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(Icons.hive_outlined, size: 56, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(height: 12),
+                  Text(S.appName, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 28),
+                  Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 6),
+                    Text(subtitle!, style: TextStyle(color: context.colors.muted)),
+                  ],
+                  const SizedBox(height: 20),
+                  ...children,
+                ],
               ),
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// Mixin for simple async forms with busy state and error text.
@@ -76,14 +79,14 @@ mixin _Busy<T extends StatefulWidget> on State<T> {
   }
 
   String _friendly(ApiException e) => switch (e.code) {
-        'auth.invalid_credentials' => 'E-Mail oder Passwort ist falsch.',
-        'rate_limited' => 'Zu viele Versuche – bitte kurz warten.',
-        'setup.invalid_token' => 'Der Setup-Code stimmt nicht (siehe docker compose logs app).',
-        'registration.closed' => 'Registrierung nur mit Einladung.',
-        'user.exists' => 'Für diese E-Mail gibt es bereits ein Konto.',
-        'user.disabled' => 'Dieses Konto ist gesperrt.',
-        _ => e.title,
-      };
+    'auth.invalid_credentials' => 'E-Mail oder Passwort ist falsch.',
+    'rate_limited' => 'Zu viele Versuche – bitte kurz warten.',
+    'setup.invalid_token' => 'Der Setup-Code stimmt nicht (siehe docker compose logs app).',
+    'registration.closed' => 'Registrierung nur mit Einladung.',
+    'user.exists' => 'Für diese E-Mail gibt es bereits ein Konto.',
+    'user.disabled' => 'Dieses Konto ist gesperrt.',
+    _ => e.title,
+  };
 
   Widget errorBox() => error == null
       ? const SizedBox.shrink()
@@ -106,27 +109,29 @@ class _ServerScreenState extends ConsumerState<ServerScreen> with _Busy {
 
   @override
   Widget build(BuildContext context) => _AuthScaffold(
-        title: 'Server verbinden',
-        subtitle: 'Deine Kolonien. Ein Scan.',
-        children: [
-          TextField(
-            controller: _url,
-            keyboardType: TextInputType.url,
-            autocorrect: false,
-            decoration: const InputDecoration(labelText: 'Server-Adresse', hintText: 'https://ants.example.com'),
-            onSubmitted: (_) => _connect(),
-          ),
-          const SizedBox(height: 8),
-          Text('Im Heimnetz z. B. http://192.168.1.50:8080', style: TextStyle(color: context.colors.muted)),
-          const SizedBox(height: 20),
-          errorBox(),
-          FilledButton(onPressed: busy ? null : _connect, child: Text(busy ? 'Verbinde …' : 'Weiter')),
-          const SizedBox(height: 16),
-          Text('Tipp: In der Web-App unter „Mehr → Android-App verbinden“ gibt es einen QR-Code '
-              '(Scannen folgt mit dem Kamera-Update).',
-              style: TextStyle(color: context.colors.muted, fontSize: 13)),
-        ],
-      );
+    title: 'Server verbinden',
+    subtitle: 'Deine Kolonien. Ein Scan.',
+    children: [
+      TextField(
+        controller: _url,
+        keyboardType: TextInputType.url,
+        autocorrect: false,
+        decoration: const InputDecoration(labelText: 'Server-Adresse', hintText: 'https://ants.example.com'),
+        onSubmitted: (_) => _connect(),
+      ),
+      const SizedBox(height: 8),
+      Text('Im Heimnetz z. B. http://192.168.1.50:8080', style: TextStyle(color: context.colors.muted)),
+      const SizedBox(height: 20),
+      errorBox(),
+      FilledButton(onPressed: busy ? null : _connect, child: Text(busy ? 'Verbinde …' : 'Weiter')),
+      const SizedBox(height: 16),
+      Text(
+        'Tipp: In der Web-App unter „Mehr → Android-App verbinden“ gibt es einen QR-Code '
+        '(Scannen folgt mit dem Kamera-Update).',
+        style: TextStyle(color: context.colors.muted, fontSize: 13),
+      ),
+    ],
+  );
 
   void _connect() => run(() => ref.read(authProvider.notifier).connect(_url.text));
 }
@@ -193,19 +198,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with _Busy {
       return;
     }
     await run(() async {
-      final res = await ref
-          .read(authProvider.notifier)
-          .api
-          .public('POST', '/api/v1/auth/password/forgot', {'email': _email.text.trim()}) as Map<String, dynamic>;
+      final res =
+          await ref.read(authProvider.notifier).api.public('POST', '/api/v1/auth/password/forgot', {
+                'email': _email.text.trim(),
+              })
+              as Map<String, dynamic>;
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (c) => AlertDialog(
           title: const Text('Passwort zurücksetzen'),
-          content: Text(res['email_enabled'] == true
-              ? 'Wenn es ein Konto mit dieser Adresse gibt, ist eine E-Mail mit einem Link unterwegs.'
-              : 'Auf diesem Server ist kein E-Mail-Versand eingerichtet. Bitte den Administrator um einen '
-                  'Reset-Link bitten.'),
+          content: Text(
+            res['email_enabled'] == true
+                ? 'Wenn es ein Konto mit dieser Adresse gibt, ist eine E-Mail mit einem Link unterwegs.'
+                : 'Auf diesem Server ist kein E-Mail-Versand eingerichtet. Bitte den Administrator um einen '
+                      'Reset-Link bitten.',
+          ),
           actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK'))],
         ),
       );
@@ -218,26 +226,29 @@ class _AccountFields extends StatelessWidget {
   final TextEditingController name, email, pw;
 
   @override
-  Widget build(BuildContext context) => Column(children: [
-        TextField(
-            controller: name,
-            autofillHints: const [AutofillHints.name],
-            decoration: const InputDecoration(labelText: 'Name')),
-        const SizedBox(height: 12),
-        TextField(
-          controller: email,
-          keyboardType: TextInputType.emailAddress,
-          autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(labelText: 'E-Mail'),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: pw,
-          obscureText: true,
-          autofillHints: const [AutofillHints.newPassword],
-          decoration: const InputDecoration(labelText: 'Passwort', helperText: 'Mindestens 10 Zeichen'),
-        ),
-      ]);
+  Widget build(BuildContext context) => Column(
+    children: [
+      TextField(
+        controller: name,
+        autofillHints: const [AutofillHints.name],
+        decoration: const InputDecoration(labelText: 'Name'),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        controller: email,
+        keyboardType: TextInputType.emailAddress,
+        autofillHints: const [AutofillHints.email],
+        decoration: const InputDecoration(labelText: 'E-Mail'),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        controller: pw,
+        obscureText: true,
+        autofillHints: const [AutofillHints.newPassword],
+        decoration: const InputDecoration(labelText: 'Passwort', helperText: 'Mindestens 10 Zeichen'),
+      ),
+    ],
+  );
 }
 
 class SetupScreen extends ConsumerStatefulWidget {
@@ -254,23 +265,27 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with _Busy {
 
   @override
   Widget build(BuildContext context) => _AuthScaffold(
-        title: 'Ersteinrichtung',
-        subtitle: 'Lege das Administrator-Konto an. Den Setup-Code zeigt der Server beim Start an:\n'
-            'docker compose logs app | grep -A1 Setup-Code',
-        children: [
-          TextField(controller: _code, decoration: const InputDecoration(labelText: 'Setup-Code')),
-          const SizedBox(height: 12),
-          _AccountFields(name: _name, email: _email, pw: _pw),
-          const SizedBox(height: 20),
-          errorBox(),
-          FilledButton(
-            onPressed: busy
-                ? null
-                : () => run(() => ref.read(authProvider.notifier).setup(_code.text, _email.text, _pw.text, _name.text)),
-            child: const Text('Konto anlegen'),
-          ),
-        ],
-      );
+    title: 'Ersteinrichtung',
+    subtitle:
+        'Lege das Administrator-Konto an. Den Setup-Code zeigt der Server beim Start an:\n'
+        'docker compose logs app | grep -A1 Setup-Code',
+    children: [
+      TextField(
+        controller: _code,
+        decoration: const InputDecoration(labelText: 'Setup-Code'),
+      ),
+      const SizedBox(height: 12),
+      _AccountFields(name: _name, email: _email, pw: _pw),
+      const SizedBox(height: 20),
+      errorBox(),
+      FilledButton(
+        onPressed: busy
+            ? null
+            : () => run(() => ref.read(authProvider.notifier).setup(_code.text, _email.text, _pw.text, _name.text)),
+        child: const Text('Konto anlegen'),
+      ),
+    ],
+  );
 }
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -287,23 +302,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with _Busy {
 
   @override
   Widget build(BuildContext context) => _AuthScaffold(
-        title: 'Konto erstellen',
-        subtitle: widget.invite != null ? 'Du wurdest eingeladen.' : null,
-        children: [
-          _AccountFields(name: _name, email: _email, pw: _pw),
-          const SizedBox(height: 20),
-          errorBox(),
-          FilledButton(
-            onPressed: busy
-                ? null
-                : () => run(() => ref
-                    .read(authProvider.notifier)
-                    .register(_email.text, _pw.text, _name.text, invite: widget.invite)),
-            child: const Text('Registrieren'),
-          ),
-          TextButton(onPressed: () => context.go('/login'), child: const Text('Zur Anmeldung')),
-        ],
-      );
+    title: 'Konto erstellen',
+    subtitle: widget.invite != null ? 'Du wurdest eingeladen.' : null,
+    children: [
+      _AccountFields(name: _name, email: _email, pw: _pw),
+      const SizedBox(height: 20),
+      errorBox(),
+      FilledButton(
+        onPressed: busy
+            ? null
+            : () => run(
+                () =>
+                    ref.read(authProvider.notifier).register(_email.text, _pw.text, _name.text, invite: widget.invite),
+              ),
+        child: const Text('Registrieren'),
+      ),
+      TextButton(onPressed: () => context.go('/login'), child: const Text('Zur Anmeldung')),
+    ],
+  );
 }
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
@@ -319,32 +335,34 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> with 
 
   @override
   Widget build(BuildContext context) => _AuthScaffold(
-        title: 'Neues Passwort',
-        children: [
-          if (_done) ...[
-            const Text('Passwort geändert. Du kannst dich jetzt anmelden.'),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: () => context.go('/login'), child: const Text('Zur Anmeldung')),
-          ] else ...[
-            TextField(
-              controller: _pw,
-              obscureText: true,
-              autofillHints: const [AutofillHints.newPassword],
-              decoration: const InputDecoration(labelText: 'Neues Passwort', helperText: 'Mindestens 10 Zeichen'),
-            ),
-            const SizedBox(height: 20),
-            errorBox(),
-            FilledButton(
-              onPressed: busy || widget.token == null
-                  ? null
-                  : () => run(() async {
-                        await ref.read(authProvider.notifier).api.public(
-                            'POST', '/api/v1/auth/password/reset', {'token': widget.token, 'password': _pw.text});
-                        setState(() => _done = true);
-                      }),
-              child: const Text('Passwort speichern'),
-            ),
-          ],
-        ],
-      );
+    title: 'Neues Passwort',
+    children: [
+      if (_done) ...[
+        const Text('Passwort geändert. Du kannst dich jetzt anmelden.'),
+        const SizedBox(height: 16),
+        FilledButton(onPressed: () => context.go('/login'), child: const Text('Zur Anmeldung')),
+      ] else ...[
+        TextField(
+          controller: _pw,
+          obscureText: true,
+          autofillHints: const [AutofillHints.newPassword],
+          decoration: const InputDecoration(labelText: 'Neues Passwort', helperText: 'Mindestens 10 Zeichen'),
+        ),
+        const SizedBox(height: 20),
+        errorBox(),
+        FilledButton(
+          onPressed: busy || widget.token == null
+              ? null
+              : () => run(() async {
+                  await ref.read(authProvider.notifier).api.public('POST', '/api/v1/auth/password/reset', {
+                    'token': widget.token,
+                    'password': _pw.text,
+                  });
+                  setState(() => _done = true);
+                }),
+          child: const Text('Passwort speichern'),
+        ),
+      ],
+    ],
+  );
 }

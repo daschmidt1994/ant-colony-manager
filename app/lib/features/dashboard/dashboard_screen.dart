@@ -33,19 +33,21 @@ class DashboardScreen extends ConsumerWidget {
 class _Welcome extends StatelessWidget {
   const _Welcome();
   @override
-  Widget build(BuildContext context) => ListView(children: [
-        const SizedBox(height: 60),
-        EmptyState(
-          icon: Icons.hive_outlined,
-          title: 'Willkommen!',
-          text: 'Lege deine erste Kolonie an. Sie bekommt automatisch einen QR-Code.',
-          action: FilledButton.icon(
-            onPressed: () => context.go('/colonies/new'),
-            icon: const Icon(Icons.add),
-            label: const Text('Erste Kolonie anlegen'),
-          ),
+  Widget build(BuildContext context) => ListView(
+    children: [
+      const SizedBox(height: 60),
+      EmptyState(
+        icon: Icons.hive_outlined,
+        title: 'Willkommen!',
+        text: 'Lege deine erste Kolonie an. Sie bekommt automatisch einen QR-Code.',
+        action: FilledButton.icon(
+          onPressed: () => context.go('/colonies/new'),
+          icon: const Icon(Icons.add),
+          label: const Text('Erste Kolonie anlegen'),
         ),
-      ]);
+      ),
+    ],
+  );
 }
 
 class _Dashboard extends StatelessWidget {
@@ -75,75 +77,103 @@ class _Dashboard extends StatelessWidget {
     final active = d.count('active') + d.count('founding');
     final overdue = grouped[DueGroup.overdue]?.length ?? 0;
 
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 32), children: [
-      ContentWidth(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            _Stat(value: '$active', label: 'aktiv', icon: Icons.pest_control_outlined),
-            const SizedBox(width: 12),
-            _Stat(value: '${d.count('hibernating')}', label: 'Winterruhe', icon: Icons.ac_unit, color: context.colors.winter),
-            const SizedBox(width: 12),
-            _Stat(
-              value: '$overdue',
-              label: 'überfällig',
-              icon: Icons.error_outline,
-              color: overdue > 0 ? context.colors.overdue : null,
-            ),
-          ]),
-          if (d.needsAttention > 0) ...[
-            const SizedBox(height: 12),
-            Card(
-              child: ListTile(
-                leading: Icon(Icons.checklist, color: Theme.of(context).colorScheme.primary),
-                title: Text('${d.needsAttention} ${d.needsAttention == 1 ? 'Kolonie braucht' : 'Kolonien brauchen'} heute Pflege'),
-                subtitle: const Text('Pflege-Rundgang folgt in einem späteren Update'),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      children: [
+        ContentWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  _Stat(value: '$active', label: 'aktiv', icon: Icons.pest_control_outlined),
+                  const SizedBox(width: 12),
+                  _Stat(
+                    value: '${d.count('hibernating')}',
+                    label: 'Winterruhe',
+                    icon: Icons.ac_unit,
+                    color: context.colors.winter,
+                  ),
+                  const SizedBox(width: 12),
+                  _Stat(
+                    value: '$overdue',
+                    label: 'überfällig',
+                    icon: Icons.error_outline,
+                    color: overdue > 0 ? context.colors.overdue : null,
+                  ),
+                ],
               ),
-            ),
-          ],
-          for (final (group, title, open) in _groups)
-            if (grouped[group]?.isNotEmpty == true)
-              _GroupSection(title: title, initiallyOpen: open, entries: grouped[group]!, color: _groupColor(context, group)),
-          if (d.hibernating.isNotEmpty) ...[
-            const SectionHeader('Winterruhe'),
-            Card(
-              child: Column(children: [
-                for (final (c, since) in d.hibernating)
-                  ListTile(
-                    leading: Icon(Icons.ac_unit, color: context.colors.winter),
-                    title: Text(c.name),
-                    subtitle: Text(since == null
-                        ? c.species
-                        : '${c.species} · seit ${DateTime.now().difference(since).inDays} Tagen'),
-                    onTap: () => context.go('/colonies/${c.id}'),
+              if (d.needsAttention > 0) ...[
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: Icon(Icons.checklist, color: Theme.of(context).colorScheme.primary),
+                    title: Text(
+                      '${d.needsAttention} ${d.needsAttention == 1 ? 'Kolonie braucht' : 'Kolonien brauchen'} heute Pflege',
+                    ),
+                    subtitle: const Text('Pflege-Rundgang folgt in einem späteren Update'),
                   ),
-              ]),
-            ),
-          ],
-          if (d.recent.isNotEmpty) ...[
-            const SectionHeader('Letzte Aktivitäten'),
-            Card(
-              child: Column(children: [
-                for (final (e, c) in d.recent)
-                  ListTile(
-                    dense: true,
-                    leading: Icon(eventIcon(e.type)),
-                    title: Text(S.eventSummary(e), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    subtitle: Text('${c!.name} · ${S.relativeDay(e.occurredAt, DateTime.now())} ${S.time(e.occurredAt)}'),
-                    onTap: () => context.go('/colonies/${c.id}'),
+                ),
+              ],
+              for (final (group, title, open) in _groups)
+                if (grouped[group]?.isNotEmpty == true)
+                  _GroupSection(
+                    title: title,
+                    initiallyOpen: open,
+                    entries: grouped[group]!,
+                    color: _groupColor(context, group),
                   ),
-              ]),
-            ),
-          ],
-        ]),
-      ),
-    ]);
+              if (d.hibernating.isNotEmpty) ...[
+                const SectionHeader('Winterruhe'),
+                Card(
+                  child: Column(
+                    children: [
+                      for (final (c, since) in d.hibernating)
+                        ListTile(
+                          leading: Icon(Icons.ac_unit, color: context.colors.winter),
+                          title: Text(c.name),
+                          subtitle: Text(
+                            since == null
+                                ? c.species
+                                : '${c.species} · seit ${DateTime.now().difference(since).inDays} Tagen',
+                          ),
+                          onTap: () => context.go('/colonies/${c.id}'),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+              if (d.recent.isNotEmpty) ...[
+                const SectionHeader('Letzte Aktivitäten'),
+                Card(
+                  child: Column(
+                    children: [
+                      for (final (e, c) in d.recent)
+                        ListTile(
+                          dense: true,
+                          leading: Icon(eventIcon(e.type)),
+                          title: Text(S.eventSummary(e), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          subtitle: Text(
+                            '${c!.name} · ${S.relativeDay(e.occurredAt, DateTime.now())} ${S.time(e.occurredAt)}',
+                          ),
+                          onTap: () => context.go('/colonies/${c.id}'),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Color? _groupColor(BuildContext context, DueGroup g) => switch (g) {
-        DueGroup.overdue => context.colors.overdue,
-        DueGroup.today || DueGroup.tomorrow => context.colors.soon,
-        _ => null,
-      };
+    DueGroup.overdue => context.colors.overdue,
+    DueGroup.today || DueGroup.tomorrow => context.colors.soon,
+    _ => null,
+  };
 }
 
 class _Stat extends StatelessWidget {
@@ -154,18 +184,23 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-            child: Column(children: [
-              Icon(icon, color: color ?? context.colors.muted, size: 20),
-              const SizedBox(height: 4),
-              Text(value, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: color)),
-              Text(label, style: TextStyle(color: context.colors.muted, fontSize: 13)),
-            ]),
-          ),
+    child: Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        child: Column(
+          children: [
+            Icon(icon, color: color ?? context.colors.muted, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: color),
+            ),
+            Text(label, style: TextStyle(color: context.colors.muted, fontSize: 13)),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _GroupSection extends StatelessWidget {
@@ -177,20 +212,20 @@ class _GroupSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 16),
-        child: Card(
-          clipBehavior: Clip.antiAlias,
-          child: ExpansionTile(
-            initiallyExpanded: initiallyOpen,
-            shape: const Border(),
-            title: Text('$title · ${entries.length}',
-                style: TextStyle(fontWeight: FontWeight.w700, color: color, letterSpacing: .3)),
-            children: [
-              for (final (c, tasks) in entries) ColonyDueTile(colony: c, tasks: tasks),
-            ],
-          ),
+    padding: const EdgeInsets.only(top: 16),
+    child: Card(
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        initiallyExpanded: initiallyOpen,
+        shape: const Border(),
+        title: Text(
+          '$title · ${entries.length}',
+          style: TextStyle(fontWeight: FontWeight.w700, color: color, letterSpacing: .3),
         ),
-      );
+        children: [for (final (c, tasks) in entries) ColonyDueTile(colony: c, tasks: tasks)],
+      ),
+    ),
+  );
 }
 
 /// Colony row with its most urgent tasks (used on dashboard and list).
@@ -211,25 +246,35 @@ class ColonyDueTile extends StatelessWidget {
         backgroundColor: colony.status == 'hibernating'
             ? context.colors.winter
             : worst == null
-                ? context.colors.muted
-                : context.colors.due(worst.status),
+            ? context.colors.muted
+            : context.colors.due(worst.status),
       ),
-      title: Row(children: [
-        Expanded(child: Text(colony.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-        if (colony.locationPath != null)
-          Flexible(
-            child: Text(colony.locationPath!,
-                style: TextStyle(color: context.colors.muted, fontSize: 13), overflow: TextOverflow.ellipsis),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(colony.name, style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
-      ]),
-      subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (colony.species.isNotEmpty && colony.species != colony.name)
-          Text(colony.species, style: const TextStyle(fontStyle: FontStyle.italic)),
-        if (shown.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Wrap(spacing: 6, runSpacing: 6, children: [for (final t in shown) DueChip(t)]),
+          if (colony.locationPath != null)
+            Flexible(
+              child: Text(
+                colony.locationPath!,
+                style: TextStyle(color: context.colors.muted, fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
         ],
-      ]),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (colony.species.isNotEmpty && colony.species != colony.name)
+            Text(colony.species, style: const TextStyle(fontStyle: FontStyle.italic)),
+          if (shown.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, runSpacing: 6, children: [for (final t in shown) DueChip(t)]),
+          ],
+        ],
+      ),
       onTap: () => context.go('/colonies/${colony.id}'),
     );
   }

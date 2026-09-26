@@ -32,8 +32,8 @@ void main() {
 
   group('nextDue', () {
     final start = DateTime.utc(2026, 9, 1);
-    Schedule s({String? winterMode}) => Schedule(
-        id: 's', colonyId: 'c', taskType: 'water', intervalDays: 2, startsAt: start, winterMode: winterMode);
+    Schedule s({String? winterMode}) =>
+        Schedule(id: 's', colonyId: 'c', taskType: 'water', intervalDays: 2, startsAt: start, winterMode: winterMode);
 
     test('uses last care, otherwise the start', () {
       expect(nextDue(s(), null, null), DateTime.utc(2026, 9, 3));

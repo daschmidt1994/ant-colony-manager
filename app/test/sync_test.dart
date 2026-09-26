@@ -36,14 +36,19 @@ void main() {
 
     // In the cellar without network: feed.
     server.online = false;
-    final ev = repo.repeatLastFeeding(colony) ??
-        repo.logEvent(colony, 'feeding', details: {
-          'feeding': {
-            'items': [
-              {'food_name': 'Schabe', 'category': 'protein', 'quantity': 2},
-            ],
+    final ev =
+        repo.repeatLastFeeding(colony) ??
+        repo.logEvent(
+          colony,
+          'feeding',
+          details: {
+            'feeding': {
+              'items': [
+                {'food_name': 'Schabe', 'category': 'protein', 'quantity': 2},
+              ],
+            },
           },
-        });
+        );
     await engine.sync();
     expect(engine.current.phase, SyncPhase.offline);
     expect(db.pendingOpCount(), 1, reason: 'kept in the outbox');
@@ -66,7 +71,13 @@ void main() {
 
   test('pull applies remote changes and deletions', () async {
     server.put('colonies', {'id': 'c1', 'name': 'Remote', 'number': 1, 'status': 'active'});
-    server.put('colony_events', {'id': 'e1', 'colony_id': 'c1', 'type': 'note', 'occurred_at': '2026-09-26T10:00:00Z', 'note': 'x'});
+    server.put('colony_events', {
+      'id': 'e1',
+      'colony_id': 'c1',
+      'type': 'note',
+      'occurred_at': '2026-09-26T10:00:00Z',
+      'note': 'x',
+    });
     await engine.sync(); // first sync = snapshot
     expect(repo.colony('c1')!.name, 'Remote');
     expect(repo.events('c1'), hasLength(1));

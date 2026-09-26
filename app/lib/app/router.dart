@@ -49,43 +49,62 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/connect', builder: (_, _) => const ServerScreen()),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
-      GoRoute(path: '/register', builder: (_, s) => RegisterScreen(invite: s.uri.queryParameters['invite'])),
-      GoRoute(path: '/reset-password', builder: (_, s) => ResetPasswordScreen(token: s.uri.queryParameters['token'])),
-      GoRoute(path: '/c/:token', builder: (_, s) => ScanLandingScreen(token: s.pathParameters['token']!)),
+      GoRoute(
+        path: '/register',
+        builder: (_, s) => RegisterScreen(invite: s.uri.queryParameters['invite']),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (_, s) => ResetPasswordScreen(token: s.uri.queryParameters['token']),
+      ),
+      GoRoute(
+        path: '/c/:token',
+        builder: (_, s) => ScanLandingScreen(token: s.pathParameters['token']!),
+      ),
       GoRoute(path: '/link', builder: (_, _) => const DeviceLinkLandingScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => AppShell(shell: shell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/', builder: (_, _) => const DashboardScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/colonies',
-              builder: (_, _) => const ColonyListScreen(),
-              routes: [
-                GoRoute(path: 'new', builder: (_, _) => const ColonyFormScreen()),
-                GoRoute(
-                  path: ':id',
-                  builder: (_, s) => ColonyDetailScreen(colonyId: s.pathParameters['id']!),
-                  routes: [
-                    GoRoute(path: 'edit', builder: (_, s) => ColonyFormScreen(colonyId: s.pathParameters['id'])),
-                    GoRoute(path: 'timeline', builder: (_, s) => TimelineScreen(colonyId: s.pathParameters['id']!)),
-                  ],
-                ),
-              ],
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/scan', builder: (_, _) => const ScanScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/settings',
-              builder: (_, _) => const SettingsScreen(),
-              routes: [GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen())],
-            ),
-          ]),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/', builder: (_, _) => const DashboardScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/colonies',
+                builder: (_, _) => const ColonyListScreen(),
+                routes: [
+                  GoRoute(path: 'new', builder: (_, _) => const ColonyFormScreen()),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, s) => ColonyDetailScreen(colonyId: s.pathParameters['id']!),
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (_, s) => ColonyFormScreen(colonyId: s.pathParameters['id']),
+                      ),
+                      GoRoute(
+                        path: 'timeline',
+                        builder: (_, s) => TimelineScreen(colonyId: s.pathParameters['id']!),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/scan', builder: (_, _) => const ScanScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (_, _) => const SettingsScreen(),
+                routes: [GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen())],
+              ),
+            ],
+          ),
         ],
       ),
     ],

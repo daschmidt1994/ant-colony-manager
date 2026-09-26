@@ -42,7 +42,7 @@ abstract class TokenStore {
 /// 401 (single flight) and turns failures into typed exceptions.
 class ApiClient {
   ApiClient({required this.baseUrl, required this.tokens, required this.isWeb, http.Client? client})
-      : _http = client ?? http.Client();
+    : _http = client ?? http.Client();
 
   final String baseUrl;
   final TokenStore tokens;
@@ -57,11 +57,11 @@ class ApiClient {
   void setAccessToken(String? t) => _access = t;
 
   Map<String, String> _headers({bool json = true}) => {
-        if (json) 'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        if (isWeb) 'X-ACM-Client': 'web',
-        if (_access != null) 'Authorization': 'Bearer $_access',
-      };
+    if (json) 'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    if (isWeb) 'X-ACM-Client': 'web',
+    if (_access != null) 'Authorization': 'Bearer $_access',
+  };
 
   Uri uri(String path, [Map<String, String>? query]) =>
       Uri.parse('$baseUrl$path').replace(queryParameters: query?.isEmpty == true ? null : query);
@@ -73,11 +73,16 @@ class ApiClient {
   Future<dynamic> delete(String path) => _send('DELETE', path);
 
   /// Unauthenticated request (instance info, login, setup).
-  Future<dynamic> public(String method, String path, [Object? body]) =>
-      _send(method, path, body: body, auth: false);
+  Future<dynamic> public(String method, String path, [Object? body]) => _send(method, path, body: body, auth: false);
 
-  Future<dynamic> _send(String method, String path,
-      {Object? body, Map<String, String>? query, Map<String, String>? extraHeaders, bool auth = true}) async {
+  Future<dynamic> _send(
+    String method,
+    String path, {
+    Object? body,
+    Map<String, String>? query,
+    Map<String, String>? extraHeaders,
+    bool auth = true,
+  }) async {
     Future<http.Response> once() async {
       final req = http.Request(method, uri(path, query))..headers.addAll({..._headers(), ...?extraHeaders});
       if (!auth) req.headers.remove('Authorization');
@@ -110,8 +115,12 @@ class ApiClient {
     final data = text.isEmpty ? null : jsonDecode(text);
     if (res.statusCode >= 200 && res.statusCode < 300) return data;
     if (data is Map) {
-      throw ApiException(res.statusCode, data['code'] as String? ?? 'error', data['title'] as String? ?? 'Fehler',
-          field: data['field'] as String?);
+      throw ApiException(
+        res.statusCode,
+        data['code'] as String? ?? 'error',
+        data['title'] as String? ?? 'Fehler',
+        field: data['field'] as String?,
+      );
     }
     throw ApiException(res.statusCode, 'http_${res.statusCode}', 'Serverfehler (${res.statusCode})');
   }

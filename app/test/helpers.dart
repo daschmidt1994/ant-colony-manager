@@ -58,7 +58,11 @@ class FakeServer {
         final entity = op['entity'] as String;
         final eid = op['entity_id'] as String;
         if (rejectEntities.contains(entity)) {
-          result = {'op_id': id, 'status': 'rejected', 'error': {'code': 'validation', 'title': 'nope'}};
+          result = {
+            'op_id': id,
+            'status': 'rejected',
+            'error': {'code': 'validation', 'title': 'nope'},
+          };
         } else if (op['op'] == 'create' && rows[entity]?.containsKey(eid) == true) {
           result = {'op_id': id, 'status': 'duplicate', 'version': rows[entity]![eid]!['version']};
         } else if (op['op'] == 'delete') {
@@ -82,10 +86,7 @@ class FakeServer {
       if (since < horizon) return _json({'code': 'sync.resync_required', 'title': 'resync'}, 410);
       final changes = [
         for (final c in log.where((c) => (c['seq'] as int) > since))
-          {
-            ...c,
-            if (c['op'] == 'upsert') 'data': rows[c['entity']]![c['id']],
-          },
+          {...c, if (c['op'] == 'upsert') 'data': rows[c['entity']]![c['id']]},
       ];
       return _json({'changes': changes, 'next': seq, 'has_more': false});
     }
