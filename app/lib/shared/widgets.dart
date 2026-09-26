@@ -66,9 +66,12 @@ class DueChip extends StatelessWidget {
           children: [
             Icon(_statusSymbol(task.status), size: 14, color: color),
             const SizedBox(width: 4),
-            Text(
-              compact ? label : '$label · ${S.dueText(task)}',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color),
+            Flexible(
+              child: Text(
+                compact ? label : '$label · ${S.dueText(task)}',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color),
+              ),
             ),
           ],
         ),
