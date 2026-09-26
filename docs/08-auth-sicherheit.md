@@ -11,7 +11,7 @@
 
 | Element | Umsetzung |
 |---|---|
-| Passwörter | **argon2id** (m=64 MiB, t=3, p=1; auf Pi getestet ≈ 300 ms), min. 10 Zeichen, Prüfung gegen Top-100k-Liste (lokal eingebettet, kein externer Dienst) |
+| Passwörter | **argon2id** (m=64 MiB, t=3, p=1; auf Pi getestet ≈ 300 ms), min. 10 Zeichen, Prüfung gegen eine eingebettete Liste häufiger Passwörter (`server/internal/auth/common-passwords.txt`, erweiterbar, kein externer Dienst) |
 | Access-Token | JWT (HS256, `JWT_SECRET`), **15 min**, Claims: `sub`, `sid`, `iat`, `exp`. Keine Rollen/Kolonie-Rechte im Token – Rechte werden **immer** live geprüft |
 | Refresh-Token | 256 Bit zufällig, opak, nur SHA-256 in `sessions`. Gleitend 90 Tage (App bleibt offline lange nutzbar) |
 | Rotation | jeder Refresh erzeugt neues Token; Wiederverwendung eines bereits rotierten Tokens → gesamte Token-Familie gesperrt (Diebstahl-Erkennung) |

@@ -1,0 +1,15 @@
+{
+  "description": "Shared test cases for due-date classification. The Go server (service.Classify) and the Dart app (DueCalculator) must produce identical results. 'now' and 'next_due_at' are RFC 3339; days are calendar days in 'timezone'.",
+  "cases": [
+    {"name": "overdue two days",          "now": "2026-09-26T18:00:00+02:00", "next_due_at": "2026-09-24T09:00:00+02:00", "timezone": "Europe/Vienna", "soon_days": 1, "status": "overdue", "group": "overdue",   "days": -2},
+    {"name": "due earlier today = soon",  "now": "2026-09-26T18:00:00+02:00", "next_due_at": "2026-09-26T08:00:00+02:00", "timezone": "Europe/Vienna", "soon_days": 1, "status": "soon",    "group": "today",     "days": 0},
+    {"name": "tomorrow within soon",      "now": "2026-09-26T18:00:00+02:00", "next_due_at": "2026-09-27T07:00:00+02:00", "timezone": "Europe/Vienna", "soon_days": 1, "status": "soon",    "group": "tomorrow",  "days": 1},
+    {"name": "tomorrow with soon=0",      "now": "2026-09-26T18:00:00+02:00", "next_due_at": "2026-09-27T07:00:00+02:00", "timezone": "Europe/Vienna", "soon_days": 0, "status": "ok",      "group": "tomorrow",  "days": 1},
+    {"name": "this week",                 "now": "2026-09-26T18:00:00+02:00", "next_due_at": "2026-10-01T12:00:00+02:00", "timezone": "Europe/Vienna", "soon_days": 1, "status": "ok",      "group": "this_week", "days": 5},
+    {"name": "later",                     "now": "2026-09-26T18:00:00+02:00", "next_due_at": "2026-10-05T12:00:00+02:00", "timezone": "Europe/Vienna", "soon_days": 1, "status": "ok",      "group": "later",     "days": 9},
+    {"name": "local midnight boundary",   "now": "2026-09-26T23:30:00+02:00", "next_due_at": "2026-09-26T22:10:00Z",      "timezone": "Europe/Vienna", "soon_days": 1, "status": "soon",    "group": "tomorrow",  "days": 1},
+    {"name": "UTC would say today",       "now": "2026-09-26T21:30:00Z",      "next_due_at": "2026-09-26T22:30:00Z",      "timezone": "Europe/Vienna", "soon_days": 1, "status": "soon",    "group": "tomorrow",  "days": 1},
+    {"name": "DST change week",           "now": "2026-10-24T12:00:00+02:00", "next_due_at": "2026-10-26T12:00:00+01:00", "timezone": "Europe/Vienna", "soon_days": 1, "status": "ok",      "group": "this_week", "days": 2},
+    {"name": "paused (winter rest)",      "now": "2026-09-26T18:00:00+02:00", "next_due_at": null,                        "timezone": "Europe/Vienna", "soon_days": 1, "status": "paused",  "group": "paused",    "days": 0}
+  ]
+}

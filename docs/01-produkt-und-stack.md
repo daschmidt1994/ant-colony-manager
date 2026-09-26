@@ -53,8 +53,8 @@ Entspricht Abschnitt 54 der Anforderungen (27 Punkte). Zusätzlich im Datenmodel
 | Bilder | `image_picker` + `flutter_image_compress` | Kompression vor Upload |
 | Charts (später) | `fl_chart` | ausreichend, schlank |
 | **Web** | **Flutter Web (WASM-Build)** | siehe Abschnitt 3 |
-| **Backend** | **Go 1.25+**, `chi` Router, `pgx/v5`, `sqlc`, `goose` | siehe Abschnitt 4 |
-| API-Vertrag | OpenAPI 3.1 (`api/openapi.yaml`) | Single Source of Truth, Dart-Client + Go-Server-Interfaces generiert |
+| **Backend** | **Go 1.26+**, `chi` Router, `pgx/v5`, handgeschriebenes SQL, eingebauter Migrations-Runner | siehe Abschnitt 4 (Stand Phase 3) |
+| API-Vertrag | OpenAPI 3.1 (`api/openapi.yaml`) | Single Source of Truth; ein Test prüft, dass jede Server-Route dokumentiert ist; Dart-Client wird daraus generiert |
 | Datenbank | PostgreSQL 18 | `uuidv7()` nativ, stabil, ARM64-Images |
 | Dateispeicher | lokales Volume (Default), S3-kompatibel optional | kein Extra-Container nötig |
 | Realtime | Server-Sent Events (SSE) | nur „es gibt Änderungen“-Signal, durch jeden Proxy, kein WS-Protokoll |
@@ -97,7 +97,9 @@ Der entscheidende Punkt ist, dass sämtliche fachliche Logik (Fälligkeitsberech
 - Liefert API **und** Flutter-Web-Build (`embed`) aus → ein Container weniger, keine CORS-Probleme.
 - Migrationen eingebettet und beim Start automatisch (mit Advisory-Lock).
 - Hintergrundjobs (Thumbnails, E-Mail-Erinnerungen, Tombstone-Bereinigung) als Goroutinen → kein Redis/Worker-Container.
-- `sqlc` erzeugt typisierten Go-Code aus echtem SQL → Schema bleibt „normales“ PostgreSQL, kein ORM-Lock-in.
+- Echtes SQL mit `pgx` → Schema bleibt „normales“ PostgreSQL, kein ORM-Lock-in.
+
+> **Änderung in Phase 3:** Statt `sqlc` und `goose` werden handgeschriebene `pgx`-Queries und ein ~100 Zeilen kleiner, eingebetteter Migrations-Runner (Advisory-Lock, eine Transaktion pro Migration) verwendet. Grund: Die generische Sync-Engine baut Spaltenlisten dynamisch aus einer Whitelist, die dynamischen Filter der Kolonieliste lassen sich mit `sqlc` schlecht abbilden, und `goose` zerlegt die PL/pgSQL-Funktionen des Schemas falsch. Ergebnis: weniger Werkzeuge im Build.
 
 **Alternative**, falls du Go nicht möchtest: TypeScript mit Fastify + Kysely. Funktioniert, aber größeres Image (~150 MB), mehr RAM, Abhängigkeitspflege über npm.
 

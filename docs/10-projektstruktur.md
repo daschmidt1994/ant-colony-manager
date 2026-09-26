@@ -15,27 +15,31 @@ ant-colony-manager/
 ├── api/
 │   └── openapi.yaml               API-Vertrag (Single Source of Truth)
 │
-├── server/                        Go-Backend
-│   ├── Dockerfile                 Multi-Stage: Flutter Web → Go → distroless
-│   ├── Dockerfile.dev
+├── server/                        Go-Backend (Stand Phase 3)
+│   ├── README.md                  Entwickler-Anleitung Backend
 │   ├── go.mod
-│   ├── sqlc.yaml
-│   ├── cmd/acm/main.go            serve | migrate | healthcheck | user | export
-│   ├── internal/
-│   │   ├── config/                ENV laden + validieren
-│   │   ├── http/                  Router, Middleware (auth, ratelimit, logging, requestid)
-│   │   ├── api/                   Handler (generierte Interfaces aus OpenAPI)
-│   │   ├── authz/                 Berechtigungsprüfung
-│   │   ├── service/
-│   │   │   ├── auth/  colonies/  events/  sync/  scan/  photos/
-│   │   │   ├── schedules/  rounds/  sensors/  export/  admin/
-│   │   ├── store/                 sqlc-Output + Queries (*.sql)
-│   │   ├── storage/               BlobStore: filesystem | s3
-│   │   ├── jobs/                  Thumbnails, E-Mail-Digest, Tombstone-GC
-│   │   ├── mail/                  SMTP + Templates
-│   │   └── webui/                 //go:embed des Flutter-Web-Builds
-│   ├── migrations/                goose: 00001_init.sql, …
-│   └── test/                      API-/DB-Integrationstests (testcontainers-go)
+│   ├── cmd/acm/main.go            serve | migrate | healthcheck | user | version
+│   └── internal/
+│       ├── config/                ENV laden + validieren (fail fast)
+│       ├── db/                    Pool, Transaktionen, Migrations-Runner
+│       │   └── migrations/        0001_init.sql, … (eingebettet)
+│       ├── auth/                  argon2id, JWT, Tokens, Passwortregeln
+│       ├── service/               Fachlogik – EIN Schreibpfad (ApplyOp) für REST und Sync
+│       │   ├── entities.go        Registry: welche Tabellen/Felder synchronisiert & schreibbar sind
+│       │   ├── apply.go           Idempotenz, Berechtigung, Konflikte, Referenzen, Tombstones
+│       │   ├── hooks.go           Entitäts-Regeln (Event-Details, Koloniennummer, Winterruhe …)
+│       │   ├── sync.go            Push, Pull, Snapshot, Konflikte
+│       │   ├── due.go             Fälligkeiten/Ampel (Zwilling des Dart-DueCalculators)
+│       │   ├── queries.go         Kolonieliste, Übersicht, Timeline, Dashboard, Scan, Mitglieder
+│       │   ├── accounts.go        Setup, Registrierung, Sessions, Passwörter, App-Verbindung
+│       │   ├── photos.go          Upload, Neukodierung, EXIF, signierte URLs
+│       │   ├── sensors.go  admin.go  maintenance.go  rest.go
+│       ├── api/                   HTTP: Router, Middleware, Handler, SSE-Broker + Integrationstests
+│       ├── storage/               BlobStore (Dateisystem)
+│       ├── mail/                  SMTP
+│       ├── ratelimit/             Token-Bucket in-memory
+│       ├── testenv/               Test-Server gegen echte PostgreSQL (DB pro Test)
+│       └── webui/dist/            eingebettete Web-App (bis Phase 5: Platzhalter)
 │
 ├── app/                           Flutter (Android + Web, später iOS)
 │   ├── pubspec.yaml
@@ -73,7 +77,9 @@ ant-colony-manager/
 │   ├── init-env.sh                .env mit Zufalls-Secrets erzeugen
 │   ├── backup.sh  restore.sh  verify-backup.sh  update.sh
 │   ├── build-apk.sh               eigene APK mit App-Link-Domain
-│   ├── gen-api.sh                 OpenAPI → Go-Interfaces + Dart-Client
+│   ├── go.sh                      Go-Toolchain im Container
+│   ├── test-server.sh             Backend-Tests gegen Wegwerf-PostgreSQL 18
+│   ├── gen-api.sh                 OpenAPI → Dart-Client (Phase 5)
 │   └── test-backup-restore.sh
 │
 ├── docs/                          ← Phase-1-Dokumente (diese Dateien), später Nutzer- und Admin-Doku
@@ -93,5 +99,5 @@ ant-colony-manager/
 | Widgets | `flutter_test` | Quick Actions, Kolonie-Startseite, Scanner-Flows |
 | Integration (App) | `integration_test` + Emulator | QR → Kolonie, NFC-Intent → Kolonie, Offline → Sync → genau 1× |
 | Backend Unit | `go test` | Services, authz-Matrix, Konflikt-Merge |
-| API/DB | `testcontainers-go` + PostgreSQL 18 | Endpunkte, Berechtigungen (fremder Nutzer → 404), Idempotenz, Migrationen |
+| API/DB | `scripts/test-server.sh` (PostgreSQL 18 im Container, geklonte DB pro Test) | Endpunkte, Berechtigungen (fremder Nutzer → 404), Idempotenz, Sync, Migrationen, Doku-Abdeckung der Routen |
 | E2E | `docker compose` in CI + Playwright (Web) | Installation, `/c/<token>`-Web-Fallback, Backup/Restore |

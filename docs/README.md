@@ -42,3 +42,14 @@
 | 11 | [11-ux-grundlagen.md](11-ux-grundlagen.md) | Designsystem, Farben, Typografie, Navigation, Interaktionsregeln |
 | 12 | [12-screens.md](12-screens.md) | alle Screens mit Wireframes (Mobile + Web) |
 | 13 | [13-user-flows.md](13-user-flows.md) | User Flows inkl. Tap-Zählung, Fehler- und Offline-Fälle |
+
+## Phase 3 – Datenbank & Backend (umgesetzt)
+
+| Bereich | Stand |
+|---|---|
+| Schema & Migrationen | `server/internal/db/migrations/0001_init.sql` – automatisch beim Start |
+| Backend | Go-Server `server/` (siehe [server/README.md](../server/README.md)) |
+| API-Dokumentation | [api/openapi.yaml](../api/openapi.yaml) – Test stellt sicher, dass jede Route dokumentiert ist |
+| Tests | `scripts/test-server.sh` – Unit- und Integrationstests gegen echtes PostgreSQL 18 |
+
+Abweichungen vom Plan: siehe Hinweis in [01-produkt-und-stack.md](01-produkt-und-stack.md) (pgx statt sqlc/goose, Go 1.26).
