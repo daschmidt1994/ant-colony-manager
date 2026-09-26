@@ -33,6 +33,7 @@ jobs:
       - name: Analyze
         run: flutter analyze
       - name: Test
+        if: success() || failure() # also report tests when analysis failed
         run: flutter test --reporter expanded
       - name: Build web
         run: |

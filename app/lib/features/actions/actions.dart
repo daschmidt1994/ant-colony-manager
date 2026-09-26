@@ -89,7 +89,6 @@ class _SheetFrame extends StatelessWidget {
     required this.onWhen,
     required this.children,
     required this.onSave,
-    this.saveLabel = 'Speichern',
   });
   final String title;
   final DateTime? when;

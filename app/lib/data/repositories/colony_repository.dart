@@ -391,7 +391,7 @@ class ColonyRepository {
       for (final i in (feeding['items'] as List? ?? const []).cast<Map<String, dynamic>>())
         {
           for (final e in i.entries)
-            if (e.key != 'feeding_id') e.key as String: e.value,
+            if (e.key != 'feeding_id') e.key: e.value,
         },
     ];
     _update('colony_events', eventId, {'feeding': feeding});
