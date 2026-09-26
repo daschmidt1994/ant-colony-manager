@@ -69,6 +69,8 @@ services:
       dockerfile: server/Dockerfile
       args:
         VERSION: ${ACM_VERSION:-local}
+        # flutter (default) builds the web app; placeholder skips it (low-memory hosts)
+        WEB_BUILD: ${ACM_WEB_BUILD:-flutter}
     restart: unless-stopped
     env_file:
       - path: .env

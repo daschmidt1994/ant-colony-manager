@@ -6,9 +6,28 @@
 #   docker buildx build --platform linux/amd64,linux/arm64 -f server/Dockerfile .
 
 ARG GO_VERSION=1.26
+# Web app source: flutter (build here, default) | prebuilt (app/build/web from
+# the build context, used by CI) | placeholder (no Flutter, for low-memory hosts
+# and quick tests – serves a simple status page instead of the web app).
+ARG WEB_BUILD=flutter
+ARG FLUTTER_IMAGE=ghcr.io/cirruslabs/flutter:3.44.0
 
-# Phase 5 adds a Flutter stage here that builds the web app into
-# server/internal/webui/dist (until then the placeholder page is embedded).
+FROM --platform=$BUILDPLATFORM ${FLUTTER_IMAGE} AS web-flutter
+WORKDIR /src/app
+COPY app/pubspec.yaml app/pubspec.lock ./
+RUN flutter config --no-analytics >/dev/null && flutter pub get
+COPY app/ ./
+RUN ./tool/fetch_web_assets.sh \
+ && flutter build web --release --wasm --no-web-resources-cdn --no-source-maps \
+ && mv build/web /web
+
+FROM scratch AS web-prebuilt
+COPY app/build/web /web
+
+FROM scratch AS web-placeholder
+COPY server/internal/webui/dist /web
+
+FROM web-${WEB_BUILD} AS web
 
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
 ARG TARGETOS=linux
@@ -18,6 +37,7 @@ WORKDIR /src/server
 COPY server/go.mod server/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY server/ ./
+COPY --from=web /web ./internal/webui/dist
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /out/acm ./cmd/acm \

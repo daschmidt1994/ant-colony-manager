@@ -10,4 +10,6 @@ docs
 !.env.example
 !.env.production.example
 app/build
+!app/build/web
+app/android/.gradle
 app/.dart_tool

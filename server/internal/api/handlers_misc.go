@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io"
 	"io/fs"
@@ -10,6 +12,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -275,21 +278,24 @@ func (s *Server) webApp(w http.ResponseWriter, r *http.Request) {
 	p := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
 	if p != "" && p != "index.html" {
 		if st, err := fs.Stat(s.web, p); err == nil && !st.IsDir() {
-			f, err := s.web.Open(p)
+			b, err := fs.ReadFile(s.web, p)
 			if err != nil {
 				http.NotFound(w, r)
 				return
 			}
-			defer f.Close()
+			// Flutter file names carry no content hash: revalidate every time,
+			// but answer 304 when unchanged so reloads stay cheap.
+			etag := webETag(p, b)
+			w.Header().Set("ETag", etag)
+			w.Header().Set("Cache-Control", "no-cache")
 			if ct := mime.TypeByExtension(path.Ext(p)); ct != "" {
 				w.Header().Set("Content-Type", ct)
 			}
-			if strings.HasPrefix(p, "assets/") || strings.HasPrefix(p, "canvaskit/") {
-				w.Header().Set("Cache-Control", "public, max-age=604800")
-			} else {
-				w.Header().Set("Cache-Control", "no-cache")
+			if r.Header.Get("If-None-Match") == etag {
+				w.WriteHeader(http.StatusNotModified)
+				return
 			}
-			_, _ = io.Copy(w, f)
+			_, _ = w.Write(b)
 			return
 		}
 		// Unknown file-like paths are 404; app routes fall back to index.html.
@@ -299,6 +305,18 @@ func (s *Server) webApp(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.serveIndex(w, r, nil)
+}
+
+var webETags sync.Map // path → ETag (embedded files never change at runtime)
+
+func webETag(p string, b []byte) string {
+	if v, ok := webETags.Load(p); ok {
+		return v.(string)
+	}
+	sum := sha256.Sum256(b)
+	e := `"` + hex.EncodeToString(sum[:12]) + `"`
+	webETags.Store(p, e)
+	return e
 }
 
 func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request, replace map[string]string) {

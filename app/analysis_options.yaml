@@ -1,0 +1,15 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: false
+    strict-raw-types: true
+  errors:
+    todo: ignore
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    require_trailing_commas: false
+    avoid_print: true
+    unawaited_futures: false

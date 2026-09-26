@@ -241,3 +241,16 @@ func TestAdminEndpointsRequireAdmin(t *testing.T) {
 		t.Fatalf("system info: %v", sys)
 	}
 }
+
+func TestWebAssetsRevalidateWithETag(t *testing.T) {
+	env := testenv.New(t)
+	r := env.Anon().Do("GET", "/placeholder.css", nil).Must(t, 200)
+	etag := r.Header.Get("ETag")
+	if etag == "" || r.Header.Get("Cache-Control") != "no-cache" {
+		t.Fatalf("missing validators: %v", r.Header)
+	}
+	env.Anon().Do("GET", "/placeholder.css", nil, "If-None-Match", etag).Must(t, http.StatusNotModified)
+	// App routes fall back to index.html, unknown files are 404.
+	env.Anon().Do("GET", "/colonies/abc", nil).Must(t, 200)
+	env.Anon().Do("GET", "/missing.js", nil).Must(t, 404)
+}
