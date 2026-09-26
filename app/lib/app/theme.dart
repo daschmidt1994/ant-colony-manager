@@ -134,6 +134,10 @@ ThemeData buildTheme(Brightness brightness) {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     ),
     snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+    // Material 3 uses secondaryContainer (honey) for the active destination –
+    // the design wants the moss accent.
+    navigationBarTheme: NavigationBarThemeData(indicatorColor: scheme.primaryContainer),
+    navigationRailTheme: NavigationRailThemeData(indicatorColor: scheme.primaryContainer),
     dividerTheme: DividerThemeData(color: c.border, space: 1),
   );
 }
