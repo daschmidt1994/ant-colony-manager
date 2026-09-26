@@ -1,0 +1,22 @@
+# Umgebung / Secrets
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Persistente Daten
+/data/
+
+# Flutter / Dart
+.dart_tool/
+build/
+*.iml
+.flutter-plugins*
+
+# Go
+/server/bin/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
