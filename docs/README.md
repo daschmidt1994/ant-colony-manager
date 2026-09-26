@@ -63,3 +63,13 @@ Abweichungen vom Plan: siehe Hinweis in [01-produkt-und-stack.md](01-produkt-und
 | Betrieb | `scripts/init-env.sh`, `backup.sh`, `verify-backup.sh`, `restore.sh`, `update.sh` |
 | Proxy-Beispiele | [`deploy/examples/`](../deploy/examples) (Nginx, Traefik, Nginx Proxy Manager, restic) |
 | Test | `scripts/test-stack.sh` – End-to-End inkl. Restore und HTTPS; CI in `.github/workflows/` |
+
+## Phase 5 – App (umgesetzt)
+
+| Bereich | Stand |
+|---|---|
+| Code | [`app/`](../app/README.md) – Flutter 3.44 für Android und Web |
+| Screens | Server verbinden, Login, Ersteinrichtung, Registrierung, Passwort-Reset, Dashboard, Kolonieliste, Kolonie-Startseite, Kolonie anlegen/bearbeiten, Fütterung, Wasser, Reinigung, Kontrolle, Notiz, Messung, Timeline, Code-Eingabe, Einstellungen, Sync-Details |
+| Offline | lokale SQLite-DB + Outbox; Push → Pull → Snapshot |
+| Tests | Unit-, Widget- und Sync-Tests; Vertragstest gegen den echten Server (CI) |
+| Build | CI baut Web (WASM, ohne CDN) und APK; das Server-Image enthält die Web-App |

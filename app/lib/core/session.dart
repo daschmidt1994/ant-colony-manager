@@ -123,6 +123,20 @@ class AuthController extends Notifier<AuthState> {
     final api = _client(url);
     final userJson = await _store.read('user');
     if (userJson == null) {
+      // Web: the HttpOnly refresh cookie may still be valid (new tab, cleared storage).
+      if (kIsWeb) {
+        try {
+          if (await api.refresh()) {
+            final me = await api.get('/api/v1/me') as Map<String, dynamic>;
+            final user = User(me['user'] as Map<String, dynamic>);
+            await _store.write('user', jsonEncode(user.json));
+            state = SignedIn(url, user);
+            return;
+          }
+        } on Exception {
+          // fall through to the login screen
+        }
+      }
       state = await _signedOut(url);
       return;
     }

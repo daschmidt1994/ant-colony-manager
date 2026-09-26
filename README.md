@@ -19,10 +19,10 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 | 2 | UX/UI: Designsystem, Screens, User Flows | ✅ [docs/11–13](docs/12-screens.md) |
 | 3 | Datenbank & Backend (Go, PostgreSQL 18), API, Tests | ✅ [server/](server/README.md) |
 | 4 | Docker, Backup/Restore, Reverse Proxy, Updates | ✅ diese Datei |
-| 5 | Android-MVP (Flutter) + Web-App | ⏳ als Nächstes |
+| 5 | Android-MVP (Flutter) + Web-App: Login, Dashboard, Kolonien, Fütterung/Wasser/Reinigung, Timeline, lokale DB + Sync | ✅ [app/](app/README.md) |
 | 6–9 | QR/NFC-Workflows in der App, Offline-Sync, Pflege-Rundgang, Statistiken | geplant |
 
-Bis Phase 5 zeigt die Weboberfläche eine Platzhalter-Seite; die komplette API (`/api/v1`, [OpenAPI](api/openapi.yaml)) ist bereits nutzbar.
+Die Web-App ist im Server-Image enthalten. Die Android-App (APK) entsteht in der CI ([App-Workflow](.github/workflows/app.yml), Artefakt am jeweiligen Lauf). QR-Scan per Kamera und NFC folgen in Phase 6.
 
 <!-- Screenshots folgen mit der App (Phase 5). -->
 
@@ -60,16 +60,14 @@ docker compose up -d
 docker compose ps              # nach ~1 Minute: alle Dienste "healthy"
 ```
 
-Solange es keine veröffentlichten Images gibt, baut Compose sie beim ersten Start selbst (einige Minuten; Meldungen `denied` beim Pull sind dann normal).
+Solange es keine veröffentlichten Images gibt, baut Compose sie beim ersten Start selbst (einige Minuten; Meldungen `denied` beim Pull sind dann normal). Der Web-App-Build braucht dabei deutlich mehr als 1 GB RAM (mit 900 MB scheitert er) – auf kleineren Rechnern (Raspberry Pi, NAS) besser fertige Images verwenden oder `ACM_WEB_BUILD=placeholder` setzen (Server ohne Weboberfläche).
 
 Danach:
 
 1. **Setup-Code** aus dem Log holen: `docker compose logs app | grep -A1 Setup-Code`
 2. `http://<server>:8080/setup` öffnen → Code eingeben → **Admin-Konto** anlegen
-3. Erste Kolonie anlegen → QR-Code/NFC-Tag zuweisen → Android-App verbinden *(ab Phase 5)*
-
-> Bis zur Web-App (Phase 5) geht Schritt 2 auch per API:
-> `curl -X POST http://<server>:8080/api/v1/setup -H 'Content-Type: application/json' -d '{"email":"du@example.com","password":"…","setup_token":"<Code>"}'`
+3. Erste Kolonie anlegen – sie bekommt automatisch einen QR-Code
+4. Android-App installieren (APK), Server-Adresse eingeben, anmelden
 
 ### Im Internet mit HTTPS
 
@@ -150,7 +148,7 @@ Der vollständige Ablauf Installation → Backup → Zerstören → Restore → 
 
 ## Android-App
 
-Folgt in Phase 5. Die App wird als APK bereitgestellt und verbindet sich per QR-Code aus der Web-App („Android-App verbinden“) mit deinem Server. NFC-Tags und der In-App-Scanner funktionieren mit jeder Domain und auch im Heimnetz per `http://`; für das direkte Öffnen per Kamera-App kann eine APK mit eigener Domain gebaut werden ([Details](docs/06-nfc-qr-deeplinks.md#5-deep-links--app-links--die-ehrliche-einschränkung)).
+Die APK wird von der CI gebaut (GitHub → Actions → „App“ → Artefakt `ant-colony-manager-apk`); feste Releases folgen. Installieren, Server-Adresse eingeben (z. B. `http://192.168.1.50:8080`), anmelden. Die App funktioniert offline und synchronisiert automatisch, sobald der Server erreichbar ist. Das Verbinden per QR-Code aus der Web-App („Mehr → Android-App verbinden“) wird mit dem Kamera-Scanner in Phase 6 nutzbar. NFC-Tags und der In-App-Scanner funktionieren mit jeder Domain und auch im Heimnetz per `http://`; für das direkte Öffnen per Kamera-App kann eine APK mit eigener Domain gebaut werden ([Details](docs/06-nfc-qr-deeplinks.md#5-deep-links--app-links--die-ehrliche-einschränkung)).
 
 ## Troubleshooting
 

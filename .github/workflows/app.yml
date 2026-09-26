@@ -119,3 +119,78 @@ jobs:
       - name: Server log
         if: failure()
         run: cat /tmp/acm.log
+
+  web-smoke:
+    name: Web app in a real browser (CSP, WASM, screenshots)
+    needs: check
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: acm
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: server/internal/webui/dist
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - name: Start server with embedded web app
+        working-directory: server
+        env:
+          PUBLIC_APP_URL: http://127.0.0.1:8080
+          DATABASE_URL: postgres://postgres:test@127.0.0.1:5432/acm?sslmode=disable
+          SETUP_TOKEN: contract-setup-token-123
+          STORAGE_PATH: /tmp/acm-uploads
+          LOG_FORMAT: text
+        run: |
+          export JWT_SECRET=$(openssl rand -base64 48) INSTANCE_SECRET=$(openssl rand -base64 48)
+          go build -o /tmp/acm ./cmd/acm
+          nohup /tmp/acm serve > /tmp/acm.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8080/readyz && break; sleep 1; done
+      - name: Seed data through the API
+        run: |
+          B=http://127.0.0.1:8080/api/v1
+          T=$(curl -sf -X POST $B/setup -H 'Content-Type: application/json' -d '{"email":"contract@ants.test","password":"Contract-Test-2026","display_name":"Anna","setup_token":"contract-setup-token-123"}' | jq -r .access_token)
+          H="Authorization: Bearer $T"
+          LOC=$(curl -sf -X POST $B/locations -H "$H" -d '{"name":"Regal A"}' | jq -r .data.id)
+          C=$(curl -sf -X POST $B/colonies -H "$H" -d "{\"name\":\"Messor #1\",\"species_text\":\"Messor barbarus\",\"location_id\":\"$LOC\"}" | jq -r .data.id)
+          C2=$(curl -sf -X POST $B/colonies -H "$H" -d '{"name":"Lasius #2","species_text":"Lasius niger"}' | jq -r .data.id)
+          for t in protein:3 water:2 cleaning:7; do
+            curl -sf -X POST $B/schedules -H "$H" -d "{\"colony_id\":\"$C\",\"task_type\":\"${t%%:*}\",\"interval_days\":${t##*:},\"starts_at\":\"2026-01-01T00:00:00Z\"}" >/dev/null
+          done
+          curl -sf -X POST $B/schedules -H "$H" -d "{\"colony_id\":\"$C2\",\"task_type\":\"water\",\"interval_days\":30}" >/dev/null
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          curl -sf -X POST $B/events -H "$H" -d "{\"colony_id\":\"$C\",\"type\":\"feeding\",\"occurred_at\":\"$NOW\",\"feeding\":{\"items\":[{\"food_name\":\"Schabe\",\"category\":\"protein\",\"quantity\":2,\"unit\":\"piece\",\"size\":\"small\"},{\"food_name\":\"Zuckerwasser\",\"category\":\"carbohydrate\"}]}}" >/dev/null
+          curl -sf -X POST $B/events -H "$H" -d "{\"colony_id\":\"$C\",\"type\":\"census\",\"census\":{\"estimate_min\":500,\"estimate_max\":1000}}" >/dev/null
+          curl -sf -X POST $B/events -H "$H" -d "{\"colony_id\":\"$C\",\"type\":\"measurement\",\"measurements\":[{\"metric\":\"temperature\",\"value\":25.4},{\"metric\":\"humidity\",\"value\":61}]}" >/dev/null
+          echo "$C" > app/colony_id
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Browser smoke test
+        working-directory: app
+        env:
+          ACM_TEST_SERVER: http://127.0.0.1:8080
+          COLONY_ID_FILE: colony_id
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node tool/web_smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: app/screenshots
+      - name: Server log
+        if: failure()
+        run: cat /tmp/acm.log

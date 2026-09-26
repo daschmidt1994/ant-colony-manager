@@ -43,7 +43,7 @@ Entspricht Abschnitt 54 der Anforderungen (27 Punkte). Zusätzlich im Datenmodel
 | **Mobile** | Flutter 3.x (stable), Dart 3 | Vorgabe, iOS später ohne Neuentwicklung |
 | State / DI | Riverpod 2 (mit Codegen) | testbar, keine BuildContext-Abhängigkeit in der Logik |
 | Routing / Deep Links | go_router | deklarative Routen, `/c/:token` identisch in App und Web |
-| Lokale DB | Drift (SQLite) | typisiert, reaktive Queries (`watch`), Migrationen, läuft auch im Web (WASM) |
+| Lokale DB | SQLite über das Paket `sqlite3` (Web: WASM + IndexedDB) | eigene dünne Schicht mit reaktiven Queries; **Änderung in Phase 5:** Drift wurde verworfen, weil sein Codegenerator mit 900 MB Speicher nicht fertig wurde und bei drei Tabellen kaum Nutzen bringt |
 | NFC | `nfc_manager` | NDEF lesen/schreiben, Tag-UID, Android + iOS |
 | QR-Scan | `mobile_scanner` (ML Kit, gebündelt) | schnell, Android + Web |
 | QR/PDF-Erzeugung | `qr`/`barcode` + `pdf` + `printing` | Etiketten clientseitig, kein Server-Renderer nötig |
