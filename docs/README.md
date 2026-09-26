@@ -27,10 +27,18 @@
 6. **Erinnerungen werden lokal auf dem Gerät berechnet und geplant** → keine Abhängigkeit von Firebase/Google-Push, funktioniert offline.
 7. **Fotos im Dateisystem-Volume**, content-adressiert → inkrementelle Backups per Hardlinks.
 
-## Offene Punkte für deine Freigabe
+## Entscheidungen (freigegeben 2026-09-26)
 
-- [ ] Flutter Web als einzige Web-Oberfläche okay? (Alternative und Trade-offs: 01, Abschnitt 3)
-- [ ] Go als Backend-Sprache okay? (Alternative: TypeScript/Fastify)
-- [ ] Verifizierte Android App Links erfordern einen **eigenen APK-Build pro Domain** (siehe 06, Abschnitt 5). Standard-APK funktioniert trotzdem für NFC und In-App-Scan. Einverstanden?
-- [ ] Registrierung standardmäßig **nur per Einladung** (nach Admin-Setup)?
-- [ ] App-Sprache zunächst nur Deutsch (i18n-fähig vorbereitet) oder direkt DE + EN?
+- [x] Flutter Web als einzige Web-Oberfläche
+- [x] Go als Backend-Sprache
+- [x] Standard-APK (NFC + In-App-Scan) + optionaler eigener APK-Build für verifizierte App Links
+- [x] Registrierung standardmäßig nur per Einladung
+- [x] App-Sprache zunächst Deutsch, i18n vorbereitet (ARB-Dateien)
+
+## Phase 2 – UX/UI
+
+| # | Dokument | Inhalt |
+|---|----------|--------|
+| 11 | [11-ux-grundlagen.md](11-ux-grundlagen.md) | Designsystem, Farben, Typografie, Navigation, Interaktionsregeln |
+| 12 | [12-screens.md](12-screens.md) | alle Screens mit Wireframes (Mobile + Web) |
+| 13 | [13-user-flows.md](13-user-flows.md) | User Flows inkl. Tap-Zählung, Fehler- und Offline-Fälle |
