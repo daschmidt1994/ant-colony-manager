@@ -1,10 +1,13 @@
 import 'package:sqlite3/wasm.dart';
+import 'package:web/web.dart' as web;
 
 IndexedDbFileSystem? _fs;
 
 Future<CommonDatabase> openPlatformDatabase(String name) async {
-  // sqlite3.wasm is served next to index.html (see web/ and tool/fetch_web_assets.sh).
-  final sqlite = await WasmSqlite3.loadFromUrl(Uri.parse('sqlite3.wasm'));
+  // Resolve against the document base (<base href>), not the current route:
+  // on /colonies/<id> a bare 'sqlite3.wasm' would be fetched from /colonies/.
+  final wasm = Uri.parse(web.document.baseURI).resolve('sqlite3.wasm');
+  final sqlite = await WasmSqlite3.loadFromUrl(wasm);
   final fs = await IndexedDbFileSystem.open(dbName: name);
   sqlite.registerVirtualFileSystem(fs, makeDefault: true);
   _fs = fs;
