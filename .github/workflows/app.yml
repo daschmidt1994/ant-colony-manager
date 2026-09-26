@@ -71,3 +71,51 @@ jobs:
           name: ant-colony-manager-apk
           path: app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
+
+  contract:
+    name: Contract test against the real server
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: acm
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - name: Start server
+        working-directory: server
+        env:
+          PUBLIC_APP_URL: http://127.0.0.1:8080
+          DATABASE_URL: postgres://postgres:test@127.0.0.1:5432/acm?sslmode=disable
+          SETUP_TOKEN: contract-setup-token-123
+          STORAGE_PATH: /tmp/acm-uploads
+          LOG_FORMAT: text
+        run: |
+          export JWT_SECRET=$(openssl rand -base64 48) INSTANCE_SECRET=$(openssl rand -base64 48)
+          go build -o /tmp/acm ./cmd/acm
+          nohup /tmp/acm serve > /tmp/acm.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8080/readyz && break; sleep 1; done
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Contract test
+        working-directory: app
+        env:
+          ACM_TEST_SERVER: http://127.0.0.1:8080
+          ACM_TEST_SETUP_TOKEN: contract-setup-token-123
+        run: |
+          flutter pub get
+          flutter test test/server_contract_test.dart --reporter expanded
+      - name: Server log
+        if: failure()
+        run: cat /tmp/acm.log
