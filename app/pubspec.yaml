@@ -70,3 +70,10 @@ flutter:
         - asset: assets/fonts/InterVariable.ttf
         - asset: assets/fonts/InterVariable-Italic.ttf
           style: italic
+    # Flutter web falls back to "Roboto" and would download it from Google's CDN
+    # (blocked by our CSP, and a privacy leak). Provide it locally as Inter.
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/InterVariable.ttf
+        - asset: assets/fonts/InterVariable-Italic.ttf
+          style: italic

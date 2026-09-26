@@ -10,15 +10,26 @@ const out = process.env.SHOT_DIR ?? 'screenshots';
 fs.mkdirSync(out, { recursive: true });
 
 const errors = [];
+const log = [];
 const browser = await chromium.launch();
 
 async function session(viewport, name) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2, locale: 'de-DE', colorScheme: 'dark' });
   const page = await ctx.newPage();
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(`[${name}] console: ${m.text()}`);
+    log.push(`[${name}] ${m.type()}: ${m.text()}`);
+    const url = m.location()?.url ?? '';
+    // The login page probes the refresh cookie – a 401 there is expected.
+    if (m.type() === 'error' && !(name === 'login' && m.text().includes('401'))) {
+      errors.push(`[${name}] console: ${m.text()} ${url}`);
+    }
   });
-  page.on('pageerror', (e) => errors.push(`[${name}] pageerror: ${e.message}`));
+  page.on('response', (r) => {
+    if (r.status() >= 400 && !(name === 'login' && r.url().includes('/auth/refresh'))) {
+      errors.push(`[${name}] HTTP ${r.status()} ${r.request().method()} ${r.url()}`);
+    }
+  });
+  page.on('pageerror', (e) => errors.push(`[${name}] pageerror: ${e.message}\n${e.stack ?? ''}`));
   await page.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', (e) =>
       console.error(`CSP violation: ${e.violatedDirective} ${e.blockedURI}`));
@@ -59,6 +70,7 @@ for (const [vp, tag] of [[{ width: 412, height: 915 }, 'mobile'], [{ width: 1280
 }
 
 await browser.close();
+fs.writeFileSync(`${out}/console.log`, log.join('\n'));
 const relevant = errors.filter((e) => !e.includes('favicon'));
 if (relevant.length) {
   console.error(relevant.join('\n'));
