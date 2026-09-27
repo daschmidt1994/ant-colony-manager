@@ -165,8 +165,9 @@ class NfcAssigner {
     try {
       await tag.writeUri(uri);
       final check = await tag.readUris();
-      if (!check.contains(uri))
+      if (!check.contains(uri)) {
         return AssignFailed('Prüfung nach dem Schreiben fehlgeschlagen – bitte nochmal halten.');
+      }
     } on NfcWriteException catch (e) {
       return AssignFailed(e.message);
     } on Exception {
