@@ -1,0 +1,146 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Ant Colony Manager – fertige Compose-Datei zum Einfügen
+# (Dockhand, Portainer, Unraid Compose Manager, Synology Container Manager …)
+#
+# Kein Git-Klon, keine .env-Datei, kein Build nötig. Vor dem Start nur die
+# drei Werte im Block "EINSTELLEN" anpassen – entweder direkt hier die Werte
+# hinter ":-" ändern oder gleichnamige Umgebungsvariablen im Stack setzen.
+#
+#   PUBLIC_APP_URL  Adresse, unter der Handy und Browser den Server erreichen
+#   APP_PORT        Port auf dem Server (8080 ist auf Unraid oft belegt)
+#   DATA_DIR        Ordner für Datenbank, Fotos, Backups, Schlüssel (absolut!)
+#
+# Danach starten, im Log des Containers "app" den Setup-Code suchen und
+# <PUBLIC_APP_URL>/setup öffnen. Anleitung: docs/17-unraid-dockhand.md
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: ant-colony-manager
+
+x-settings: &settings
+  # ── EINSTELLEN ──────────────────────────────────────────────────────────────
+  PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://192.168.1.10:8080}
+  TZ: ${TZ:-Europe/Vienna}
+  # ── optional ────────────────────────────────────────────────────────────────
+  INSTANCE_NAME: ${INSTANCE_NAME:-Ant Colony Manager}
+  REGISTRATION_MODE: ${REGISTRATION_MODE:-invite}   # open | invite | closed
+  UPLOAD_MAX_MB: ${UPLOAD_MAX_MB:-20}
+  PHOTO_KEEP_ORIGINAL: ${PHOTO_KEEP_ORIGINAL:-false}
+  LEGACY_APP_URLS: ${LEGACY_APP_URLS:-}
+  # E-Mail (Passwort vergessen, Tages-Überblick) – leer lassen = aus
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-}
+  SMTP_TLS: ${SMTP_TLS:-starttls}
+  # Backups: täglich 03:00, 7 tägliche / 4 wöchentliche / 6 monatliche behalten
+  BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 3 * * *}
+  BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-7}
+  BACKUP_KEEP_WEEKLY: ${BACKUP_KEEP_WEEKLY:-4}
+  BACKUP_KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-6}
+  ANDROID_APP_ID: at.antcolony.manager
+  ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  LOG_FORMAT: text
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  # Legt einmalig die Ordner an und erzeugt die Schlüssel in DATA_DIR/secrets.
+  init:
+    image: ghcr.io/daschmidt1994/ant-colony-manager-backup:${ACM_VERSION:-latest}
+    command: ["init-dirs"]
+    user: "0:0"
+    environment:
+      PUID: ${PUID:-99}     # Unraid: 99 (nobody) / 100 (users); sonst meist 1000/1000
+      PGID: ${PGID:-100}
+    volumes:
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}:/data
+    restart: "no"
+    logging: *logging
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: acm
+      POSTGRES_USER: acm
+      POSTGRES_PASSWORD_FILE: /run/acm-secrets/postgres_password
+      TZ: ${TZ:-Europe/Vienna}
+    volumes:
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}/postgres:/var/lib/postgresql
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}/secrets:/run/acm-secrets:ro
+    depends_on:
+      init: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acm -d acm"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    shm_size: 128m
+    stop_grace_period: 60s
+    logging: *logging
+
+  app:
+    image: ghcr.io/daschmidt1994/ant-colony-manager:${ACM_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      <<: *settings
+      POSTGRES_HOST: db
+      POSTGRES_DB: acm
+      POSTGRES_USER: acm
+      POSTGRES_PASSWORD_FILE: /run/acm-secrets/postgres_password
+      JWT_SECRET_FILE: /run/acm-secrets/jwt_secret
+      INSTANCE_SECRET_FILE: /run/acm-secrets/instance_secret
+      STORAGE_PATH: /data/uploads
+      BACKUP_STATUS_DIR: /data/backups
+      LISTEN_ADDR: ":8080"
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}/uploads:/data/uploads
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}/backups:/data/backups:ro
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}/secrets:/run/acm-secrets:ro
+    user: "${PUID:-99}:${PGID:-100}"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      db: { condition: service_healthy }
+      init: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "/acm", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    stop_grace_period: 30s
+    logging: *logging
+
+  backup:
+    image: ghcr.io/daschmidt1994/ant-colony-manager-backup:${ACM_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      <<: *settings
+      PGHOST: db
+      PGDATABASE: acm
+      PGUSER: acm
+    volumes:
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}/uploads:/data/uploads:ro
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}/backups:/data/backups
+      - ${DATA_DIR:-/mnt/user/appdata/ant-colony-manager}/secrets:/data/secrets:ro
+    user: "${PUID:-99}:${PGID:-100}"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 15m
+      timeout: 10s
+      start_period: 1m
+    logging: *logging

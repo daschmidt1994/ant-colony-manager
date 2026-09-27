@@ -119,10 +119,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.run_number }}
         run: |
-          gh release create "app-$RUN" build/app/outputs/flutter-apk/app-*-release.apk \
+          gh release create "app-$RUN" build/app/outputs/flutter-apk/app-*-release.apk ../deploy/docker-compose.yml \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
             --title "Android-App (Build $RUN)" \
-            --notes "Für fast alle Handys: **app-arm64-v8a-release.apk**. Ältere Geräte: app-armeabi-v7a-release.apk. Über eine vorhandene Installation installieren – die Daten bleiben erhalten. Anleitung: docs/16-anleitung-installieren-testen.md"
+            --notes "Für fast alle Handys: **app-arm64-v8a-release.apk**. Ältere Geräte: app-armeabi-v7a-release.apk. Über eine vorhandene Installation installieren – die Daten bleiben erhalten. Server: docker-compose.yml zum Einfügen in Dockhand/Portainer (docs/17-unraid-dockhand.md). Anleitung: docs/16-anleitung-installieren-testen.md"
           # keep the newest 10 builds
           gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName' \
             | grep '^app-' | sort -t- -k2 -n -r | tail -n +11 \

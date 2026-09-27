@@ -112,7 +112,7 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 
 ## Anleitungen
 
-- [17-unraid-dockhand.md](17-unraid-dockhand.md) – Installation auf Unraid mit Dockhand
+- [17-unraid-dockhand.md](17-unraid-dockhand.md) – Installation auf Unraid mit Dockhand/Portainer (fertige Compose-Datei)
 - [16-anleitung-installieren-testen.md](16-anleitung-installieren-testen.md) – Server starten, APK installieren, App verbinden, mit der Testliste testen
 - [15-anleitung-geraete.md](15-anleitung-geraete.md) – Geräte & Sitzungen: Gerät benennen, verlorenes Handy abmelden
 - [14-sensoren.md](14-sensoren.md) – Sensoren einrichten (ESP32-Beispiel)

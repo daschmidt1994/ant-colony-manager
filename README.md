@@ -72,7 +72,7 @@ Danach:
 3. Erste Kolonie anlegen – sie bekommt automatisch einen QR-Code
 4. Android-App installieren (APK), Server-Adresse eingeben, anmelden
 
-**Unraid, Synology, Portainer/Dockhand** (kein `docker compose` im Terminal): siehe [docs/17-unraid-dockhand.md](docs/17-unraid-dockhand.md).
+**Unraid, Synology, Portainer/Dockhand:** fertige Compose-Datei zum Einfügen – [`deploy/docker-compose.yml`](deploy/docker-compose.yml), Anleitung [docs/17-unraid-dockhand.md](docs/17-unraid-dockhand.md).
 
 ### Im Internet mit HTTPS
 
