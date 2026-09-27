@@ -8,7 +8,6 @@ import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../data/repositories/colony_repository.dart';
-import '../../domain/scan.dart';
 import '../../nfc/nfc_controller.dart';
 import '../../nfc/nfc_driver.dart';
 import '../../shared/widgets.dart';

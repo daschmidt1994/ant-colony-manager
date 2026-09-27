@@ -171,7 +171,8 @@ void main() {
       expect(slots.first.page, 0);
       expect(slots.first.x, closeTo(4.75 + 3 * (38.1 + 2.5), .001));
       expect(slots.first.y, closeTo(10.7, .001));
-      expect(slots[62 - 1].page, 1, reason: '65 per sheet, starting at field 4');
+      expect(slots[61].page, 0, reason: '65 per sheet, starting at field 4: 62 labels fit on sheet 1');
+      expect(slots[62].page, 1);
       expect(slots.last.page, 1);
       // every label fits on the page
       for (final s in slots) {
