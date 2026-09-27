@@ -23,7 +23,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 | 6 | QR-Scanner, NFC zuweisen/scannen, Deep Links, App Links, Etiketten-PDF, Signatur | ✅ |
 | 7 | Offline-Sync vollständig: Hintergrund-Sync, Netz-/Server-Signale, Tab-Schutz, Geräte-Abmeldung, Chaos-Tests | ✅ |
 | 8 | Pflege-Rundgang: Scan-Workflow für viele Kolonien, offline, mit Zusammenfassung | ✅ [docs/](docs/README.md#phase-8--pflege-rundgang-umgesetzt) |
-| 9 | Statistiken, Diagramme, Sensoren, PDF-Berichte, Fotos, Erinnerungen | geplant |
+| 9 | Fotos, Erinnerungen (Android + E-Mail), Statistiken & Diagramme, Sensoren mit Grenzwert-Alarm, PDF-Koloniebericht, Export (JSON/CSV/Fotos) | ✅ [docs/](docs/README.md#phase-9--fotos-erinnerungen-statistiken-sensoren-berichte-export-umgesetzt) |
 
 Die Web-App ist im Server-Image enthalten. Die Android-App (APK) entsteht in der CI ([App-Workflow](.github/workflows/app.yml), Artefakt am jeweiligen Lauf). 
 

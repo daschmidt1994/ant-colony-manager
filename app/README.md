@@ -62,6 +62,13 @@ Tags werden mit einem NDEF-URI-Record `https://<PUBLIC_APP_URL>/c/<code>` beschr
 
 Tab „Rundgang“ → Kolonien auswählen → starten. Danach ist jeder Scan „weiter“: Tag antippen (Reader-Modus bleibt aktiv), QR über die Karte „Nächste Kolonie“ oder – im Web – Kolonie aus der „Offen“-Liste wählen. Alles, was während des Rundgangs dokumentiert wird, gehört automatisch dazu. Der Bildschirm bleibt an; „Pause“ führt zur Übersicht, dort steht „Rundgang fortsetzen“.
 
+### Fotos, Erinnerungen, Statistik (Phase 9)
+
+- **Fotos:** „Foto“ auf der Kolonie-Seite oder im Rundgang öffnet die Kamera (lange drücken: Galerie). Das Bild wird verkleinert, sofort lokal gespeichert und hochgeladen, sobald Netz da ist („Fotos nur im WLAN“ unter Mehr).
+- **Erinnerungen:** Beim ersten Start fragt Android nach der Erlaubnis für Benachrichtigungen. Uhrzeit des Tages-Überblicks und Einzelmeldungen unter Mehr → Erinnerungen. Hersteller mit aggressivem Energiesparen (Xiaomi, Huawei …) können Hintergrundarbeit verzögern – siehe dontkillmyapp.com.
+- **Statistik:** Kolonie-Seite → Menü ⋮ → „Statistik“; Sammlung unter Mehr → Statistiken. **Größe & Brut** über das Menü erfassen.
+- **Bericht:** Menü ⋮ → „Bericht als PDF“ (Android: Vorschau mit Drucken/Teilen, Web: Download).
+
 ### Signatur und App Links
 
 Release-APKs aus der CI sind mit einem eigenen Schlüssel signiert (GitHub-Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`). **Der Schlüssel muss gesichert werden** – ohne ihn lassen sich Updates nicht über eine installierte App installieren.

@@ -98,3 +98,15 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 | Android | Display bleibt während des Rundgangs an; jeder Scan (auch aus dem Scan-Tab oder per Tag bei geschlossener App) führt in den Rundgang |
 | Tests | `app/test/care_round_test.dart` (Ablauf, Laufweg-Sortierung, 12-h-Ende, Offline-Sync auf ein zweites Gerät), Widget-Test des Ablaufs, Server-Test `care_round_test.go` (ein Batch offline, fremde Rundgänge gesperrt) |
 
+## Phase 9 – Fotos, Erinnerungen, Statistiken, Sensoren, Berichte, Export (umgesetzt)
+
+| Bereich | Stand |
+|---|---|
+| Fotos | Kamera (Android) bzw. Dateiauswahl (Web, mehrere), vor dem Upload auf 2048 px / JPEG 82 verkleinert; Vorschaubild lokal → Galerie auch offline; Upload-Warteschlange mit Wiederholung, idempotent (`Content-SHA256`); „Fotos nur im WLAN“; Galerie nach Monaten, Vollbild mit Wischen/Zoom, Beschreibung, Löschen; Fotos in Timeline, Kolonie-Seite und Rundgang |
+| Erinnerungen | Android: überfällige Pflege einzeln mit **[Erledigt]** (wiederholt passende Fütterung, letzte Wasser-/Reinigungsarten, hakt Aufgaben ab – auch bei geschlossener App) und **[Kolonie öffnen]**; Tages-Überblick zur gewählten Uhrzeit (inexakter Alarm, übersteht Neustarts); stündliche Prüfung auch offline; Winterruhe-Ende; E-Mail-Tagesüberblick vom Server (SMTP) |
+| Statistiken | Kolonie: Fütterungen (Protein/KH), Wasser & Reinigung, Wachstum (Stufenlinie), Temperatur/Feuchte (manuell + Sensor), Brut; Zeiträume 7 T · 30 T · 3 M · 1 J · Gesamt. Sammlung: Kolonien, Arten, Gattungen, Arbeiterinnen, Fütterungen Woche/Monat, überfällig, Winterruhe, Verteilungen nach Art/Gattung/Standort. Alles lokal berechnet (offline) |
+| Sensoren | Verwaltung mit einmalig angezeigtem Schlüssel, Grenzwerte, Alarm als „Problem“-Eintrag + Benachrichtigung, stumme Sensoren – siehe [14-sensoren.md](14-sensoren.md) |
+| Bericht | Koloniebericht als PDF: Steckbrief, Wachstum, Fütterungen (12 Monate), Klima, Brut, Pflegeplan, Timeline, Fotos |
+| Export | `GET /api/v1/export.zip`: `export.json`, CSV-Tabellen (Semikolon, UTF-8 für Excel), alle Fotos; in der Web-App unter „Mehr → Daten“ |
+| Tests | App: Foto-Warteschlange inkl. Chaos, Erinnerungen, Statistiken, Bericht (PDF-Vorschau in der CI); Vertragstests gegen den echten Server (Foto-Upload, Sensor); Server: E-Mail-Digest, ZIP-Export, Sensor-Alarm |
+
