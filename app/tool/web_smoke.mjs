@@ -63,6 +63,17 @@ for (const [vp, tag] of [[{ width: 412, height: 915 }, 'mobile'], [{ width: 1280
   await page.goto(base + '/');
   await ready(page);
   await page.screenshot({ path: `${out}/2-dashboard-${tag}.png` });
+  if (tag === 'desktop') {
+    // A second tab must not open the local database a second time.
+    const second = await ctx.newPage();
+    second.on('pageerror', (e) => errors.push(`[second-tab] pageerror: ${e.message}`));
+    await second.goto(base + '/');
+    await ready(second);
+    const title = await second.title();
+    if (!title.includes('Bereits geöffnet')) errors.push(`[second-tab] expected tab guard, title was "${title}"`);
+    await second.screenshot({ path: `${out}/4-second-tab.png` });
+    await second.close();
+  }
   await page.goto(base + '/colonies/' + colonyId);
   await ready(page);
   await page.screenshot({ path: `${out}/3-colony-${tag}.png` });
