@@ -109,7 +109,7 @@ void main() {
     db.dispose();
   });
 
-  testWidgets('care round: start, pick colony, water in one tap, finish offer', (tester) async {
+  testWidgets('care round: start, pick colony, water in one tap, summary', (tester) async {
     final db = memoryDb();
     final repo = ColonyRepository(db, userId: 'u1', onChanged: () {});
     final id = repo.createColony({'name': 'Lasius #3', 'species_text': 'Lasius niger'}, intervals: {'water': 2});
@@ -129,7 +129,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Rundgang  0 / 1'), findsOneWidget);
-    expect(find.text('Offen · 1'), findsOneWidget);
+    expect(find.text('OFFEN · 1'), findsOneWidget);
     await tester.tap(find.text('Lasius #3')); // web: pick from the list instead of scanning
     await tester.pumpAndSettle();
     expect(find.text('Rundgang  1 / 1'), findsOneWidget);
