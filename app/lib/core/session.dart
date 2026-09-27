@@ -9,6 +9,7 @@ import '../data/sync/background_sync.dart';
 import '../data/repositories/colony_repository.dart' show newId;
 import '../data/sync/sync_engine.dart';
 import '../data/sync/upload_policy.dart';
+import '../features/reminders/reminders.dart';
 import 'api_client.dart';
 
 const appVersion = '0.1.0';
@@ -259,6 +260,7 @@ class AuthController extends Notifier<AuthState> {
     await _store.write('user', null);
     _api?.setAccessToken(null);
     _db.wipe();
+    await clearReminders().catchError((Object _) {});
     if (url != null) {
       final s = await _signedOut(url);
       state = s is SignedOut
@@ -275,6 +277,7 @@ class AuthController extends Notifier<AuthState> {
   Future<void> logout({bool keepData = false}) async {
     final s = state;
     await cancelBackgroundSync().catchError((Object _) {});
+    await clearReminders().catchError((Object _) {});
     try {
       await _api?.post('/api/v1/auth/logout');
     } on Exception {

@@ -7,11 +7,14 @@ import 'package:workmanager/workmanager.dart';
 
 import '../../core/api_client.dart';
 import '../../core/session.dart';
+import '../../features/reminders/reminders_native.dart';
 import '../local/database.dart';
+import '../repositories/colony_repository.dart';
 import 'sync_engine.dart';
 import 'upload_policy.dart';
 
 const _task = 'acm-sync';
+const _remindTask = 'acm-reminders';
 
 /// Runs in a separate isolate started by Android's WorkManager – also when the
 /// app is closed – so offline entries reach the server as soon as there is a
@@ -22,6 +25,7 @@ void backgroundSyncDispatcher() {
     WidgetsFlutterBinding.ensureInitialized();
     DartPluginRegistrant.ensureInitialized();
     try {
+      if (task == _remindTask) return await runBackgroundReminders();
       return await runBackgroundSync();
     } catch (e) {
       debugPrint('background sync failed: $e');
@@ -49,6 +53,7 @@ Future<bool> runBackgroundSync() async {
     );
     await engine.sync(resetBackoff: true);
     engine.dispose();
+    await syncReminders(ColonyRepository(db, userId: user.id, onChanged: () {}));
     return engine.current.phase != SyncPhase.error;
   } on NetworkException {
     return false;
@@ -56,6 +61,22 @@ Future<bool> runBackgroundSync() async {
     return true;
   } finally {
     api.close();
+    db.dispose();
+  }
+}
+
+/// Hourly, without network: reminders must also appear in a cellar without
+/// reception (due dates are computed from the local database).
+Future<bool> runBackgroundReminders() async {
+  final userJson = await SessionStore().read('user');
+  if (userJson == null) return true;
+  final db = await AppDatabase.open();
+  try {
+    await syncReminders(
+      ColonyRepository(db, userId: User(jsonDecode(userJson) as Map<String, dynamic>).id, onChanged: () {}),
+    );
+    return true;
+  } finally {
     db.dispose();
   }
 }
@@ -70,9 +91,16 @@ Future<void> registerBackgroundSync() async {
     constraints: Constraints(networkType: NetworkType.connected),
     existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
   );
+  await Workmanager().registerPeriodicTask(
+    _remindTask,
+    _remindTask,
+    frequency: const Duration(hours: 1),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+  );
 }
 
 Future<void> cancelBackgroundSync() async {
   if (defaultTargetPlatform != TargetPlatform.android) return;
   await Workmanager().cancelByUniqueName(_task);
+  await Workmanager().cancelByUniqueName(_remindTask);
 }

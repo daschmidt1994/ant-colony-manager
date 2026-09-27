@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../domain/due.dart';
 import '../../domain/models.dart';
+import '../../domain/reminders.dart';
 import '../local/database.dart';
 
 const _uuid = Uuid();
@@ -408,6 +409,11 @@ class ColonyRepository {
   ColonyEvent? repeatLastFeeding(String colonyId, {DateTime? at}) {
     final last = lastFeeding(colonyId);
     if (last == null) return null;
+    return _repeatFeeding(last, at: at);
+  }
+
+  ColonyEvent _repeatFeeding(ColonyEvent last, {DateTime? at}) {
+    final colonyId = last.colonyId;
     final items = [
       for (final i in last.items)
         {
@@ -424,6 +430,89 @@ class ColonyRepository {
       at: at,
     );
   }
+
+  /// „Erledigt“ from a reminder (docs/13 F8): protein/carbohydrates repeat
+  /// the last matching feeding, water and cleaning use the kinds from last
+  /// time. Null if there is nothing to repeat (the app opens instead).
+  ColonyEvent? completeDue(String colonyId, String taskType, {String? scheduleId}) => _write(() {
+    List<String> lastKinds(String type, String key, List<String> fallback) {
+      final e = events(colonyId, types: {type}, limit: 1);
+      final k = e.isEmpty ? const <String>[] : ((e.first.json[key] as Map?)?['kinds'] as List?)?.cast<String>();
+      return k == null || k.isEmpty ? fallback : k;
+    }
+
+    switch (taskType) {
+      case 'water':
+        return logEvent(
+          colonyId,
+          'water',
+          details: {
+            'water': {
+              'kinds': lastKinds('water', 'water', const ['drinker_refilled']),
+            },
+          },
+        );
+      case 'cleaning':
+        return logEvent(
+          colonyId,
+          'cleaning',
+          details: {
+            'cleaning': {
+              'kinds': lastKinds('cleaning', 'cleaning', const ['other']),
+            },
+          },
+        );
+      case 'check':
+        return logEvent(colonyId, 'check');
+      case 'feeding' || 'protein' || 'carbohydrate':
+        final last = events(
+          colonyId,
+          types: {'feeding'},
+        ).where((e) => taskType == 'feeding' || e.items.any((i) => i.category == taskType)).firstOrNull;
+        return last == null ? null : _repeatFeeding(last);
+      default:
+        return logEvent(colonyId, 'custom_task', details: {'schedule_id': ?scheduleId});
+    }
+  });
+
+  /// Changes my settings (synced to all my devices).
+  void updateSettings(Map<String, dynamic> patch) => _write(() {
+    if (db.record('user_settings', userId) != null) _update('user_settings', userId, patch);
+  });
+
+  List<Map<String, dynamic>> openTasks() =>
+      db.records('tasks', orderBy: 'id').map((r) => r.json).where((t) => t['done_at'] == null).toList();
+
+  void completeTask(String taskId) => _write(() {
+    if (db.record('tasks', taskId) == null) return;
+    _update('tasks', taskId, {'done_at': now().toUtc().toIso8601String()});
+  });
+
+  /// Colonies I may only look at (no reminders, no „Erledigt“).
+  Set<String> readOnlyColonies() => {
+    for (final r in db.select(
+      '''SELECT colony_id FROM records WHERE entity = 'colony_members'
+         AND json_extract(data, '\$.user_id') = ? AND json_extract(data, '\$.role') = 'viewer' ''',
+      [userId],
+    ))
+      r['colony_id'] as String,
+  };
+
+  List<Reminder> reminders() {
+    final cols = colonies();
+    return overdueReminders(
+      colonies: cols,
+      due: dueAll(cols),
+      readOnlyColonies: readOnlyColonies(),
+      winterRests: db.records('winter_rests', orderBy: 'id').map((r) => r.json).toList(),
+      tasks: openTasks(),
+      now: now(),
+      notifyOverdue: settings().notifyOverdue,
+    );
+  }
+
+  /// Winter rests whose planned end has passed (for the digest).
+  int winterEndsDue() => reminders().where((r) => r.payload['kind'] == 'winter').length;
 
   /// Duplicate guard: an identical feeding within the last 2 minutes.
   bool fedJustNow(String colonyId) {

@@ -2,12 +2,18 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/app.dart';
+import '../../app/providers.dart';
+import '../../app/router.dart';
 import '../../core/session.dart';
 import '../../data/sync/background_sync.dart';
 import '../../data/sync/realtime.dart';
+import '../../data/sync/sync_engine.dart';
+import '../reminders/reminder_actions.dart';
+import '../reminders/reminders.dart';
 
 /// Starts a sync whenever it is worth it (docs/05 §8): app back in the
 /// foreground, network back, realtime signal from the server (Android),
@@ -37,12 +43,55 @@ class _SyncTriggersState extends ConsumerState<SyncTriggers> with WidgetsBinding
     }
     registerBackgroundSync().catchError((Object _) {});
     _foreground();
+    _startReminders();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reminders (Android): refreshed after every sync and when the app returns.
+
+  Timer? _remindDebounce;
+
+  Future<void> _startReminders() async {
+    try {
+      await initReminders(_onReminder);
+      final db = ref.read(databaseProvider);
+      if (db.getMeta('notifications_asked') == null) {
+        db.setMeta('notifications_asked', '1');
+        await requestReminderPermission();
+      }
+      final launch = await reminderThatLaunchedApp();
+      if (launch != null) _onReminder(launch.actionId, launch.payload);
+      _refreshReminders();
+    } on Exception {
+      // plugin unavailable (tests, web)
+    }
+  }
+
+  void _refreshReminders() {
+    _remindDebounce?.cancel();
+    _remindDebounce = Timer(const Duration(seconds: 2), () {
+      final repo = ref.read(repositoryProvider);
+      if (repo != null) syncReminders(repo).catchError((Object _) {});
+    });
+  }
+
+  void _onReminder(String? actionId, String? payload) {
+    final repo = ref.read(repositoryProvider);
+    if (repo == null) return;
+    final route = handleReminder(repo, actionId: actionId, payload: payload);
+    if (route != null) {
+      ref.read(routerProvider).go(route);
+    } else {
+      rootMessengerKey.currentState?.showSnackBar(const SnackBar(content: Text('Erledigt – gespeichert')));
+    }
+    _refreshReminders();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _connectivity?.cancel();
+    _remindDebounce?.cancel();
     _background();
     super.dispose();
   }
@@ -62,6 +111,7 @@ class _SyncTriggersState extends ConsumerState<SyncTriggers> with WidgetsBinding
       ref.read(databaseProvider).notifyExternalChange();
       _sync();
       _foreground();
+      _refreshReminders();
     } else if (s == AppLifecycleState.paused || s == AppLifecycleState.hidden) {
       _background();
     }
@@ -89,5 +139,10 @@ class _SyncTriggersState extends ConsumerState<SyncTriggers> with WidgetsBinding
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    ref.listen(syncStatusProvider, (_, s) {
+      if (s.value?.phase != SyncPhase.syncing) _refreshReminders();
+    });
+    return widget.child;
+  }
 }

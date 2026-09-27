@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../app/app.dart';
+import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
@@ -37,6 +38,70 @@ const _fieldNames = {
   'occurred_at': 'Zeitpunkt',
   'details_rev': 'Details',
 };
+
+/// ERINNERUNGEN (S20). Stored in user_settings, so they apply to all devices.
+class _ReminderSettings extends ConsumerWidget {
+  const _ReminderSettings();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(settingsProvider).value;
+    final repo = ref.watch(repositoryProvider);
+    if (s == null || repo == null) return const SizedBox.shrink();
+    final mail = ref.watch(instanceInfoProvider).value?['password_reset'] == true;
+    final (h, m) = s.digestTime;
+    final time = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionHeader('Erinnerungen'),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.schedule),
+                title: const Text('Tages-Überblick'),
+                subtitle: Text(
+                  kIsWeb
+                      ? 'Uhrzeit für den Überblick (Android-App und E-Mail)'
+                      : '„7 Kolonien brauchen heute Aufmerksamkeit“ – einmal täglich',
+                ),
+                trailing: Text(time, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                onTap: () async {
+                  final t = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay(hour: h, minute: m),
+                  );
+                  if (t == null) return;
+                  repo.updateSettings({
+                    'digest_time': '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                  });
+                },
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.notifications_active_outlined),
+                title: const Text('Überfällige einzeln melden'),
+                subtitle: const Text('Android: je Aufgabe eine Benachrichtigung mit „Erledigt“'),
+                value: s.notifyOverdue,
+                onChanged: (v) => repo.updateSettings({'notify_overdue': v}),
+              ),
+              if (mail || s.emailDigest)
+                SwitchListTile(
+                  secondary: const Icon(Icons.mail_outline),
+                  title: const Text('Tages-Überblick per E-Mail'),
+                  subtitle: Text(
+                    mail ? 'praktisch ohne Android-App' : 'Der Server hat keinen E-Mail-Versand eingerichtet',
+                  ),
+                  value: s.emailDigest,
+                  onChanged: (v) => repo.updateSettings({'email_digest': v}),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// „Fotos nur im WLAN“ – a device setting, not synced.
 class _WifiOnlySwitch extends ConsumerStatefulWidget {
@@ -118,6 +183,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ],
+            const _ReminderSettings(),
             const SectionHeader('Etiketten'),
             Card(
               child: ListTile(

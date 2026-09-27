@@ -118,6 +118,15 @@ class UserSettings {
   int get dueSoonDays => _int(json['due_soon_days']) ?? 1;
   String get theme => json['theme'] as String? ?? 'system';
   String get timezone => json['timezone'] as String? ?? 'Europe/Vienna';
+
+  /// Daily overview time („Tages-Überblick“), hour and minute.
+  (int, int) get digestTime {
+    final p = (json['digest_time'] as String? ?? '18:00').split(':');
+    return (int.tryParse(p[0]) ?? 18, p.length > 1 ? int.tryParse(p[1]) ?? 0 : 0);
+  }
+
+  bool get notifyOverdue => json['notify_overdue'] as bool? ?? true;
+  bool get emailDigest => json['email_digest'] as bool? ?? false;
 }
 
 /// Worker estimate ranges offered in the UI (spec §11).

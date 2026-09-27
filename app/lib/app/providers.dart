@@ -80,3 +80,14 @@ final recentRoundsProvider = StreamProvider<List<RoundSummary>>(
 );
 
 final colonyPhotosProvider = StreamProvider.family<List<Photo>, String>((ref, id) => _watch(ref, (r) => r.photos(id)));
+
+final settingsProvider = StreamProvider<UserSettings>((ref) => _watch(ref, (r) => r.settings()));
+
+/// Server capabilities (e.g. whether it can send e-mail). Null when offline.
+final instanceInfoProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  try {
+    return await ref.read(authProvider.notifier).api.public('GET', '/api/v1/instance') as Map<String, dynamic>;
+  } on Exception {
+    return null;
+  }
+});

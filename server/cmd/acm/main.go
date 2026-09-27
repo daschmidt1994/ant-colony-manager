@@ -167,6 +167,24 @@ func serve() error {
 		}
 	}()
 
+	// E-mail digest: checked every minute, sent once per day at each user's time.
+	go func() {
+		t := time.NewTicker(time.Minute)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+			if n, err := svc.SendDigests(ctx); err != nil && ctx.Err() == nil {
+				log.Error("e-mail digest failed", "err", err)
+			} else if n > 0 {
+				log.Info("e-mail digest sent", "count", n)
+			}
+		}
+	}()
+
 	httpSrv := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           srv.Handler(),
