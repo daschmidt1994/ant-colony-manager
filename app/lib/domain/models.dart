@@ -131,3 +131,66 @@ const workerRanges = <(int, int?)>[
   (5000, 10000),
   (10000, null),
 ];
+
+/// A care round (Pflege-Rundgang): scanning many colonies one after another.
+class CareRound {
+  CareRound(this.json);
+  final Map<String, dynamic> json;
+  String get id => json['id'] as String;
+  DateTime get startedAt => _date(json['started_at']) ?? DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime? get endedAt => _date(json['ended_at']);
+  String? get locationId => json['location_id'] as String?;
+  bool get open => endedAt == null;
+}
+
+/// One colony of a care round (`care_round_colonies`).
+class RoundStop {
+  RoundStop(this.json);
+  final Map<String, dynamic> json;
+  String get id => json['id'] as String;
+  String get roundId => json['care_round_id'] as String;
+  String get colonyId => json['colony_id'] as String;
+  bool get planned => json['planned'] as bool? ?? true;
+  DateTime? get visitedAt => _date(json['visited_at']);
+  bool get visited => visitedAt != null;
+  bool get skipped => json['skipped'] as bool? ?? false;
+}
+
+/// Live state of a round: stops with their colony and what was done there.
+class RoundProgress {
+  RoundProgress({required this.round, required this.stops, required this.done});
+  final CareRound round;
+
+  /// Sorted by location path (walking order), then colony number.
+  final List<(RoundStop, Colony)> stops;
+
+  /// Event types documented in this round, per colony.
+  final Map<String, Set<String>> done;
+
+  int get total => stops.where((s) => s.$1.planned || s.$1.visited).length;
+  int get visited => stops.where((s) => s.$1.visited).length;
+  List<(RoundStop, Colony)> get open => stops.where((s) => !s.$1.visited && !s.$1.skipped).toList();
+  RoundStop? stopOf(String colonyId) => stops.where((s) => s.$2.id == colonyId).firstOrNull?.$1;
+}
+
+class RoundSummary {
+  RoundSummary({
+    required this.round,
+    required this.total,
+    required this.visited,
+    required this.colonies,
+    required this.missing,
+    required this.skipped,
+  });
+  final CareRound round;
+  final int total, visited;
+
+  /// Event type → number of colonies it was documented for.
+  final Map<String, int> colonies;
+  final List<Colony> missing, skipped;
+
+  Duration get duration => (round.endedAt ?? DateTime.now()).difference(round.startedAt);
+}
+
+/// What happened when a colony was scanned during a round.
+enum VisitResult { first, again, added }

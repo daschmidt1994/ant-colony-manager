@@ -58,6 +58,10 @@ Vertragstest lokal: Server starten, dann
 
 Tags werden mit einem NDEF-URI-Record `https://<PUBLIC_APP_URL>/c/<code>` beschrieben, nach dem Schreiben zurückgelesen und geprüft. Zusätzlich wird die Seriennummer als `HMAC-SHA256(Instanz-Schlüssel, UID)` gespeichert; dadurch werden auch schreibgeschützte oder überschriebene Tags erkannt, solange die App offen ist. Die Logik ist hardwareunabhängig getestet (`test/nfc_labels_test.dart`).
 
+### Pflege-Rundgang (Phase 8)
+
+Tab „Rundgang“ → Kolonien auswählen → starten. Danach ist jeder Scan „weiter“: Tag antippen (Reader-Modus bleibt aktiv), QR über die Karte „Nächste Kolonie“ oder – im Web – Kolonie aus der „Offen“-Liste wählen. Alles, was während des Rundgangs dokumentiert wird, gehört automatisch dazu. Der Bildschirm bleibt an; „Pause“ führt zur Übersicht, dort steht „Rundgang fortsetzen“.
+
 ### Signatur und App Links
 
 Release-APKs aus der CI sind mit einem eigenen Schlüssel signiert (GitHub-Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`). **Der Schlüssel muss gesichert werden** – ohne ihn lassen sich Updates nicht über eine installierte App installieren.

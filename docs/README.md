@@ -87,3 +87,14 @@ Abweichungen vom Plan: siehe Hinweis in [01-produkt-und-stack.md](01-produkt-und
 ## Phase 7 – Offline-Sync (umgesetzt)
 
 Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase-7). Wichtigster Fund: nachgetragene Änderungen konnten nach einer verlorenen Serverantwort verloren gehen – behoben und durch Regressions- und Chaos-Tests abgesichert.
+
+## Phase 8 – Pflege-Rundgang (umgesetzt)
+
+| Bereich | Stand |
+|---|---|
+| Ablauf | Tab „Rundgang“ und Dashboard-Karte: Auswahl (alle mit Aufgaben · alle aktiven · Standort) → Scan (NFC, Kamera, Link) oder Tipp in der „Offen“-Liste → Kolonie-Karte mit Ampel und Schnellaktionen (✓ = in diesem Rundgang erledigt) → Zusammenfassung |
+| Regeln | Scan ohne Aktion zählt als kontrolliert; erneuter Scan fragt nach; Kolonie außerhalb der Auswahl wird ergänzt; Pause jederzeit, „Rundgang fortsetzen (7/14)“; nach 12 h ohne Aktivität automatisch beendet |
+| Daten | `care_rounds`, `care_round_colonies`; jede Aktion während des Rundgangs trägt `care_round_id` – komplett offline, die Zusammenfassung ist eine lokale Abfrage und auf allen Geräten gleich |
+| Android | Display bleibt während des Rundgangs an; jeder Scan (auch aus dem Scan-Tab oder per Tag bei geschlossener App) führt in den Rundgang |
+| Tests | `app/test/care_round_test.dart` (Ablauf, Laufweg-Sortierung, 12-h-Ende, Offline-Sync auf ein zweites Gerät), Widget-Test des Ablaufs, Server-Test `care_round_test.go` (ein Batch offline, fremde Rundgänge gesperrt) |
+

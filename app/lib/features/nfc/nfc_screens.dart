@@ -63,7 +63,7 @@ class _NfcScopeState extends ConsumerState<NfcScope> with WidgetsBindingObserver
     void msg(String t) => rootMessengerKey.currentState?.showSnackBar(SnackBar(content: Text(t)));
     switch (res) {
       case ScanFound(:final colonyId):
-        router.go('/colonies/$colonyId');
+        router.go(scanTarget(repo, colonyId));
       case ScanRevoked():
         msg('Dieser Tag wurde deaktiviert. Weise ihn in der Kolonie neu zu.');
       case ScanUnknown():
@@ -75,7 +75,7 @@ class _NfcScopeState extends ConsumerState<NfcScope> with WidgetsBindingObserver
         final r = await resolveScan(ref, token);
         switch (r) {
           case OpenColony(:final id):
-            router.go('/colonies/$id');
+            router.go(scanTarget(repo, id));
           case ScanMessage(:final text):
             msg(text);
         }

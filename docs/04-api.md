@@ -74,7 +74,7 @@ Alle Listen unterstützen `q`, Filter und Cursor. Schreibzugriffe erzeugen inter
 | CRUD | `/api/v1/species`, `/api/v1/food-items` | Katalog + eigene Einträge |
 | GET | `/api/v1/dashboard` | aggregierte Kennzahlen + Fälligkeitsgruppen |
 | GET | `/api/v1/stats` | globale Statistiken |
-| POST/GET | `/api/v1/care-rounds`, `/api/v1/care-rounds/{id}/summary` | Pflege-Rundgang |
+| CRUD | `/api/v1/care-rounds`, `/api/v1/care-round-colonies` | Pflege-Rundgang (Rundgang + Stationen); die Zusammenfassung berechnet die App lokal über `colony_events.care_round_id` |
 
 ### Scan: QR & NFC
 | Methode | Pfad | Zweck |

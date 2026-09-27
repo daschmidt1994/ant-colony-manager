@@ -14,6 +14,7 @@ class AppShell extends StatelessWidget {
     (Icons.home_outlined, Icons.home, 'Übersicht'),
     (Icons.pest_control_outlined, Icons.pest_control, 'Kolonien'),
     (Icons.qr_code_scanner, Icons.qr_code_scanner, 'Scannen'),
+    (Icons.route_outlined, Icons.route, 'Rundgang'),
     (Icons.menu, Icons.menu, 'Mehr'),
   ];
 

@@ -22,7 +22,8 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 | 5 | Android-MVP (Flutter) + Web-App: Login, Dashboard, Kolonien, Fütterung/Wasser/Reinigung, Timeline, lokale DB + Sync | ✅ [app/](app/README.md) |
 | 6 | QR-Scanner, NFC zuweisen/scannen, Deep Links, App Links, Etiketten-PDF, Signatur | ✅ |
 | 7 | Offline-Sync vollständig: Hintergrund-Sync, Netz-/Server-Signale, Tab-Schutz, Geräte-Abmeldung, Chaos-Tests | ✅ |
-| 8–9 | Pflege-Rundgang, Statistiken, Fotos, Erinnerungen | geplant |
+| 8 | Pflege-Rundgang: Scan-Workflow für viele Kolonien, offline, mit Zusammenfassung | ✅ [docs/](docs/README.md#phase-8--pflege-rundgang-umgesetzt) |
+| 9 | Statistiken, Diagramme, Sensoren, PDF-Berichte, Fotos, Erinnerungen | geplant |
 
 Die Web-App ist im Server-Image enthalten. Die Android-App (APK) entsteht in der CI ([App-Workflow](.github/workflows/app.yml), Artefakt am jeweiligen Lauf). 
 

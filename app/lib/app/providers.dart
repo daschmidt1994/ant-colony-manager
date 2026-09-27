@@ -62,3 +62,19 @@ final speciesSuggestionsProvider = StreamProvider<List<String>>(
     return names.toList()..sort();
   }),
 );
+
+/// The care round in progress, if any.
+final activeRoundProvider = StreamProvider<RoundProgress?>(
+  (ref) => _watch(ref, (r) {
+    final a = r.activeRound();
+    return a == null ? null : r.roundProgress(a.id);
+  }),
+);
+
+final roundSummaryProvider = StreamProvider.family<RoundSummary?, String>(
+  (ref, id) => _watch(ref, (r) => r.roundSummary(id)),
+);
+
+final recentRoundsProvider = StreamProvider<List<RoundSummary>>(
+  (ref) => _watch(ref, (r) => [for (final c in r.recentRounds()) ?r.roundSummary(c.id)]),
+);

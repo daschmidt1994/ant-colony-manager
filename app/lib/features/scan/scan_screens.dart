@@ -28,6 +28,12 @@ class ScanMessage extends ScanOutcome {
   final String text;
 }
 
+/// Where a scanned colony opens: during a care round the scan means „next
+/// colony“ and lands on the round card, otherwise on the colony.
+String scanTarget(ColonyRepository repo, String colonyId) => repo.activeRound() == null
+    ? '/colonies/$colonyId'
+    : '/round?colony=$colonyId&t=${DateTime.now().microsecondsSinceEpoch}';
+
 /// Resolves a token: first locally (works offline), then on the server.
 Future<ScanOutcome> resolveScan(WidgetRef ref, String token) async {
   final repo = ref.read(repositoryProvider)!;
@@ -78,7 +84,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       case OpenColony(:final id):
         _code.clear();
         setState(() => _message = null);
-        context.go('/colonies/$id');
+        context.go(scanTarget(ref.read(repositoryProvider)!, id));
       case ScanMessage(:final text):
         setState(() => _message = text);
     }
@@ -236,7 +242,7 @@ class _ScanLandingScreenState extends ConsumerState<ScanLandingScreen> {
     if (!mounted) return;
     switch (r) {
       case OpenColony(:final id):
-        context.go('/colonies/$id');
+        context.go(scanTarget(ref.read(repositoryProvider)!, id));
       case ScanMessage(:final text):
         setState(() => _message = text);
     }

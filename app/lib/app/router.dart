@@ -10,6 +10,7 @@ import '../features/colonies/colony_list_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/labels/labels_screen.dart';
 import '../features/nfc/nfc_screens.dart';
+import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/shell.dart';
@@ -101,6 +102,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: '/scan', builder: (_, _) => const ScanScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/round',
+                builder: (_, s) =>
+                    RoundScreen(colonyId: s.uri.queryParameters['colony'], nonce: s.uri.queryParameters['t']),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, s) => RoundSummaryScreen(roundId: s.pathParameters['id']!),
+                  ),
+                ],
+              ),
+            ],
           ),
           StatefulShellBranch(
             routes: [

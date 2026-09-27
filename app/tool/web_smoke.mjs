@@ -77,6 +77,9 @@ for (const [vp, tag] of [[{ width: 412, height: 915 }, 'mobile'], [{ width: 1280
   await page.goto(base + '/colonies/' + colonyId);
   await ready(page);
   await page.screenshot({ path: `${out}/3-colony-${tag}.png` });
+  await page.goto(base + '/round');
+  await ready(page);
+  await page.screenshot({ path: `${out}/5-round-${tag}.png` });
   await ctx.close();
 }
 

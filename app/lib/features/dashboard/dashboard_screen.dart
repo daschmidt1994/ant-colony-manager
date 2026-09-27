@@ -104,18 +104,8 @@ class _Dashboard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (d.needsAttention > 0) ...[
-                const SizedBox(height: 12),
-                Card(
-                  child: ListTile(
-                    leading: Icon(Icons.checklist, color: Theme.of(context).colorScheme.primary),
-                    title: Text(
-                      '${d.needsAttention} ${d.needsAttention == 1 ? 'Kolonie braucht' : 'Kolonien brauchen'} heute Pflege',
-                    ),
-                    subtitle: const Text('Pflege-Rundgang folgt in einem späteren Update'),
-                  ),
-                ),
-              ],
+              const SizedBox(height: 12),
+              _RoundCard(needsAttention: d.needsAttention),
               for (final (group, title, open) in _groups)
                 if (grouped[group]?.isNotEmpty == true)
                   _GroupSection(
@@ -175,6 +165,37 @@ class _Dashboard extends StatelessWidget {
     DueGroup.today || DueGroup.tomorrow => context.colors.soon,
     _ => null,
   };
+}
+
+/// „Pflege-Rundgang starten“ – or continue the one in progress.
+class _RoundCard extends ConsumerWidget {
+  const _RoundCard({required this.needsAttention});
+  final int needsAttention;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(activeRoundProvider).value;
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: active != null || needsAttention > 0 ? scheme.primaryContainer : null,
+      child: ListTile(
+        leading: Icon(active != null ? Icons.play_circle_outline : Icons.route_outlined, color: scheme.primary),
+        title: Text(
+          active != null ? 'Rundgang fortsetzen (${active.visited}/${active.total})' : 'Pflege-Rundgang starten',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: active != null
+            ? null
+            : Text(
+                needsAttention > 0
+                    ? '$needsAttention ${needsAttention == 1 ? 'Kolonie braucht' : 'Kolonien brauchen'} heute Pflege'
+                    : 'Heute ist nichts fällig',
+              ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.go('/round'),
+      ),
+    );
+  }
 }
 
 class _Stat extends StatelessWidget {

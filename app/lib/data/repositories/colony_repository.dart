@@ -47,6 +47,9 @@ class ScanRevoked extends ScanResolution {}
 
 class ScanUnknown extends ScanResolution {}
 
+/// Which colonies a care round covers.
+enum RoundScope { withTasks, allActive, location }
+
 /// Reads and writes colony data. Reads come only from the local database;
 /// every write is a local transaction (record + outbox op) followed by a
 /// background sync – the UI never waits for the network.
@@ -382,11 +385,15 @@ class ColonyRepository {
     String? note,
     DateTime? at,
   }) => _write(() {
+    // During a care round every documented action belongs to it.
+    final round = activeRound();
+    if (round != null) _visit(round.id, colonyId);
     final payload = {
       'colony_id': colonyId,
       'type': type,
       'occurred_at': (at ?? now()).toUtc().toIso8601String(),
       if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      'care_round_id': ?round?.id,
       ...details,
     };
     final data = _create('colony_events', payload);
@@ -512,6 +519,189 @@ class ColonyRepository {
     }, pending: true);
     return data['id'] as String;
   });
+
+  // ---------------------------------------------------------------------------
+  // Care round (docs/02 §8, docs/13 F6). Everything is local: rounds, stops
+  // and events sync like any other record, the summary is a local query.
+
+  /// A round without activity for this long counts as finished.
+  static const roundTimeout = Duration(hours: 12);
+
+  List<CareRound> _openRounds() =>
+      db.records('care_rounds', orderBy: 'id DESC').map((r) => CareRound(r.json)).where((r) => r.open).toList();
+
+  List<RoundStop> _stops(String roundId) => db
+      .select(
+        "SELECT data FROM records WHERE entity = 'care_round_colonies' AND json_extract(data, '\$.care_round_id') = ?",
+        [roundId],
+      )
+      .map((r) => RoundStop(_decode(r['data'] as String)))
+      .toList();
+
+  RoundStop? _stop(String roundId, String colonyId) => _stops(roundId).where((s) => s.colonyId == colonyId).firstOrNull;
+
+  DateTime _lastActivity(CareRound r) {
+    var last = r.startedAt;
+    for (final s in _stops(r.id)) {
+      if (s.visitedAt != null && s.visitedAt!.isAfter(last)) last = s.visitedAt!;
+    }
+    final e = db.select(
+      "SELECT max(ts) AS t FROM records WHERE entity = 'colony_events' AND json_extract(data, '\$.care_round_id') = ?",
+      [r.id],
+    );
+    final t = e.first['t'] as int?;
+    if (t != null && t > last.millisecondsSinceEpoch) last = DateTime.fromMillisecondsSinceEpoch(t, isUtc: true);
+    return last;
+  }
+
+  /// The round in progress (newest open one that is not timed out).
+  CareRound? activeRound() {
+    for (final r in _openRounds()) {
+      if (now().difference(_lastActivity(r)) <= roundTimeout) return r;
+    }
+    return null;
+  }
+
+  /// Ends rounds left open for more than [roundTimeout]; their summary stays.
+  void closeStaleRounds() {
+    final stale = _openRounds().where((r) => now().difference(_lastActivity(r)) > roundTimeout).toList();
+    if (stale.isEmpty) return;
+    _write(() {
+      for (final r in stale) {
+        _update('care_rounds', r.id, {'ended_at': _lastActivity(r).toUtc().toIso8601String()});
+      }
+    });
+  }
+
+  /// Finished rounds, newest first (for „Letzte Rundgänge“).
+  List<CareRound> recentRounds({int limit = 5}) {
+    final active = activeRound()?.id;
+    return db
+        .records('care_rounds', orderBy: 'id DESC')
+        .map((r) => CareRound(r.json))
+        .where((r) => r.id != active)
+        .take(limit)
+        .toList();
+  }
+
+  /// Colonies offered when starting a round.
+  List<Colony> roundCandidates(RoundScope scope, {String? locationId}) {
+    final cols = colonies().where((c) => c.isCareActive).toList();
+    switch (scope) {
+      case RoundScope.withTasks:
+        final due = dueAll(cols);
+        return cols.where((c) => (worstOf(due[c.id] ?? const [])?.days ?? 1) <= 0).toList();
+      case RoundScope.allActive:
+        return cols;
+      case RoundScope.location:
+        final loc = locationId == null ? null : _locations()[locationId];
+        if (loc == null) return const [];
+        return cols
+            .where((c) => c.locationPath == loc.path || (c.locationPath?.startsWith('${loc.path}/') ?? false))
+            .toList();
+    }
+  }
+
+  /// Starts a round over [colonyIds]; a round still open is ended first.
+  String startRound(List<String> colonyIds, {String? locationId}) => _write(() {
+    final t = now().toUtc().toIso8601String();
+    for (final r in _openRounds()) {
+      _update('care_rounds', r.id, {'ended_at': t});
+    }
+    final id = _create('care_rounds', {'started_at': t, 'location_id': ?locationId})['id'] as String;
+    for (final c in colonyIds.toSet()) {
+      _create('care_round_colonies', {'care_round_id': id, 'colony_id': c, 'planned': true});
+    }
+    return id;
+  });
+
+  VisitResult _visit(String roundId, String colonyId) {
+    final s = _stop(roundId, colonyId);
+    final t = now().toUtc().toIso8601String();
+    if (s == null) {
+      _create('care_round_colonies', {
+        'care_round_id': roundId,
+        'colony_id': colonyId,
+        'planned': false,
+        'visited_at': t,
+      });
+      return VisitResult.added;
+    }
+    if (s.visited) return VisitResult.again;
+    _update('care_round_colonies', s.id, {'visited_at': t, if (s.skipped) 'skipped': false});
+    return VisitResult.first;
+  }
+
+  /// A colony was scanned during the round – counts as checked (no event).
+  VisitResult visit(String roundId, String colonyId) => _write(() => _visit(roundId, colonyId));
+
+  /// Event types documented for [colonyId] in this round.
+  Set<String> doneInRound(String roundId, String colonyId) => {
+    for (final r in db.select(
+      '''SELECT json_extract(data, '\$.type') AS type FROM records WHERE entity = 'colony_events'
+         AND colony_id = ? AND json_extract(data, '\$.care_round_id') = ?''',
+      [colonyId, roundId],
+    ))
+      r['type'] as String,
+  };
+
+  RoundProgress? roundProgress(String roundId) {
+    final r = db.record('care_rounds', roundId);
+    if (r == null) return null;
+    final byId = {for (final c in colonies(includeArchived: true)) c.id: c};
+    final stops =
+        [
+          for (final s in _stops(roundId))
+            if (byId[s.colonyId] != null) (s, byId[s.colonyId]!),
+        ]..sort((a, b) {
+          final la = a.$2.locationPath ?? '￿', lb = b.$2.locationPath ?? '￿';
+          return la != lb ? la.compareTo(lb) : a.$2.number.compareTo(b.$2.number);
+        });
+    final done = <String, Set<String>>{};
+    for (final e in db.select(
+      '''SELECT colony_id, json_extract(data, '\$.type') AS type FROM records WHERE entity = 'colony_events'
+         AND json_extract(data, '\$.care_round_id') = ?''',
+      [roundId],
+    )) {
+      (done[e['colony_id'] as String] ??= {}).add(e['type'] as String);
+    }
+    return RoundProgress(round: CareRound(r.json), stops: stops, done: done);
+  }
+
+  void endRound(String roundId) =>
+      _write(() => _update('care_rounds', roundId, {'ended_at': now().toUtc().toIso8601String()}));
+
+  /// „Als übersprungen markieren“ for the colonies not scanned.
+  void skipUnvisited(String roundId) => _write(() {
+    for (final s in _stops(roundId).where((s) => s.planned && !s.visited && !s.skipped)) {
+      _update('care_round_colonies', s.id, {'skipped': true});
+    }
+  });
+
+  RoundSummary? roundSummary(String roundId) {
+    final p = roundProgress(roundId);
+    if (p == null) return null;
+    final counts = <String, int>{};
+    for (final types in p.done.values) {
+      for (final t in types) {
+        counts[t] = (counts[t] ?? 0) + 1;
+      }
+    }
+    return RoundSummary(
+      round: p.round,
+      total: p.total,
+      visited: p.visited,
+      colonies: counts,
+      missing: [
+        for (final (s, c) in p.stops)
+          if (s.planned && !s.visited && !s.skipped) c,
+      ],
+      skipped: [
+        for (final (s, c) in p.stops)
+          if (s.skipped && !s.visited) c,
+      ],
+    );
+  }
 
   static Map<String, dynamic> _decode(String s) => jsonDecode(s) as Map<String, dynamic>;
 }
