@@ -312,7 +312,8 @@ class AppDatabase {
   void wipe() => transaction(() {
     execute('DELETE FROM records', const [], {'records'});
     execute('DELETE FROM outbox', const [], {'outbox'});
-    execute('DELETE FROM meta', const [], {'meta'});
+    // The device keeps its name for the next account.
+    execute("DELETE FROM meta WHERE key <> 'device_name'", const [], {'meta'});
     execute('DELETE FROM photo_uploads', const [], {'photos'});
     execute('DELETE FROM photo_thumbs', const [], {'photos'});
   });

@@ -25,6 +25,10 @@ class SyncStatus {
   );
 }
 
+/// Meta key of the user-chosen device name (shown in „Geräte & Sitzungen“).
+const deviceNameKey = 'device_name';
+const _deviceNameSentKey = 'device_name_sent';
+
 class DeviceIdentity {
   const DeviceIdentity({required this.id, required this.name, required this.platform, required this.appVersion});
   final String id, name, platform, appVersion;
@@ -136,17 +140,23 @@ class SyncEngine {
 
   /// Sends the outbox. Returns true if a snapshot is needed afterwards
   /// (a rejection left local data that may differ from the server).
+  /// The name set on this device wins over the built-in default.
+  String get _deviceName => db.getMeta(deviceNameKey) ?? device.name;
+
   Future<bool> _push() async {
     var needSnapshot = false;
+    // A renamed device reports its new name even when there is nothing to send.
+    var announce = db.getMeta(_deviceNameSentKey) != _deviceName;
     while (true) {
       final ops = db.takeOps(100);
-      if (ops.isEmpty) return needSnapshot;
+      if (ops.isEmpty && !announce) return needSnapshot;
+      announce = false;
       final Map<String, dynamic> res;
       try {
         res =
             await api.post('/api/v1/sync/push', {
                   'device_id': device.id,
-                  'device_name': device.name,
+                  'device_name': _deviceName,
                   'platform': device.platform,
                   'app_version': device.appVersion,
                   'ops': ops.map((o) => o.toWire()).toList(),
@@ -159,6 +169,7 @@ class SyncEngine {
         db.retryLater(ops.map((o) => o.seq).toList(), e.toString());
         rethrow;
       }
+      db.setMeta(_deviceNameSentKey, _deviceName);
       final results = {for (final r in (res['results'] as List).cast<Map<String, dynamic>>()) r['op_id'] as String: r};
       db.transaction(() {
         for (final op in ops) {

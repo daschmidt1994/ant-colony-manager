@@ -49,7 +49,7 @@ Future<bool> runBackgroundSync() async {
       api: api,
       userId: user.id,
       uploadAllowed: uploadPolicy(db),
-      device: DeviceIdentity(id: deviceIdOf(db), name: 'Android', platform: 'android', appVersion: appVersion),
+      device: DeviceIdentity(id: deviceIdOf(db), name: deviceNameOf(db), platform: 'android', appVersion: appVersion),
     );
     await engine.sync(resetBackoff: true);
     engine.dispose();

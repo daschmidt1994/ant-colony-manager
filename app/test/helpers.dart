@@ -44,6 +44,7 @@ class FakeServer {
   bool deviceRevoked = false;
   int horizon = 0;
   int pushes = 0;
+  String? lastDeviceName;
 
   int count(String entity) => rows[entity]?.values.where((r) => r['deleted_at'] == null).length ?? 0;
 
@@ -66,6 +67,7 @@ class FakeServer {
     if (path == '/api/v1/sync/push') {
       pushes++;
       final body = jsonDecode(req.body) as Map<String, dynamic>;
+      lastDeviceName = body['device_name'] as String?;
       final results = <Map<String, dynamic>>[];
       for (final op in (body['ops'] as List).cast<Map<String, dynamic>>()) {
         final id = op['op_id'] as String;

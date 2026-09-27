@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
+import '../../data/sync/sync_engine.dart';
 import '../../shared/widgets.dart';
 
 /// One signed-in device or browser (a session family on the server).
@@ -16,12 +18,17 @@ class DeviceSession {
   DateTime? get createdAt => DateTime.tryParse(json['created_at'] as String? ?? '');
   DateTime? get lastUsedAt => DateTime.tryParse(json['last_used_at'] as String? ?? '');
 
+  /// A name the user gave the device; else the browser for web sessions,
+  /// else the app's default name.
   String get name {
-    final n = (json['device_name'] as String?)?.trim();
+    final n = (json['device_name'] as String?)?.trim() ?? '';
     final browser = describeUserAgent(json['user_agent'] as String?);
-    if (platform == 'web' || (n == null && browser != null)) return browser ?? 'Web-Browser';
-    return n == null || n.isEmpty ? 'Unbekanntes Gerät' : n;
+    if (n.isNotEmpty && !_defaultNames.contains(n)) return n;
+    if (platform == 'web' || (n.isEmpty && browser != null)) return browser ?? 'Web-Browser';
+    return n.isEmpty ? 'Unbekanntes Gerät' : n;
   }
+
+  static const _defaultNames = {'Web-Browser', 'Android', 'android', 'web', 'ios'};
 
   IconData get icon => switch (platform) {
     'android' => Icons.phone_android,
@@ -75,6 +82,35 @@ final deviceSessionsProvider = FutureProvider.autoDispose<List<DeviceSession>>((
 /// A signed-out Android app deletes its local data on its next contact.
 class DevicesScreen extends ConsumerWidget {
   const DevicesScreen({super.key});
+
+  Future<void> _rename(BuildContext context, WidgetRef ref) async {
+    final db = ref.read(databaseProvider);
+    final c = TextEditingController(text: db.getMeta(deviceNameKey) ?? '');
+    final name = await showDialog<String>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Name dieses Geräts'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          maxLength: 60,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: kIsWeb ? 'z. B. Laptop Wohnzimmer' : 'z. B. Pixel 7 von Anna'),
+          onSubmitted: (v) => Navigator.pop(d, v),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(d, c.text), child: const Text('Speichern')),
+        ],
+      ),
+    );
+    if (name == null) return;
+    final v = name.trim();
+    db.setMeta(deviceNameKey, v.isEmpty ? null : v);
+    // The next sync reports the name to the server, also without new entries.
+    await ref.read(syncEngineProvider)?.sync(resetBackoff: true);
+    ref.invalidate(deviceSessionsProvider);
+  }
 
   Future<void> _revoke(BuildContext context, WidgetRef ref, List<DeviceSession> which) async {
     final ok = await showDialog<bool>(
@@ -163,7 +199,11 @@ class DevicesScreen extends ConsumerWidget {
                             ].join(' · '),
                           ),
                           trailing: s.current
-                              ? null
+                              ? IconButton(
+                                  tooltip: 'Umbenennen',
+                                  onPressed: () => _rename(context, ref),
+                                  icon: const Icon(Icons.edit_outlined),
+                                )
                               : TextButton(onPressed: () => _revoke(context, ref, [s]), child: const Text('Abmelden')),
                         ),
                     ],

@@ -30,6 +30,9 @@ class SessionStore implements TokenStore {
 }
 
 /// One id per installation (kept in the local database; a wipe starts a new device).
+/// Name shown in „Geräte & Sitzungen“; can be changed there.
+String deviceNameOf(AppDatabase db) => db.getMeta(deviceNameKey) ?? (kIsWeb ? 'Web-Browser' : 'Android');
+
 String deviceIdOf(AppDatabase db) {
   final existing = db.getMeta('device_id');
   if (existing != null) return existing;
@@ -182,7 +185,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<Map<String, dynamic>> _device() async => {
     'device_id': deviceIdOf(_db),
-    'device_name': kIsWeb ? 'Web-Browser' : 'Android',
+    'device_name': deviceNameOf(_db),
     'platform': kIsWeb ? 'web' : 'android',
     'app_version': appVersion,
   };
@@ -313,7 +316,7 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
     uploadAllowed: uploadPolicy(db),
     device: DeviceIdentity(
       id: deviceIdOf(db),
-      name: kIsWeb ? 'Web-Browser' : 'Android',
+      name: deviceNameOf(db),
       platform: kIsWeb ? 'web' : 'android',
       appVersion: appVersion,
     ),

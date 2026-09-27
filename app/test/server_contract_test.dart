@@ -20,12 +20,12 @@ final server = Platform.environment['ACM_TEST_SERVER'];
 final setupToken = Platform.environment['ACM_TEST_SETUP_TOKEN'] ?? '';
 
 class Device {
-  Device(this.name, this.api, this.userId) : db = memoryDb() {
+  Device(this.name, this.api, this.userId, {String? deviceId}) : db = memoryDb() {
     engine = SyncEngine(
       db: db,
       api: api,
       userId: userId,
-      device: DeviceIdentity(id: newId(), name: name, platform: 'android', appVersion: 'contract-test'),
+      device: DeviceIdentity(id: deviceId ?? newId(), name: name, platform: 'android', appVersion: 'contract-test'),
     );
     repo = ColonyRepository(db, userId: userId, onChanged: () {});
   }
@@ -193,7 +193,8 @@ void main() {
               })
               as Map<String, dynamic>;
       await phoneApi.adopt(session);
-      final phone = Device('revoked-phone', phoneApi, userId);
+      // Same device id for login and sync – like the app.
+      final phone = Device('Pixel', phoneApi, userId, deviceId: deviceId);
       await phone.sync();
 
       final sessions = (await api.get('/api/v1/auth/sessions') as Map<String, dynamic>)['sessions'] as List;
@@ -202,6 +203,14 @@ void main() {
       final shown = DeviceSession((mine as Map).cast<String, dynamic>());
       expect((shown.name, shown.current, shown.icon), ('Pixel', false, Icons.phone_android));
       expect(sessions.where((s) => s['current'] == true), hasLength(1), reason: 'exactly one „dieses Gerät“');
+
+      // Renamed on the phone → shown with the new name after the next sync.
+      phone.db.setMeta(deviceNameKey, 'Pixel von Anna');
+      await phone.sync();
+      final renamed = ((await api.get('/api/v1/auth/sessions') as Map)['sessions'] as List).firstWhere(
+        (s) => s['device_id'] == deviceId,
+      );
+      expect(DeviceSession((renamed as Map).cast<String, dynamic>()).name, 'Pixel von Anna');
       await api.delete('/api/v1/auth/sessions/${mine['id']}');
 
       phoneApi.setAccessToken(null);
