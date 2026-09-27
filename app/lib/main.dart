@@ -27,6 +27,7 @@ class OtherTabApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    title: 'Bereits geöffnet – Ant Colony Manager', // MaterialApp sets document.title
     debugShowCheckedModeBanner: false,
     theme: buildTheme(Brightness.dark),
     home: Scaffold(
