@@ -2,6 +2,7 @@
 # Creates .env from .env.example and fills in the public address.
 #   ./scripts/init-env.sh                       → http://<IP dieses Rechners>:8080
 #   ./scripts/init-env.sh https://ants.example.com   → Internet-Betrieb mit Caddy
+ACM_NO_COMPOSE=1
 . "$(dirname -- "$0")/lib.sh"
 
 [ -f .env ] && die ".env existiert bereits – nichts überschrieben"
@@ -23,10 +24,14 @@ case "$url" in
   *) die "Adresse muss mit http:// oder https:// beginnen" ;;
 esac
 sed -i "s#^PUBLIC_APP_URL=.*#PUBLIC_APP_URL=$url#" .env
-if [ "$(id -u)" != 0 ]; then
+if [ -f /etc/unraid-version ]; then
+  # Unraid: appdata belongs to nobody:users
+  sed -i "s#^PUID=.*#PUID=99#; s#^PGID=.*#PGID=100#" .env
+  say "Unraid erkannt – Dateien gehören nobody:users (99:100)"
+elif [ "$(id -u)" != 0 ]; then
   sed -i "s#^PUID=.*#PUID=$(id -u)#; s#^PGID=.*#PGID=$(id -g)#" .env
 fi
 chmod 600 .env
 say ".env erstellt – öffentliche Adresse: $url"
 echo "Secrets werden beim ersten Start automatisch erzeugt (data/secrets/)."
-echo "Weiter mit: docker compose up -d"
+echo "Weiter mit: docker compose up -d   (oder den Stack in Dockhand/Portainer starten)"

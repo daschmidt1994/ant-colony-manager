@@ -7,8 +7,12 @@ say()  { printf '\033[1m%s\033[0m\n' "$*"; }
 warn() { printf '\033[33m%s\033[0m\n' "$*" >&2; }
 die()  { printf '\033[31mFehler: %s\033[0m\n' "$*" >&2; exit 1; }
 
-command -v docker >/dev/null || die "docker ist nicht installiert"
-docker compose version >/dev/null 2>&1 || die "docker compose (v2) ist nicht installiert"
+# init-env.sh only writes .env – it also works where compose runs elsewhere
+# (Unraid with Dockhand/Portainer, Synology Container Manager …).
+if [ -z "${ACM_NO_COMPOSE:-}" ]; then
+  command -v docker >/dev/null || die "docker ist nicht installiert"
+  docker compose version >/dev/null 2>&1 || die "docker compose (v2) ist nicht installiert"
+fi
 
 dc() { docker compose "$@"; }
 
