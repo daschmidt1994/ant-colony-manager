@@ -21,17 +21,34 @@ class ScannerView extends StatefulWidget {
 }
 
 class _ScannerViewState extends State<ScannerView> {
+  // Started/stopped by visibility: the shell keeps hidden tabs alive, and there is
+  // only one camera session – a scanner left running on the Scannen tab made the
+  // round's scanner fail with "Kamera nicht verfügbar".
   final _controller = MobileScannerController(
     formats: const [BarcodeFormat.qrCode],
     detectionSpeed: DetectionSpeed.noDuplicates,
+    autoStart: false,
   );
+  bool? _visible;
+  Future<void> _camera = Future.value();
   String? _last;
   DateTime _lastAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _busy = false;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visible = TickerMode.valuesOf(context).enabled; // false in hidden tabs and covered routes
+    if (visible == _visible) return;
+    _visible = visible;
+    // Chained, so a stop never races a start that is still in progress.
+    // Start errors are shown by the errorBuilder via the controller state.
+    _camera = _camera.then((_) => visible ? _controller.start() : _controller.stop()).catchError((Object _) {});
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    _camera.then((_) => _controller.dispose());
     super.dispose();
   }
 
