@@ -70,7 +70,7 @@ Danach:
 1. **Setup-Code** aus dem Log holen: `docker compose logs app | grep -A1 Setup-Code`
 2. `http://<server>:8080/setup` öffnen → Code eingeben → **Admin-Konto** anlegen
 3. Erste Kolonie anlegen – sie bekommt automatisch einen QR-Code
-4. Android-App installieren (APK), Server-Adresse eingeben, anmelden
+4. Android-App installieren – am besten über F-Droid, dann kommen Updates automatisch ([docs/18-fdroid.md](docs/18-fdroid.md)) – Server-Adresse eingeben, anmelden
 
 **Unraid, Synology, Portainer/Dockhand:** fertige Compose-Datei zum Einfügen – [`deploy/docker-compose.yml`](deploy/docker-compose.yml), Anleitung [docs/17-unraid-dockhand.md](docs/17-unraid-dockhand.md).
 

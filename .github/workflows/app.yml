@@ -2,7 +2,7 @@ name: App
 
 on:
   push:
-    paths: ["app/**", "test-vectors/**", ".github/workflows/app.yml"]
+    paths: ["app/**", "test-vectors/**", "fdroid/**", ".github/workflows/app.yml"]
   pull_request:
     paths: ["app/**", "test-vectors/**"]
   workflow_dispatch:
@@ -66,6 +66,10 @@ jobs:
     name: Build APK
     needs: check
     runs-on: ubuntu-latest
+    # one publisher at a time: releases and the F-Droid repo on gh-pages
+    concurrency:
+      group: app-publish-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
       contents: write # GitHub release with the APKs (main only)
     defaults:
@@ -127,6 +131,19 @@ jobs:
           gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName' \
             | grep '^app-' | sort -t- -k2 -n -r | tail -n +11 \
             | xargs -r -I{} gh release delete {} --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+      # Own F-Droid repo on GitHub Pages – add in F-Droid for updates on the phone:
+      # https://<owner>.github.io/<repo>/fdroid/repo (see docs/18-fdroid.md)
+      - name: Update F-Droid repo (main)
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.app_link_host == ''))
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.run_number }}
+          FDROID_KEYSTORE_BASE64: ${{ secrets.FDROID_KEYSTORE_BASE64 }}
+          FDROID_KEYSTORE_PASS: ${{ secrets.FDROID_KEYSTORE_PASS }}
+        run: |
+          pipx install fdroidserver >/dev/null
+          ./fdroid/publish.sh
 
   contract:
     name: Contract test against the real server

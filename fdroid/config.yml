@@ -1,0 +1,20 @@
+# Eigenes F-Droid-Repo (gebaut von .github/workflows/app.yml, veröffentlicht
+# über GitHub Pages). In F-Droid hinzufügen:
+#   https://daschmidt1994.github.io/ant-colony-manager/fdroid/repo
+# Der Signierschlüssel kommt aus den Secrets FDROID_KEYSTORE_BASE64 und
+# FDROID_KEYSTORE_PASS – geht er verloren, müssen alle das Repo neu hinzufügen.
+repo_url: https://daschmidt1994.github.io/ant-colony-manager/fdroid/repo
+repo_name: Ant Colony Manager
+repo_description: >-
+  Selbst gehostete Verwaltung von Ameisenkolonien. Updates der Android-App
+  direkt aus GitHub – https://github.com/daschmidt1994/ant-colony-manager
+repo_icon: icon.png
+repo_keyalias: fdroidrepo
+keystore: keystore.p12
+keystorepass:
+  env: FDROID_KEYSTORE_PASS
+keypass:
+  env: FDROID_KEYSTORE_PASS
+keydname: CN=Ant Colony Manager F-Droid Repo, O=daschmidt1994
+make_current_version_link: false
+archive_older: 0 # alte Builds löscht publish.sh (die letzten 3 bleiben)

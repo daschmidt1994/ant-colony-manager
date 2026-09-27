@@ -1,0 +1,21 @@
+Categories:
+  - Science & Education
+License: Proprietary
+AuthorName: daschmidt1994
+SourceCode: https://github.com/daschmidt1994/ant-colony-manager
+IssueTracker: https://github.com/daschmidt1994/ant-colony-manager/issues
+Changelog: https://github.com/daschmidt1994/ant-colony-manager/commits/main
+
+Name: Ant Colony Manager
+Summary: Ameisenkolonien pflegen – NFC/QR scannen, dokumentieren, erinnern
+Description: |-
+  Selbst gehostete Verwaltung von Ameisenkolonien: Handy an den NFC-Tag halten
+  oder QR-Code scannen, sehen was ansteht, Fütterung, Wasser oder Reinigung mit
+  einem Tap dokumentieren.
+
+  * Offline-fähig, synchronisiert mit deinem eigenen Server
+  * Fälligkeiten mit Ampel, Erinnerungen, Pflege-Rundgang
+  * Winterruhe planen, erinnern lassen und per Schalter starten/beenden
+  * Fotos, Messwerte, Statistiken, Etiketten, PDF-Berichte
+
+  Benötigt einen eigenen Ant-Colony-Manager-Server (Docker).
