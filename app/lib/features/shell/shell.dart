@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../shared/widgets.dart';
 import '../nfc/nfc_screens.dart';
 import 'sync_triggers.dart';
 
@@ -33,10 +34,7 @@ class AppShell extends StatelessWidget {
               selectedIndex: shell.currentIndex,
               onDestinationSelected: _go,
               labelType: NavigationRailLabelType.all,
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Icon(Icons.hive_outlined, color: Theme.of(context).colorScheme.primary, size: 32),
-              ),
+              leading: Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: AppLogo(size: 40)),
               destinations: [
                 for (final (icon, sel, label) in _items)
                   NavigationRailDestination(icon: Icon(icon), selectedIcon: Icon(sel), label: Text(label)),

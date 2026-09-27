@@ -395,3 +395,13 @@ class ContentWidth extends StatelessWidget {
     ),
   );
 }
+
+/// The app's ant logo (same artwork as the launcher icon, tool/icon/ant.svg).
+class AppLogo extends StatelessWidget {
+  const AppLogo({super.key, this.size = 56});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      Image.asset('assets/icon/ant.png', width: size, height: size, semanticLabel: 'Ant Colony Manager');
+}

@@ -1,0 +1,18 @@
+<!-- Ant Colony Manager – app icon source (ant seen from above). Rendered to all
+     sizes by tool/icon/render.sh. Colors: app dark background + primary green. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g id="ant" fill="#7DB36F" stroke="#7DB36F" stroke-linecap="round" stroke-linejoin="round">
+    <!-- antennae (elbowed) -->
+    <path d="M238 118 L214 74 L170 58 M274 118 L298 74 L342 58" fill="none" stroke-width="15"/>
+    <!-- legs: front, middle, hind -->
+    <path d="M236 214 L186 186 L150 128 M276 214 L326 186 L362 128" fill="none" stroke-width="17"/>
+    <path d="M232 240 L168 246 L118 296 M280 240 L344 246 L394 296" fill="none" stroke-width="17"/>
+    <path d="M236 266 L184 312 L166 394 M276 266 L328 312 L346 394" fill="none" stroke-width="17"/>
+    <!-- head with mandibles, mesosoma, petiole, gaster -->
+    <path d="M232 112 Q222 92 236 84 M280 112 Q290 92 276 84" fill="none" stroke-width="12"/>
+    <ellipse cx="256" cy="146" rx="46" ry="42" stroke="none"/>
+    <ellipse cx="256" cy="236" rx="31" ry="52" stroke="none"/>
+    <circle cx="256" cy="302" r="15" stroke="none"/>
+    <ellipse cx="256" cy="382" rx="64" ry="80" stroke="none"/>
+  </g>
+</svg>
