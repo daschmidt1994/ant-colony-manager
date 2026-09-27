@@ -66,6 +66,8 @@ jobs:
     name: Build APK
     needs: check
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # GitHub release with the APKs (main only)
     defaults:
       run:
         working-directory: app
@@ -108,6 +110,22 @@ jobs:
           name: ant-colony-manager-apk
           path: app/build/app/outputs/flutter-apk/app-*-release.apk
           retention-days: 30
+      # Public download without a GitHub account; a stable link always points to the newest:
+      # https://github.com/<owner>/<repo>/releases/latest/download/app-arm64-v8a-release.apk
+      - name: Publish release (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.run_number }}
+        run: |
+          gh release create "app-$RUN" build/app/outputs/flutter-apk/app-*-release.apk \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
+            --title "Android-App (Build $RUN)" \
+            --notes "Für fast alle Handys: **app-arm64-v8a-release.apk**. Ältere Geräte: app-armeabi-v7a-release.apk. Über eine vorhandene Installation installieren – die Daten bleiben erhalten. Anleitung: docs/16-anleitung-installieren-testen.md"
+          # keep the newest 10 builds
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName' \
+            | grep '^app-' | sort -t- -k2 -n -r | tail -n +11 \
+            | xargs -r -I{} gh release delete {} --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
 
   contract:
     name: Contract test against the real server

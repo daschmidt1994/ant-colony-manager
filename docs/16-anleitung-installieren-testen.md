@@ -28,17 +28,9 @@ cd ant-colony-manager
 grep PUBLIC_APP_URL .env
 ```
 
-### Fertige Images verwenden (empfohlen)
+### Fertige Images
 
-Das Repository ist privat, deshalb sind es auch die fertigen Docker-Images. Einmal bei der GitHub-Registry anmelden:
-
-1. Auf GitHub: **Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token**, nur das Recht **`read:packages`** anhaken.
-2. Auf dem Server:
-   ```bash
-   echo <TOKEN> | docker login ghcr.io -u daschmidt1994 --password-stdin
-   ```
-
-Ohne diese Anmeldung baut Docker die Images beim ersten Start selbst. Das dauert einige Minuten und braucht mehr als 1 GB freien Arbeitsspeicher; auf einem Raspberry Pi oder kleinen NAS klappt das oft nicht.
+Die Images liegen öffentlich unter `ghcr.io/daschmidt1994/ant-colony-manager`; `docker compose up -d` lädt sie ohne Anmeldung. Meldet Docker `denied`, sind die Pakete noch nicht öffentlich geschaltet – dann baut Docker sie selbst (dauert einige Minuten, braucht mehr als 1 GB freien Arbeitsspeicher).
 
 ### Starten
 
@@ -64,14 +56,12 @@ Die Web-App ist jetzt bereit. Lege zum Warmwerden eine erste Kolonie an.
 
 ## 2. Android-App herunterladen
 
-Die App wird bei jeder Änderung automatisch gebaut.
+Die App wird bei jeder Änderung automatisch gebaut und als GitHub-Release veröffentlicht – Download **ohne GitHub-Konto**.
 
-1. Auf GitHub im Repository **Actions** öffnen → links den Workflow **App** wählen.
-2. Den obersten Lauf mit grünem Haken auf dem Zweig **main** öffnen.
-3. Ganz unten unter **Artifacts** auf **ant-colony-manager-apk** klicken. Es wird eine ZIP-Datei heruntergeladen (dafür musst du bei GitHub angemeldet sein).
-4. ZIP entpacken. Für fast alle Handys ist **`app-arm64-v8a-release.apk`** die richtige Datei. Nur sehr alte Geräte brauchen `app-armeabi-v7a-release.apk`.
-
-Tipp: Direkt am Handy geht es auch. GitHub im Browser öffnen, anmelden, ZIP laden und mit der **Dateien**-App entpacken. Sonst die APK per USB-Kabel, Cloud-Ordner oder Messenger an dich selbst aufs Handy schicken.
+- **Direkt am Handy** diesen Link öffnen, er zeigt immer auf die neueste Version:
+  <https://github.com/daschmidt1994/ant-colony-manager/releases/latest/download/app-arm64-v8a-release.apk>
+- Alle Versionen: <https://github.com/daschmidt1994/ant-colony-manager/releases>
+- Nur sehr alte Geräte brauchen stattdessen `app-armeabi-v7a-release.apk` (auf der Release-Seite).
 
 ---
 
@@ -158,7 +148,7 @@ Aus den Befunden werden die Korrekturen. Danach gibt es eine neue APK, die du wi
 |---|---|
 | Handy findet den Server nicht („Server nicht erreichbar“) | Handy im **gleichen WLAN**? Nicht im Gäste-WLAN? Im Handy-Browser `http://<Server-IP>:8080` öffnen; geht das nicht, blockiert die Firewall des Servers Port 8080. |
 | `docker compose ps` zeigt *unhealthy* | `docker compose logs app` – die fehlende oder falsche Einstellung steht direkt in der Meldung. |
-| `denied` beim Starten der Images | Nicht bei `ghcr.io` angemeldet (siehe Schritt 1) – dann baut Docker selbst, das dauert. |
+| `denied` beim Starten der Images | Die Pakete sind (noch) nicht öffentlich – Docker baut dann selbst, das dauert. |
 | Installation wird abgelehnt („App nicht installiert“) | Andere Variante probieren (`armeabi-v7a`), oder es ist eine ältere, anders signierte Version installiert: diese dann deinstallieren (Daten sind danach weg, vorher synchronisieren). |
 | QR-Code der Web-App wird nicht erkannt | Bildschirmhelligkeit hoch, näher ran; notfalls Server-Adresse von Hand eingeben. |
 | Keine Benachrichtigungen | Android-Einstellungen → Apps → Ant Colony Manager → Benachrichtigungen erlauben; Akku auf „Nicht eingeschränkt“. |
