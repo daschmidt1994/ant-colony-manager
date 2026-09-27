@@ -135,8 +135,9 @@ class LabelFonts {
   static Future<LabelFonts> load() async {
     try {
       final reg = pw.Font.ttf(await rootBundle.load('assets/fonts/InterVariable.ttf'));
+      final bold = pw.Font.ttf(await rootBundle.load('assets/fonts/Inter-SemiBold.ttf'));
       final it = pw.Font.ttf(await rootBundle.load('assets/fonts/InterVariable-Italic.ttf'));
-      return LabelFonts(reg, reg, it);
+      return LabelFonts(reg, bold, it);
     } on Exception {
       return LabelFonts(pw.Font.helvetica(), pw.Font.helveticaBold(), pw.Font.helveticaOblique());
     }
@@ -177,11 +178,19 @@ Future<Uint8List> buildLabelsPdf(
   return doc.save();
 }
 
+/// The end of a location path is what you look for at the shelf:
+/// „Ameisenraum/Regal A/Fach 3“ → „Regal A / Fach 3“.
+String shortLocation(String path) {
+  final parts = path.split('/').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  return parts.length <= 2 ? parts.join(' / ') : parts.sublist(parts.length - 2).join(' / ');
+}
+
 pw.Widget _label(LabelTemplate t, LabelData d, LabelOptions o, LabelFonts f) {
   const mm = PdfPageFormat.mm;
   final w = t.labelWidth * mm, h = t.labelHeight * mm;
-  final pad = (t.labelHeight < 26 ? 1.5 : 2.5) * mm;
-  // QR needs a quiet zone of ≥ 4 modules – the barcode widget draws none, so keep padding around it.
+  // The barcode widget draws no quiet zone – the padding around the QR code is it
+  // (≈ 3 modules at typical label sizes, enough for phone cameras).
+  final pad = (t.labelHeight < 26 ? 2.0 : 3.0) * mm;
   final qrSide = [h - 2 * pad, w * .5].reduce((a, b) => a < b ? a : b);
   final qr = pw.BarcodeWidget(
     barcode: pw.Barcode.qrCode(errorCorrectLevel: pw.BarcodeQRCorrectionLevel.medium),
@@ -207,7 +216,7 @@ pw.Widget _label(LabelTemplate t, LabelData d, LabelOptions o, LabelFonts f) {
         font: f.bold,
         scale: 1.15,
       ),
-    if (o.location && (d.location ?? '').isNotEmpty) text(d.location!, scale: .9),
+    if (o.location && (d.location ?? '').isNotEmpty) text(shortLocation(d.location!), scale: .9, lines: 2),
     if (o.code && (d.code ?? '').isNotEmpty) text(d.code!, scale: .9),
     if (o.nfcHint) text('NFC + QR', font: f.bold, scale: .8),
   ];

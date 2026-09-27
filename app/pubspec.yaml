@@ -70,6 +70,9 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
+  assets:
+    # static bold cut for label PDFs (the PDF library uses variable fonts only at their default weight)
+    - assets/fonts/Inter-SemiBold.ttf
   fonts:
     - family: Inter
       fonts:

@@ -183,6 +183,11 @@ void main() {
       expect(single.map((s) => s.page), [0, 1, 2]);
     });
 
+    test('labels show the end of the location path', () {
+      expect(shortLocation('Ameisenraum/Regal A/Fach 3'), 'Regal A / Fach 3');
+      expect(shortLocation('Wohnzimmer'), 'Wohnzimmer');
+    });
+
     test('all templates fit their pages', () {
       for (final t in labelTemplates) {
         final s = layoutLabels(t, t.perPage).last;
