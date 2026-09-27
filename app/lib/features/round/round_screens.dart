@@ -668,9 +668,11 @@ class _Summary extends ConsumerWidget {
                     children: [
                       Icon(Icons.check_circle, color: context.colors.ok),
                       const SizedBox(width: 8),
-                      Text(
-                        s.round.open ? 'Rundgang läuft' : 'Pflege-Rundgang abgeschlossen',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      Expanded(
+                        child: Text(
+                          s.round.open ? 'Rundgang läuft' : 'Pflege-Rundgang abgeschlossen',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
                   ),
