@@ -16,6 +16,7 @@ import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../actions/actions.dart';
 import '../photos/photos.dart';
+import '../reports/report_action.dart';
 import '../timeline/timeline_screen.dart';
 
 class ColonyDetailScreen extends ConsumerWidget {
@@ -88,6 +89,7 @@ class _ColonyPage extends ConsumerWidget {
               if (canEdit) const PopupMenuItem(value: 'measure', child: Text('Messung erfassen')),
               if (canEdit) const PopupMenuItem(value: 'census', child: Text('Größe & Brut erfassen')),
               const PopupMenuItem(value: 'stats', child: Text('Statistik')),
+              const PopupMenuItem(value: 'report', child: Text('Bericht als PDF')),
               if (canEdit && ref.read(nfcControllerProvider) != NfcState.unsupported)
                 const PopupMenuItem(value: 'nfc', child: Text('NFC-Tag zuweisen')),
               const PopupMenuItem(value: 'label', child: Text('Etikett drucken')),
@@ -283,6 +285,8 @@ class _ColonyPage extends ConsumerWidget {
         showCensusSheet(context, ref, colony);
       case 'stats':
         context.go('/colonies/${colony.id}/stats');
+      case 'report':
+        openColonyReport(context, ref, colony);
       case 'archive':
         repo.archiveColony(colony.id, !colony.archived);
         showUndoSnack(

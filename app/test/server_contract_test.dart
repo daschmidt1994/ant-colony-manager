@@ -10,6 +10,7 @@ import 'package:ant_colony_manager/data/repositories/colony_repository.dart';
 import 'package:ant_colony_manager/data/sync/sync_engine.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 import 'helpers.dart';
 
@@ -268,18 +269,17 @@ void main() {
               )
               as Map<String, dynamic>;
       expect(stored['stored'], 2);
-      await expectLater(
-        sensorApi.post(
-          '/api/v1/sensors/$id/measurements',
-          {
-            'readings': [
-              {'metric': 'temperature', 'value': 20},
-            ],
-          },
-          {'Authorization': 'Bearer ${key.substring(0, key.length - 2)}xx'},
-        ),
-        throwsA(isA<ApiException>().having((e) => e.status, 'status', 401)),
+      // A wrong key is refused (raw HTTP: the app client would try a session refresh on 401).
+      final wrong = await http.post(
+        Uri.parse('$server/api/v1/sensors/$id/measurements'),
+        headers: {'Authorization': 'Bearer ${key.substring(0, key.length - 2)}xx', 'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'readings': [
+            {'metric': 'temperature', 'value': 20},
+          ],
+        }),
       );
+      expect(wrong.statusCode, 401);
 
       final buckets =
           ((await api.get('/api/v1/sensors/$id/measurements', query: {'bucket': '1h'}) as Map)['buckets'] as List)

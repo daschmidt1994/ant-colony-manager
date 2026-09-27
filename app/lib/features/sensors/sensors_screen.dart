@@ -137,8 +137,9 @@ class SensorsScreen extends ConsumerWidget {
               as Map<String, dynamic>;
       final data = (res['data'] as Map).cast<String, dynamic>();
       ref.read(repositoryProvider)!.adoptServerRecord('sensors', data);
-      if (context.mounted)
+      if (context.mounted) {
         await _showKey(context, ref, data['id'] as String, (res['extra'] as Map)['api_key'] as String);
+      }
     } catch (e) {
       if (context.mounted) showError(context, e);
     }
