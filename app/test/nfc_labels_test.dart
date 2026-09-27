@@ -183,6 +183,21 @@ void main() {
       expect(single.map((s) => s.page), [0, 1, 2]);
     });
 
+    test('single labels on A4 keep their real size, centred on the page', () {
+      final t = labelTemplates.firstWhere((t) => t.id == 'single-25x25').onA4();
+      expect((t.pageW, t.pageH, t.labelWidth, t.labelHeight), (210, 297, 25, 25));
+      expect((t.cols, t.rows), (6, 10));
+      final slots = layoutLabels(t, t.perPage);
+      expect(slots.first.x, closeTo(210 - slots.last.x - 25, .001), reason: 'centred horizontally');
+      expect(slots.first.y, closeTo(297 - slots.last.y - 25, .001), reason: 'centred vertically');
+      for (final single in labelTemplates.where((t) => !t.isSheet)) {
+        final a4 = single.onA4();
+        final last = layoutLabels(a4, a4.perPage).last;
+        expect(last.x + a4.labelWidth, lessThanOrEqualTo(200), reason: single.name);
+        expect(last.y + a4.labelHeight, lessThanOrEqualTo(287), reason: single.name);
+      }
+    });
+
     test('labels show the end of the location path', () {
       expect(shortLocation('Ameisenraum/Regal A/Fach 3'), 'Regal A / Fach 3');
       expect(shortLocation('Wohnzimmer'), 'Wohnzimmer');
@@ -210,7 +225,7 @@ void main() {
             code: 'MB-$i',
           ),
       ];
-      for (final t in labelTemplates) {
+      for (final t in [...labelTemplates, for (final s in labelTemplates.where((s) => !s.isSheet)) s.onA4()]) {
         final bytes = await buildLabelsPdf(
           t,
           labels,

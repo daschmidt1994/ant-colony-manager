@@ -19,6 +19,8 @@ class LabelTemplate {
     this.marginTop = 0,
     this.gapX = 0,
     this.gapY = 0,
+    this.labelPrinter = false,
+    this.cutLines = false,
   });
 
   final String id, name;
@@ -29,17 +31,53 @@ class LabelTemplate {
   final int cols, rows;
   final double marginLeft, marginTop, gapX, gapY;
 
+  /// Roll/label printer format: printing it on A4 makes no sense.
+  final bool labelPrinter;
+
+  /// Thin outline around each label to cut along (plain paper).
+  final bool cutLines;
+
   bool get isSheet => cols * rows > 1;
   int get perPage => cols * rows;
   double get pageW => pageWidth ?? labelWidth;
   double get pageH => pageHeight ?? labelHeight;
+
+  /// The same label, as many as fit, at real size on plain A4 paper.
+  /// A page the size of one label gets scaled to the paper by office
+  /// printers (a 25 mm QR code came out half a page wide).
+  LabelTemplate onA4() {
+    const pageW = 210.0, pageH = 297.0, border = 10.0, gap = 3.0;
+    final cols = ((pageW - 2 * border + gap) / (labelWidth + gap)).floor();
+    final rows = ((pageH - 2 * border + gap) / (labelHeight + gap)).floor();
+    return LabelTemplate(
+      id: '$id-a4',
+      name: '$name auf A4',
+      labelWidth: labelWidth,
+      labelHeight: labelHeight,
+      pageWidth: pageW,
+      pageHeight: pageH,
+      cols: cols,
+      rows: rows,
+      marginLeft: (pageW - cols * labelWidth - (cols - 1) * gap) / 2,
+      marginTop: (pageH - rows * labelHeight - (rows - 1) * gap) / 2,
+      gapX: gap,
+      gapY: gap,
+      cutLines: true,
+    );
+  }
 }
 
 const labelTemplates = <LabelTemplate>[
   LabelTemplate(id: 'single-50x30', name: 'Einzeletikett 50 × 30 mm', labelWidth: 50, labelHeight: 30),
   LabelTemplate(id: 'single-38x25', name: 'Einzeletikett 38 × 25 mm', labelWidth: 38, labelHeight: 25),
   LabelTemplate(id: 'single-25x25', name: 'Einzeletikett 25 × 25 mm (nur QR + Nr.)', labelWidth: 25, labelHeight: 25),
-  LabelTemplate(id: 'brother-62', name: 'Brother 62 mm Endlos (62 × 40 mm)', labelWidth: 62, labelHeight: 40),
+  LabelTemplate(
+    id: 'brother-62',
+    name: 'Brother 62 mm Endlos (62 × 40 mm)',
+    labelWidth: 62,
+    labelHeight: 40,
+    labelPrinter: true,
+  ),
   LabelTemplate(
     id: 'a4-38x21',
     name: 'A4-Bogen 38,1 × 21,2 mm (5 × 13, z. B. Avery L7651)',
@@ -225,6 +263,7 @@ pw.Widget _label(LabelTemplate t, LabelData d, LabelOptions o, LabelFonts f) {
     width: w,
     height: h,
     padding: pw.EdgeInsets.all(pad),
+    decoration: t.cutLines ? pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey400, width: .3)) : null,
     child: compact
         ? pw.Column(
             mainAxisAlignment: pw.MainAxisAlignment.center,

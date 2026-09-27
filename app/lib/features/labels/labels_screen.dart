@@ -23,6 +23,9 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
   late final Set<String> _selected = {...widget.preselected};
   LabelTemplate _template = labelTemplates.first;
   int _startAt = 1;
+  bool _onA4 = true; // single labels: real size on A4 instead of one label per page
+
+  LabelTemplate get _effective => !_template.isSheet && _onA4 ? _template.onA4() : _template;
   bool _species = true, _name = true, _location = true, _code = false, _nfc = false;
   final _search = TextEditingController();
   bool _busy = false;
@@ -58,9 +61,28 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
               initialValue: _template,
               isExpanded: true,
               items: [for (final t in labelTemplates) DropdownMenuItem(value: t, child: Text(t.name))],
-              onChanged: (t) => setState(() => _template = t!),
+              onChanged: (t) => setState(() {
+                _template = t!;
+                _onA4 = !t.labelPrinter;
+                _startAt = 1;
+              }),
             ),
-            if (_template.isSheet) ...[
+            if (!_template.isSheet)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _onA4,
+                onChanged: (v) => setState(() {
+                  _onA4 = v;
+                  _startAt = 1;
+                }),
+                title: const Text('Auf A4-Papier in Originalgröße'),
+                subtitle: Text(
+                  _onA4
+                      ? '${_effective.perPage} pro Blatt, mit Schnittlinien – für normale Drucker'
+                      : 'Eine Seite pro Etikett – nur für Etikettendrucker',
+                ),
+              ),
+            if (_effective.isSheet) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -71,7 +93,7 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
                   ),
                   Text('$_startAt', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                   IconButton(
-                    onPressed: _startAt < _template.perPage ? () => setState(() => _startAt++) : null,
+                    onPressed: _startAt < _effective.perPage ? () => setState(() => _startAt++) : null,
                     icon: const Icon(Icons.add),
                   ),
                 ],
@@ -163,10 +185,11 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
           ),
         );
       }
+      final template = _effective;
       final bytes = await buildLabelsPdf(
-        _template,
+        template,
         labels,
-        startAt: _template.isSheet ? _startAt - 1 : 0,
+        startAt: template.isSheet ? _startAt - 1 : 0,
         options: LabelOptions(species: _species, name: _name, location: _location, code: _code, nfcHint: _nfc),
       );
       if (!mounted) return;
