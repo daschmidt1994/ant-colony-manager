@@ -154,6 +154,19 @@ Dashboard: Abschnitt „❄ Winterruhe · 8“ – „Lasius niger · seit 42 Ta
 S7 → „Winterruhe beenden“ → Datum (heute) → Status zurück auf „aktiv“, normale Intervalle ab jetzt
 ```
 
+**Umgesetzt (v1.0):** Karte „❄ Winterruhe“ auf der Kolonie-Seite (S7):
+
+```text
+„Planen“ → Beginn · Aufwecken (optional) → Speichern
+   ↓ geplanter Beginn erreicht → Erinnerung „Winterruhe beginnen?“ (Android + E-Mail-Überblick)
+Schalter an → Status „Winterruhe“, ❄ in der Timeline, Erinnerungen reduziert (×4)
+   ↓ Aufwecken erreicht → Erinnerung „Winterruhe beenden?“
+Schalter aus → Status „aktiv“, normale Intervalle ab jetzt
+```
+
+Ein Plan allein ändert nichts an Status oder Intervallen – ein- und ausgeschaltet wird immer von Hand.
+Ohne Plan startet der Schalter die Winterruhe sofort. Mehrfachauswahl, Zieltemperatur und Standort folgen später.
+
 ## F10 – Nestwechsel
 
 ```text

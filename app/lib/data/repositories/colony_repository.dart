@@ -201,6 +201,62 @@ class ColonyRepository {
     return out;
   }
 
+  /// The colony's current winter rest: running or planned (at most one).
+  WinterRest? winterRest(String colonyId) => db
+      .records('winter_rests', colonyId: colonyId, orderBy: 'id')
+      .map((r) => WinterRest(r.json))
+      .where((w) => w.endedOn == null)
+      .lastOrNull;
+
+  /// Plans a winter rest (reminders on [start] and [end]); on a running one
+  /// only the planned end can change.
+  void planWinter(String colonyId, {required DateTime start, DateTime? end}) => _write(() {
+    final w = winterRest(colonyId);
+    final endOn = end == null ? null : _dateString(end);
+    if (w == null) {
+      _create('winter_rests', {'colony_id': colonyId, 'planned_start_on': _dateString(start), 'planned_end_on': endOn});
+    } else {
+      _update('winter_rests', w.id, {if (!w.started) 'planned_start_on': _dateString(start), 'planned_end_on': endOn});
+    }
+  });
+
+  void cancelWinterPlan(String colonyId) => _write(() {
+    final w = winterRest(colonyId);
+    if (w != null && !w.started) _delete('winter_rests', w.id);
+  });
+
+  /// The switch: starts the planned winter rest today (or a new one without plan).
+  void startWinter(String colonyId) => _write(() {
+    final today = _dateString(now());
+    final w = winterRest(colonyId);
+    if (w != null && w.started) return;
+    final String id;
+    if (w == null) {
+      id = _create('winter_rests', {'colony_id': colonyId, 'started_on': today})['id'] as String;
+    } else {
+      id = w.id;
+      _update('winter_rests', id, {'started_on': today});
+    }
+    _setLocalStatus(colonyId, from: const {'active', 'founding', 'paused'}, to: 'hibernating');
+    logEvent(colonyId, 'winter_start', details: {'winter_rest_id': id});
+  });
+
+  void endWinter(String colonyId) => _write(() {
+    final w = winterRest(colonyId);
+    if (w == null || !w.started) return;
+    _update('winter_rests', w.id, {'ended_on': _dateString(now())});
+    _setLocalStatus(colonyId, from: const {'hibernating'}, to: 'active');
+    logEvent(colonyId, 'winter_end', details: {'winter_rest_id': w.id});
+  });
+
+  /// The server derives the status from the winter rest (same rule); this only
+  /// shows it right away – offline too – until the synced colony arrives.
+  void _setLocalStatus(String colonyId, {required Set<String> from, required String to}) {
+    final rec = db.record('colonies', colonyId);
+    if (rec == null || !from.contains(rec.json['status'] ?? 'active')) return;
+    db.putRecord('colonies', {...rec.json, 'status': to}, version: rec.version, pending: rec.pending);
+  }
+
   static String _dateString(DateTime t) {
     final l = t.toLocal();
     return '${l.year.toString().padLeft(4, '0')}-${l.month.toString().padLeft(2, '0')}-${l.day.toString().padLeft(2, '0')}';
@@ -559,6 +615,9 @@ class ColonyRepository {
 
   /// Winter rests whose planned end has passed (for the digest).
   int winterEndsDue() => reminders().where((r) => r.payload['kind'] == 'winter').length;
+
+  /// Planned winter rests whose start has come (for the digest).
+  int winterStartsDue() => reminders().where((r) => r.payload['kind'] == 'winter_start').length;
 
   /// Duplicate guard: an identical feeding within the last 2 minutes.
   bool fedJustNow(String colonyId) {

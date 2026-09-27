@@ -36,8 +36,8 @@ class Digest {
   final String title, body;
 }
 
-/// Singles for everything overdue (if enabled), winter rests past their
-/// planned end and open one-off tasks.
+/// Singles for everything overdue (if enabled), planned winter rests to start,
+/// winter rests past their planned end and open one-off tasks.
 List<Reminder> overdueReminders({
   required List<Colony> colonies,
   required Map<String, List<DueTask>> due,
@@ -77,9 +77,24 @@ List<Reminder> overdueReminders({
 
   final today = _date(now);
   for (final w in winterRests) {
-    final end = w['planned_end_on'] as String?;
     final c = byId[w['colony_id']];
-    if (end == null || w['ended_on'] != null || c == null || end.compareTo(today) > 0) continue;
+    if (w['ended_on'] != null || c == null) continue;
+    if (w['started_on'] == null) {
+      final start = w['planned_start_on'] as String?;
+      if (start == null || start.compareTo(today) > 0) continue;
+      out.add(
+        Reminder(
+          key: 'winter_start:${w['id']}:$start',
+          slot: 'winter:${w['id']}',
+          title: titleOf(c),
+          body: 'Winterruhe beginnen? Der geplante Start ist erreicht.',
+          payload: {'kind': 'winter_start', 'colony': c.id},
+        ),
+      );
+      continue;
+    }
+    final end = w['planned_end_on'] as String?;
+    if (end == null || end.compareTo(today) > 0) continue;
     out.add(
       Reminder(
         key: 'winter:${w['id']}:$end',
@@ -146,7 +161,7 @@ List<Reminder> overdueReminders({
 const sensorSilentAfter = Duration(hours: 6);
 
 /// „7 Kolonien brauchen heute Aufmerksamkeit (3 überfällig)“ – null if nothing is due.
-Digest? digestFor(Map<String, List<DueTask>> due, {int winterEnds = 0}) {
+Digest? digestFor(Map<String, List<DueTask>> due, {int winterEnds = 0, int winterStarts = 0}) {
   var attention = 0, overdue = 0;
   for (final tasks in due.values) {
     final w = worstOf(tasks);
@@ -154,11 +169,12 @@ Digest? digestFor(Map<String, List<DueTask>> due, {int winterEnds = 0}) {
     attention++;
     if (w.days < 0) overdue++;
   }
-  if (attention == 0 && winterEnds == 0) return null;
+  if (attention == 0 && winterEnds == 0 && winterStarts == 0) return null;
   final parts = <String>[
     if (attention > 0)
       '${attention == 1 ? '1 Kolonie braucht' : '$attention Kolonien brauchen'} heute Aufmerksamkeit'
           '${overdue > 0 ? ' ($overdue überfällig)' : ''}',
+    if (winterStarts > 0) '$winterStarts× Winterruhe beginnen?',
     if (winterEnds > 0) '$winterEnds× Winterruhe beenden?',
   ];
   return Digest(title: 'Pflege heute', body: parts.join(' · '));

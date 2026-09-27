@@ -120,6 +120,10 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 	if err != nil {
 		return nil, err
 	}
+	winter, err := s.winterDueFor(ctx, ids, s.Now().In(prefs.Location).Format(time.DateOnly))
+	if err != nil {
+		return nil, err
+	}
 	type line struct {
 		days int
 		text string
@@ -139,6 +143,10 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 			}
 			parts = append(parts, name+" "+dueText(t.Days))
 			worstDays = min(worstDays, t.Days)
+		}
+		if w := winter[c.id]; w != "" {
+			parts = append(parts, w)
+			worstDays = min(worstDays, 0)
 		}
 		if len(parts) == 0 {
 			continue
@@ -171,6 +179,30 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 	fmt.Fprintf(&b, "\nÖffnen: %s/\n\nDiese E-Mail kommt einmal täglich. Abbestellen: Mehr → Erinnerungen → „Tages-Überblick per E-Mail“.\n",
 		strings.TrimRight(s.Cfg.PublicURL.String(), "/"))
 	return &mail.Message{Subject: "Ameisen: " + head, Body: b.String()}, nil
+}
+
+// winterDueFor: colonies whose planned winter rest should start or end by
+// today (the user's local date) – the switch in the app is still pending.
+func (s *Service) winterDueFor(ctx context.Context, ids []uuid.UUID, today string) (map[uuid.UUID]string, error) {
+	rows, err := s.Pool.Query(ctx, `
+		SELECT colony_id, started_on IS NULL FROM winter_rests
+		WHERE colony_id = ANY($1) AND deleted_at IS NULL AND ended_on IS NULL
+		  AND ((started_on IS NULL AND planned_start_on <= $2::date)
+		    OR (started_on IS NOT NULL AND planned_end_on <= $2::date))`, ids, today)
+	if err != nil {
+		return nil, err
+	}
+	out := map[uuid.UUID]string{}
+	var id uuid.UUID
+	var planned bool
+	_, err = pgx.ForEachRow(rows, []any{&id, &planned}, func() error {
+		out[id] = "Winterruhe beenden?"
+		if planned {
+			out[id] = "Winterruhe beginnen?"
+		}
+		return nil
+	})
+	return out, err
 }
 
 func dueText(days int) string {

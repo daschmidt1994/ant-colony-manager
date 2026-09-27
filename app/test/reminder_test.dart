@@ -116,6 +116,58 @@ void main() {
     expect(repo.reminders(), hasLength(1));
   });
 
+  test('planned winter rest: reminder to start, switch on/off, reminder to wake up', () {
+    final c = repo.createColony({'name': 'Lasius', 'species_text': 'Lasius niger'}, intervals: {'water': 2});
+    repo.planWinter(c, start: DateTime(2026, 11, 1), end: DateTime(2027, 3, 1));
+    expect(repo.winterRest(c)!.started, isFalse);
+    expect(repo.reminders(), isEmpty, reason: 'nothing before the planned start');
+    expect(repo.colony(c)!.status, 'active');
+
+    now = DateTime.utc(2026, 11, 1, 10);
+    final start = repo.reminders().where((r) => r.payload['kind'] == 'winter_start').single;
+    expect(start.body, 'Winterruhe beginnen? Der geplante Start ist erreicht.');
+    expect(handleReminder(repo, payload: start.payloadJson), '/colonies/$c');
+    expect(digestFor(const {}, winterStarts: repo.winterStartsDue())!.body, '1× Winterruhe beginnen?');
+    expect(repo.openWinterRests(), isEmpty, reason: 'a plan does not pause reminders yet');
+
+    repo.startWinter(c);
+    expect(repo.colony(c)!.status, 'hibernating');
+    expect(repo.winterRest(c)!.startedOn, DateTime(2026, 11, 1));
+    expect(repo.openWinterRests().keys, [c]);
+    expect(repo.events(c, types: {'winter_start'}).single.json['winter_rest_id'], repo.winterRest(c)!.id);
+    expect(repo.reminders().where((r) => r.payload['kind'] == 'winter_start'), isEmpty);
+    final op = db.select("SELECT payload FROM outbox WHERE entity = 'winter_rests' ORDER BY rowid DESC LIMIT 1");
+    expect(jsonDecode(op.single['payload'] as String), {
+      'colony_id': c,
+      'planned_start_on': '2026-11-01',
+      'planned_end_on': '2027-03-01',
+      'started_on': '2026-11-01',
+    }, reason: 'unsent plan and start are sent as one create');
+
+    now = DateTime.utc(2027, 3, 1, 10);
+    expect(repo.reminders().map((r) => r.body), contains('Winterruhe beenden? Das geplante Ende ist erreicht.'));
+    repo.endWinter(c);
+    expect(repo.colony(c)!.status, 'active');
+    expect(repo.winterRest(c), isNull);
+    expect(repo.events(c, types: {'winter_end'}), hasLength(1));
+    expect(repo.reminders().where((r) => r.payload['kind'] == 'winter'), isEmpty);
+  });
+
+  test('winter plan can be changed and deleted before it starts', () {
+    final c = repo.createColony({'name': 'Messor', 'species_text': 'Messor barbarus'});
+    repo.planWinter(c, start: DateTime(2026, 11, 1));
+    repo.planWinter(c, start: DateTime(2026, 11, 15), end: DateTime(2027, 2, 1));
+    final w = repo.winterRest(c)!;
+    expect((w.plannedStartOn, w.plannedEndOn), (DateTime(2026, 11, 15), DateTime(2027, 2, 1)));
+    repo.cancelWinterPlan(c);
+    expect(repo.winterRest(c), isNull);
+    // Without a plan the switch starts right away.
+    repo.startWinter(c);
+    expect(repo.winterRest(c)!.startedOn, DateTime(2026, 9, 20));
+    repo.cancelWinterPlan(c);
+    expect(repo.winterRest(c), isNotNull, reason: 'a running winter rest is ended, not deleted');
+  });
+
   test('daily overview counts colonies, not tasks', () {
     final a = repo.createColony({'name': 'A', 'species_text': 'x'}, intervals: {'protein': 2, 'water': 2});
     repo.createColony({'name': 'B', 'species_text': 'x'}, intervals: {'water': 3});

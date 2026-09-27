@@ -36,6 +36,10 @@ final colonyEventsProvider = StreamProvider.family<List<ColonyEvent>, String>(
 
 final colonyDueProvider = StreamProvider.family<List<DueTask>, String>((ref, id) => _watch(ref, (r) => r.due(id)));
 
+final colonyWinterProvider = StreamProvider.family<WinterRest?, String>(
+  (ref, id) => _watch(ref, (r) => r.winterRest(id)),
+);
+
 final dueAllProvider = StreamProvider<Map<String, List<DueTask>>>((ref) => _watch(ref, (r) => r.dueAll()));
 
 final dashboardProvider = StreamProvider<DashboardData>((ref) => _watch(ref, (r) => r.dashboard()));

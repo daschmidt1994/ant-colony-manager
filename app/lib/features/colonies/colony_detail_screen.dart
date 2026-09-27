@@ -110,7 +110,9 @@ class _ColonyPage extends ConsumerWidget {
                 _Header(colony: colony),
                 if (colony.archived)
                   _Banner(icon: Icons.archive_outlined, text: 'Archiviert', color: context.colors.muted),
-                if (colony.status == 'hibernating')
+                if (canEdit && colony.isCareActive)
+                  _WinterCard(colony: colony)
+                else if (colony.status == 'hibernating')
                   _Banner(
                     icon: Icons.ac_unit,
                     text: 'Winterruhe – Erinnerungen angepasst',
@@ -372,6 +374,140 @@ class _Header extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Winter rest: switch on/off, plus a plan that reminds at start and wake-up.
+class _WinterCard extends ConsumerWidget {
+  const _WinterCard({required this.colony});
+  final Colony colony;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final w = ref.watch(colonyWinterProvider(colony.id)).value;
+    final running = w?.started ?? false;
+    final end = w?.plannedEndOn == null ? '' : ' · aufwecken am ${S.date(w!.plannedEndOn!)}';
+    final text = switch (w) {
+      null => 'Aus – plane Beginn und Aufwecken, dann wirst du erinnert.',
+      _ when running => 'Seit ${S.date(w.startedOn!)}$end. Erinnerungen angepasst.',
+      _ => 'Geplant ab ${S.date(w.plannedStartOn!)}$end. Du wirst erinnert.',
+    };
+    final color = context.colors.winter;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Card(
+        color: running ? color.withValues(alpha: .12) : null,
+        child: Column(
+          children: [
+            SwitchListTile(
+              secondary: Icon(Icons.ac_unit, color: color),
+              title: const Text('Winterruhe'),
+              subtitle: Text(text),
+              value: running,
+              onChanged: (on) {
+                final repo = ref.read(repositoryProvider)!;
+                on ? repo.startWinter(colony.id) : repo.endWinter(colony.id);
+                showUndoSnack(context, on ? 'Winterruhe begonnen' : 'Winterruhe beendet – normale Intervalle ab jetzt');
+              },
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+                child: TextButton.icon(
+                  icon: const Icon(Icons.edit_calendar),
+                  label: Text(w == null ? 'Planen' : 'Plan ändern'),
+                  onPressed: () => _plan(context, ref, w),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _plan(BuildContext context, WidgetRef ref, WinterRest? w) async {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final running = w?.started ?? false;
+    var start = w?.startedOn ?? w?.plannedStartOn ?? today;
+    DateTime? end = w?.plannedEndOn ?? (w == null ? DateTime(start.year, start.month + 4, start.day) : null);
+    Future<DateTime?> pick(BuildContext c, DateTime initial, DateTime first) => showDatePicker(
+      context: c,
+      firstDate: first,
+      lastDate: DateTime(today.year + 2, 12, 31),
+      initialDate: initial.isBefore(first) ? first : initial,
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, set) {
+          final valid = end == null || end!.isAfter(start);
+          return AlertDialog(
+            title: const Text('Winterruhe planen'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.bedtime_outlined),
+                  title: Text(running ? 'Begonnen' : 'Beginn'),
+                  subtitle: Text(S.date(start)),
+                  trailing: running ? null : const Icon(Icons.edit_calendar),
+                  onTap: running
+                      ? null
+                      : () async {
+                          final d = await pick(c, start, today.subtract(const Duration(days: 30)));
+                          if (d != null) set(() => start = d);
+                        },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.wb_sunny_outlined),
+                  title: const Text('Aufwecken'),
+                  subtitle: Text(end == null ? 'offen' : S.date(end!)),
+                  trailing: end == null
+                      ? const Icon(Icons.edit_calendar)
+                      : IconButton(
+                          tooltip: 'Kein Datum',
+                          icon: const Icon(Icons.clear),
+                          onPressed: () => set(() => end = null),
+                        ),
+                  onTap: () async {
+                    final d = await pick(
+                      c,
+                      end ?? start.add(const Duration(days: 120)),
+                      start.add(const Duration(days: 1)),
+                    );
+                    if (d != null) set(() => end = d);
+                  },
+                ),
+                if (!valid)
+                  Text('Aufwecken muss nach dem Beginn liegen.', style: TextStyle(color: context.colors.overdue)),
+                const SizedBox(height: 8),
+                Text(
+                  'Am geplanten Tag bekommst du eine Erinnerung – ein- und ausschalten tust du die Winterruhe selbst.',
+                  style: TextStyle(color: context.colors.muted),
+                ),
+              ],
+            ),
+            actions: [
+              if (w != null && !running)
+                TextButton(onPressed: () => Navigator.pop(c, 'cancel'), child: const Text('Plan löschen')),
+              TextButton(onPressed: () => Navigator.pop(c), child: const Text('Abbrechen')),
+              FilledButton(onPressed: valid ? () => Navigator.pop(c, 'save') : null, child: const Text('Speichern')),
+            ],
+          );
+        },
+      ),
+    );
+    final repo = ref.read(repositoryProvider);
+    if (repo == null || result == null) return;
+    if (result == 'cancel') {
+      repo.cancelWinterPlan(colony.id);
+    } else {
+      repo.planWinter(colony.id, start: start, end: end);
+    }
   }
 }
 

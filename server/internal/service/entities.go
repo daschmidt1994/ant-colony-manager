@@ -89,7 +89,7 @@ var entities = map[string]*entity{
 	},
 	"winter_rests": {
 		Scope: scopeColony, Collection: "winter-rests",
-		Fields: []string{"colony_id", "started_on", "planned_end_on", "ended_on", "target_temp_c",
+		Fields: []string{"colony_id", "planned_start_on", "started_on", "planned_end_on", "ended_on", "target_temp_c",
 			"location_id", "reminder_mode", "reminder_factor", "notes"},
 		Immutable:  []string{"colony_id"},
 		Refs:       []ref{{"location_id", refLocation}},

@@ -149,7 +149,7 @@ Future<void> _scheduleDigest(ColonyRepository repo) async {
   if (!at.isAfter(now)) at = at.add(const Duration(days: 1));
   // What will be due at that moment – due dates are pure date arithmetic.
   final then = ColonyRepository(repo.db, userId: repo.userId, onChanged: () {}, clock: () => at);
-  final d = digestFor(then.dueAll(), winterEnds: then.winterEndsDue());
+  final d = digestFor(then.dueAll(), winterEnds: then.winterEndsDue(), winterStarts: then.winterStartsDue());
   await _plugin.cancel(id: _digestId);
   if (d == null) return;
   await _plugin.zonedSchedule(

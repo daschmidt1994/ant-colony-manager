@@ -40,6 +40,21 @@ class Colony {
   bool get isCareActive => !archived && const {'founding', 'active', 'hibernating'}.contains(status);
 }
 
+/// Winter rest of a colony. Without [startedOn] it is only planned: the app
+/// reminds on [plannedStartOn] and the switch on the colony starts it.
+class WinterRest {
+  WinterRest(this.json);
+  final Map<String, dynamic> json;
+
+  String get id => json['id'] as String;
+  String get colonyId => json['colony_id'] as String;
+  DateTime? get plannedStartOn => _date(json['planned_start_on']);
+  DateTime? get startedOn => _date(json['started_on']);
+  DateTime? get plannedEndOn => _date(json['planned_end_on']);
+  DateTime? get endedOn => _date(json['ended_on']);
+  bool get started => startedOn != null;
+}
+
 class FeedingItem {
   FeedingItem(this.json);
   final Map<String, dynamic> json;
