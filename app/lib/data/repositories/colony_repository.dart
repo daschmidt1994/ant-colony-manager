@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../domain/reminders.dart';
+import '../../domain/stats.dart';
 import '../local/database.dart';
 
 const _uuid = Uuid();
@@ -474,6 +475,31 @@ class ColonyRepository {
         return logEvent(colonyId, 'custom_task', details: {'schedule_id': ?scheduleId});
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // Statistics (computed locally)
+
+  ColonyStats colonyStatsFor(String colonyId, StatsRange range) => colonyStats(events(colonyId), range, now());
+
+  GlobalStats collectionStats() {
+    final cols = colonies();
+    return globalStats(
+      colonies: cols,
+      genusOfSpecies: {for (final s in _species().values) s.id: s.genus},
+      due: dueAll(cols),
+      feedingTimes: [
+        for (final r in db.select(
+          "SELECT ts FROM records WHERE entity = 'colony_events' AND json_extract(data, '\$.type') = 'feeding'",
+        ))
+          if (r['ts'] != null) DateTime.fromMillisecondsSinceEpoch(r['ts'] as int),
+      ],
+      now: now(),
+    );
+  }
+
+  /// Sensors assigned to a colony (readings come from the server).
+  List<Map<String, dynamic>> sensorsOf(String colonyId) =>
+      db.records('sensors', colonyId: colonyId, orderBy: 'id').map((r) => r.json).toList();
 
   /// Changes my settings (synced to all my devices).
   void updateSettings(Map<String, dynamic> patch) => _write(() {

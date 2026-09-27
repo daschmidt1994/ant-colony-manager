@@ -53,6 +53,15 @@ abstract final class S {
     'unknown': 'unbekannt',
   };
 
+  static const broodStages = {
+    'eggs': 'Eier',
+    'larvae': 'Larven',
+    'pupae': 'Puppen',
+    'naked_pupae': 'nackte Puppen',
+    'alates': 'Geschlechtstiere',
+  };
+  static const broodLevels = {'none': 'keine', 'few': 'wenig', 'medium': 'mittel', 'many': 'viel'};
+
   static const eventTypes = {
     'feeding': 'Fütterung',
     'water': 'Wasser',
@@ -147,6 +156,9 @@ abstract final class S {
         final c = e.census ?? const {};
         final exact = c['exact_count'] as num?;
         return 'Koloniegröße: ${exact != null ? number(exact) : workers((c['estimate_min'] as num?)?.toInt(), (c['estimate_max'] as num?)?.toInt())}';
+      case 'brood':
+        final stages = ((e.json['brood'] as List?) ?? const []).cast<Map<String, dynamic>>();
+        return 'Brut: ${stages.map((b) => '${broodStages[b['stage']] ?? b['stage']} ${broodLevels[b['level']] ?? b['exact_count'] ?? ''}'.trim()).join(', ')}';
       case 'check':
         return e.note?.isNotEmpty == true ? 'Kontrolle: ${e.note}' : 'Kontrolle – alles in Ordnung';
       case 'note':

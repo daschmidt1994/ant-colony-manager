@@ -157,6 +157,16 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: Text('${auth.user.email}${auth.user.isAdmin ? ' · Administrator' : ''}'),
               ),
             ),
+            const SectionHeader('Auswertung'),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.bar_chart),
+                title: const Text('Statistiken'),
+                subtitle: const Text('Kolonien, Arten, Fütterungen, Verteilung nach Standort'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/stats'),
+              ),
+            ),
             const SectionHeader('Synchronisierung'),
             Card(
               child: ListTile(

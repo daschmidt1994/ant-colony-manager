@@ -18,6 +18,7 @@ const _filterTypes = [
   ('note', 'Notizen'),
   ('problem', 'Probleme'),
   ('census', 'Größe'),
+  ('brood', 'Brut'),
 ];
 
 class TimelineScreen extends ConsumerStatefulWidget {

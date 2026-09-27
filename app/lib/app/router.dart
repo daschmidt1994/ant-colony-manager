@@ -15,6 +15,7 @@ import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/shell.dart';
+import '../features/stats/stats_screens.dart';
 import '../features/timeline/timeline_screen.dart';
 
 /// Paths reachable without an account.
@@ -92,6 +93,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                         builder: (_, s) => TimelineScreen(colonyId: s.pathParameters['id']!),
                       ),
                       GoRoute(
+                        path: 'stats',
+                        builder: (_, s) => ColonyStatsScreen(colonyId: s.pathParameters['id']!),
+                      ),
+                      GoRoute(
                         path: 'photos',
                         builder: (_, s) => GalleryScreen(colonyId: s.pathParameters['id']!),
                       ),
@@ -130,6 +135,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, _) => const SettingsScreen(),
                 routes: [
                   GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen()),
+                  GoRoute(path: 'stats', builder: (_, _) => const CollectionStatsScreen()),
                   GoRoute(
                     path: 'labels',
                     builder: (_, s) => LabelsScreen(preselected: {...?s.uri.queryParameters['colony']?.split(',')}),

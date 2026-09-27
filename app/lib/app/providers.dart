@@ -13,7 +13,9 @@ final repositoryProvider = Provider<ColonyRepository?>((ref) {
   return ColonyRepository(ref.read(databaseProvider), userId: auth.user.id, onChanged: () => engine?.schedule());
 });
 
-/// Helper: a query on the local DB that re-runs whenever records change.
+/// A query on the local DB that re-runs whenever records change.
+Stream<T> watchRepo<T>(Ref ref, T Function(ColonyRepository repo) query) => _watch(ref, query);
+
 Stream<T> _watch<T>(Ref ref, T Function(ColonyRepository repo) query) {
   final repo = ref.watch(repositoryProvider);
   if (repo == null) return const Stream.empty();

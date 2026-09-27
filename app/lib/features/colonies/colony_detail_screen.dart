@@ -86,6 +86,8 @@ class _ColonyPage extends ConsumerWidget {
               if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Bearbeiten')),
               const PopupMenuItem(value: 'timeline', child: Text('Timeline')),
               if (canEdit) const PopupMenuItem(value: 'measure', child: Text('Messung erfassen')),
+              if (canEdit) const PopupMenuItem(value: 'census', child: Text('Größe & Brut erfassen')),
+              const PopupMenuItem(value: 'stats', child: Text('Statistik')),
               if (canEdit && ref.read(nfcControllerProvider) != NfcState.unsupported)
                 const PopupMenuItem(value: 'nfc', child: Text('NFC-Tag zuweisen')),
               const PopupMenuItem(value: 'label', child: Text('Etikett drucken')),
@@ -277,6 +279,10 @@ class _ColonyPage extends ConsumerWidget {
         context.push('/settings/labels?colony=${colony.id}');
       case 'measure':
         showMeasurementSheet(context, ref, colony);
+      case 'census':
+        showCensusSheet(context, ref, colony);
+      case 'stats':
+        context.go('/colonies/${colony.id}/stats');
       case 'archive':
         repo.archiveColony(colony.id, !colony.archived);
         showUndoSnack(

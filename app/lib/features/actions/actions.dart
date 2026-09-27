@@ -572,3 +572,120 @@ class _MeasurementSheetState extends ConsumerState<_MeasurementSheet> {
     _undoable(messenger, repo, e);
   }
 }
+
+// -----------------------------------------------------------------------------
+// Colony size and brood (spec §11, §12) – feeds the growth and brood charts.
+
+Future<void> showCensusSheet(BuildContext context, WidgetRef ref, Colony colony) =>
+    _sheet(context, _CensusSheet(colony: colony));
+
+class _CensusSheet extends ConsumerStatefulWidget {
+  const _CensusSheet({required this.colony});
+  final Colony colony;
+  @override
+  ConsumerState<_CensusSheet> createState() => _CensusSheetState();
+}
+
+class _CensusSheetState extends ConsumerState<_CensusSheet> {
+  (int, int?)? _range;
+  final _exact = TextEditingController();
+  final _brood = <String, String>{};
+  DateTime? _when;
+
+  static const _stages = {
+    'eggs': 'Eier',
+    'larvae': 'Larven',
+    'pupae': 'Puppen (Kokon)',
+    'naked_pupae': 'Puppen (nackt)',
+  };
+  static const _levels = {'none': 'keine', 'few': 'wenig', 'medium': 'mittel', 'many': 'viel'};
+
+  bool get _hasCensus => _range != null || int.tryParse(_exact.text.trim()) != null;
+
+  void _save() {
+    final repo = _repo(ref);
+    final messenger = ScaffoldMessenger.of(context);
+    final exact = int.tryParse(_exact.text.trim());
+    ColonyEvent? last;
+    if (_hasCensus) {
+      last = repo.logEvent(
+        widget.colony.id,
+        'census',
+        at: _when,
+        details: {
+          'census': exact != null ? {'exact_count': exact} : {'estimate_min': _range!.$1, 'estimate_max': _range!.$2},
+        },
+      );
+    }
+    if (_brood.isNotEmpty) {
+      last = repo.logEvent(
+        widget.colony.id,
+        'brood',
+        at: _when,
+        details: {
+          'brood': [
+            for (final e in _brood.entries) {'stage': e.key, 'level': e.value},
+          ],
+        },
+      );
+    }
+    Navigator.pop(context);
+    if (last != null) _undoable(messenger, repo, last);
+  }
+
+  @override
+  Widget build(BuildContext context) => _SheetFrame(
+    title: 'Größe & Brut · ${widget.colony.name}',
+    when: _when,
+    onWhen: (v) => setState(() => _when = v),
+    onSave: _hasCensus || _brood.isNotEmpty ? _save : null,
+    children: [
+      const SectionHeader('Arbeiterinnen'),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final r in workerRanges)
+            ChoiceChip(
+              label: Text(S.workers(r.$1, r.$2)),
+              selected: _range == r,
+              onSelected: (v) => setState(() {
+                _range = v ? r : null;
+                if (v) _exact.clear();
+              }),
+            ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      TextField(
+        controller: _exact,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(labelText: 'oder genau gezählt', suffixText: 'Arbeiterinnen'),
+        onChanged: (_) => setState(() => _range = null),
+      ),
+      const SectionHeader('Brut'),
+      for (final st in _stages.entries)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              SizedBox(width: 120, child: Text(st.value)),
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final l in _levels.entries)
+                      ChoiceChip(
+                        label: Text(l.value),
+                        selected: _brood[st.key] == l.key,
+                        onSelected: (v) => setState(() => v ? _brood[st.key] = l.key : _brood.remove(st.key)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+    ],
+  );
+}
