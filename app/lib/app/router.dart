@@ -13,6 +13,7 @@ import '../features/nfc/nfc_screens.dart';
 import '../features/photos/photos.dart';
 import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
+import '../features/sensors/sensors_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/shell.dart';
 import '../features/stats/stats_screens.dart';
@@ -136,6 +137,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen()),
                   GoRoute(path: 'stats', builder: (_, _) => const CollectionStatsScreen()),
+                  GoRoute(path: 'sensors', builder: (_, _) => const SensorsScreen()),
                   GoRoute(
                     path: 'labels',
                     builder: (_, s) => LabelsScreen(preselected: {...?s.uri.queryParameters['colony']?.split(',')}),

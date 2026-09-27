@@ -239,6 +239,61 @@ void main() {
     },
     skip: server == null ? 'set ACM_TEST_SERVER to run against a real server' : false,
   );
+  test(
+    'sensor: created with a one-time key, readings arrive, device sees it',
+    () async {
+      final phone = Device('sensor-phone', api, userId);
+      await phone.sync();
+      final colony = phone.repo.createColony({'name': 'Sensor-Kolonie', 'species_text': 'Messor barbarus'});
+      await phone.sync();
+      final res =
+          await api.post('/api/v1/sensors', {'name': 'Regal A', 'kind': 'esp32', 'colony_id': colony})
+              as Map<String, dynamic>;
+      final id = (res['data'] as Map)['id'] as String;
+      final key = (res['extra'] as Map)['api_key'] as String;
+      expect(key, startsWith('acm_sk_'));
+
+      // The sensor itself: no user session, only its key.
+      final sensorApi = ApiClient(baseUrl: server!, tokens: MemoryTokens(), isWeb: false);
+      final stored =
+          await sensorApi.post(
+                '/api/v1/sensors/$id/measurements',
+                {
+                  'readings': [
+                    {'metric': 'temperature', 'value': 24.5},
+                    {'metric': 'humidity', 'value': 61},
+                  ],
+                },
+                {'Authorization': 'Bearer $key'},
+              )
+              as Map<String, dynamic>;
+      expect(stored['stored'], 2);
+      await expectLater(
+        sensorApi.post(
+          '/api/v1/sensors/$id/measurements',
+          {
+            'readings': [
+              {'metric': 'temperature', 'value': 20},
+            ],
+          },
+          {'Authorization': 'Bearer ${key.substring(0, key.length - 2)}xx'},
+        ),
+        throwsA(isA<ApiException>().having((e) => e.status, 'status', 401)),
+      );
+
+      final buckets =
+          ((await api.get('/api/v1/sensors/$id/measurements', query: {'bucket': '1h'}) as Map)['buckets'] as List)
+              .cast<Map<String, dynamic>>();
+      expect(buckets.map((b) => b['metric']).toSet(), {'temperature', 'humidity'});
+
+      await phone.sync();
+      final local = phone.repo.sensorsOf(colony).single;
+      expect(local['name'], 'Regal A');
+      expect(local['last_seen_at'], isNotNull);
+      expect(local.containsKey('api_key_hash'), isFalse, reason: 'the key never leaves the server');
+    },
+    skip: server == null ? 'set ACM_TEST_SERVER to run against a real server' : false,
+  );
 }
 
 /// 1×1 pixel PNG.

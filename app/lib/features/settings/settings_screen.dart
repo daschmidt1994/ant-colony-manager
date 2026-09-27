@@ -167,6 +167,15 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/stats'),
               ),
             ),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.sensors),
+                title: const Text('Sensoren'),
+                subtitle: const Text('Temperatur und Luftfeuchte automatisch erfassen (ESP32 …)'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/sensors'),
+              ),
+            ),
             const SectionHeader('Synchronisierung'),
             Card(
               child: ListTile(

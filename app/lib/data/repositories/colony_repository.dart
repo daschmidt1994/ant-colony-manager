@@ -497,6 +497,17 @@ class ColonyRepository {
     );
   }
 
+  List<Map<String, dynamic>> sensors() => db.records('sensors', orderBy: 'id').map((r) => r.json).toList();
+
+  /// Stores a record the server created directly (REST, e.g. a sensor with its key).
+  void adoptServerRecord(String entity, Map<String, dynamic> data) => _write(() {
+    db.putRecord(entity, data, version: (data['version'] as num?)?.toInt());
+  });
+
+  void updateSensor(String id, Map<String, dynamic> patch) => _write(() => _update('sensors', id, patch));
+
+  void deleteSensor(String id) => _write(() => _delete('sensors', id));
+
   /// Sensors assigned to a colony (readings come from the server).
   List<Map<String, dynamic>> sensorsOf(String colonyId) =>
       db.records('sensors', colonyId: colonyId, orderBy: 'id').map((r) => r.json).toList();

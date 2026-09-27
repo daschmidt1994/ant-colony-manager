@@ -65,8 +65,10 @@ class Buckets {
 enum BucketUnit { day, week, month }
 
 class CareBucket {
+  /// Feeding events; one with protein and carbohydrates counts once here,
+  /// but in both [protein] and [carbohydrate].
+  int feedings = 0;
   int protein = 0, carbohydrate = 0, otherFeeding = 0, water = 0, cleaning = 0;
-  int get feedings => protein + carbohydrate + otherFeeding;
 }
 
 class Point {
@@ -144,6 +146,7 @@ ColonyStats colonyStats(List<ColonyEvent> events, StatsRange range, DateTime now
       final b = care[i];
       switch (e.type) {
         case 'feeding':
+          b.feedings++;
           final cats = e.items.map((x) => x.category).toSet();
           if (cats.contains('protein')) b.protein++;
           if (cats.contains('carbohydrate')) b.carbohydrate++;
