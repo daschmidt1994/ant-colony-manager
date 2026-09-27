@@ -110,3 +110,8 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 | Export | `GET /api/v1/export.zip`: `export.json`, CSV-Tabellen (Semikolon, UTF-8 für Excel), alle Fotos; in der Web-App unter „Mehr → Daten“ |
 | Tests | App: Foto-Warteschlange inkl. Chaos, Erinnerungen, Statistiken, Bericht (PDF-Vorschau in der CI); Vertragstests gegen den echten Server (Foto-Upload, Sensor); Server: E-Mail-Digest, ZIP-Export, Sensor-Alarm |
 
+## Anleitungen
+
+- [15-anleitung-geraete.md](15-anleitung-geraete.md) – Geräte & Sitzungen: Gerät benennen, verlorenes Handy abmelden
+- [14-sensoren.md](14-sensoren.md) – Sensoren einrichten (ESP32-Beispiel)
+
