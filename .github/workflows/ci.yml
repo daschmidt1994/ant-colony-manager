@@ -45,6 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: shellcheck -s sh -S warning scripts/*.sh deploy/backup/*.sh
+      - run: shellcheck -S warning fdroid/publish.sh
 
   stack:
     name: Docker stack end-to-end (install, backup, restore, proxy)

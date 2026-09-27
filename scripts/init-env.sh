@@ -2,6 +2,7 @@
 # Creates .env from .env.example and fills in the public address.
 #   ./scripts/init-env.sh                       → http://<IP dieses Rechners>:8080
 #   ./scripts/init-env.sh https://ants.example.com   → Internet-Betrieb mit Caddy
+# shellcheck disable=SC2034 # read by lib.sh
 ACM_NO_COMPOSE=1
 . "$(dirname -- "$0")/lib.sh"
 
