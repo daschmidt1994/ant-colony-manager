@@ -151,6 +151,8 @@ Der vollständige Ablauf Installation → Backup → Zerstören → Restore → 
 
 ## Android-App
 
+Schritt für Schritt mit Test auf dem Handy: [docs/16-anleitung-installieren-testen.md](docs/16-anleitung-installieren-testen.md).
+
 Die APK wird von der CI gebaut und signiert (GitHub → Actions → „App“ → Artefakt `ant-colony-manager-apk`; für fast alle Handys die Datei `app-arm64-v8a-release.apk`). Installieren, dann entweder die Server-Adresse eingeben oder in der Web-App „Mehr → Android-App verbinden“ öffnen und den QR-Code mit der App scannen. Die App funktioniert offline und synchronisiert automatisch.
 
 **NFC & QR:** Kolonie öffnen → ⋮ → „NFC-Tag zuweisen“ → Tag ans Handy halten. Danach genügt Antippen, auch wenn die App geschlossen ist. QR-Etiketten: „Mehr → Etiketten drucken“ (Einzeletiketten, Brother 62 mm, A4-Bögen). Verifizierte App Links für die Kamera-App: siehe [app/README.md](app/README.md#signatur-und-app-links). NFC-Tags und der In-App-Scanner funktionieren mit jeder Domain und auch im Heimnetz per `http://`; für das direkte Öffnen per Kamera-App kann eine APK mit eigener Domain gebaut werden ([Details](docs/06-nfc-qr-deeplinks.md#5-deep-links--app-links--die-ehrliche-einschränkung)).
