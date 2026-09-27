@@ -2,6 +2,7 @@
 .github
 data
 **/data
+!app/lib/data
 docs
 *.md
 !server/README.md
