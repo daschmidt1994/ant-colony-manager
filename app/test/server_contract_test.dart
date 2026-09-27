@@ -1,12 +1,14 @@
 // End-to-end contract test: the app's real sync engine against the real Go
 // server. Runs only when ACM_TEST_SERVER is set (the "Contract" CI job starts
 // PostgreSQL + server); skipped in normal `flutter test` runs.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ant_colony_manager/core/api_client.dart';
 import 'package:ant_colony_manager/data/local/database.dart';
 import 'package:ant_colony_manager/data/repositories/colony_repository.dart';
 import 'package:ant_colony_manager/data/sync/sync_engine.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers.dart';
@@ -202,4 +204,42 @@ void main() {
     },
     skip: server == null ? 'set ACM_TEST_SERVER to run against a real server' : false,
   );
+
+  test(
+    'photo taken offline is uploaded and visible on the second device',
+    () async {
+      final phone = Device('photo-phone', api, userId);
+      final tablet = Device('photo-tablet', api, userId);
+      await phone.sync();
+      final colony = phone.repo.createColony({'name': 'Foto-Kolonie', 'species_text': 'Lasius niger'});
+      final png = base64Decode(_tinyPng);
+      final photo = phone.repo.addPhoto(colony, png, thumb: png, caption: 'erste Larven');
+      expect(phone.db.pendingUploadCount(), 1);
+
+      await phone.sync();
+      expect(phone.db.pendingUploadCount(), 0, reason: 'uploaded after the metadata was pushed');
+      expect(phone.repo.photos(colony).single.stored, isTrue);
+
+      await tablet.sync();
+      final seen = tablet.repo.photos(colony).single;
+      expect((seen.id, seen.stored, seen.caption), (photo.id, true, 'erste Larven'));
+      expect(tablet.repo.events(colony).single.type, 'photo');
+      // The server re-encoded it as JPEG thumbnail behind a signed URL.
+      final u = await api.get('/api/v1/photos/${photo.id}/url', query: {'variant': 'thumb'}) as Map<String, dynamic>;
+      final thumb = await api.download(u['url'] as String);
+      expect(thumb.sublist(0, 2), [0xFF, 0xD8]);
+
+      // Uploading the same file again is harmless.
+      final again = await api.putBytes(
+        '/api/v1/photos/${photo.id}/content',
+        png,
+        headers: {'Content-SHA256': sha256.convert(png).toString()},
+      );
+      expect((again as Map)['upload_state'], 'stored');
+    },
+    skip: server == null ? 'set ACM_TEST_SERVER to run against a real server' : false,
+  );
 }
+
+/// 1×1 pixel PNG.
+const _tinyPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';

@@ -35,12 +35,15 @@ class DeviceIdentity {
 ///   2. pull changes after the cursor
 ///   3. full snapshot on first sync or when the cursor is too old (410)
 class SyncEngine {
-  SyncEngine({required this.db, required this.api, required this.device, required this.userId});
+  SyncEngine({required this.db, required this.api, required this.device, required this.userId, this.uploadAllowed});
 
   final AppDatabase db;
   final ApiClient api;
   final DeviceIdentity device;
   final String userId;
+
+  /// Photo uploads only when this says so (setting „Fotos nur im WLAN“).
+  final Future<bool> Function()? uploadAllowed;
 
   final _status = StreamController<SyncStatus>.broadcast();
   SyncStatus _current = const SyncStatus();
@@ -81,7 +84,7 @@ class SyncEngine {
   }
 
   void _set(SyncStatus s) {
-    _current = s.copyWith(pending: db.pendingOpCount(), failed: db.failedOps().length);
+    _current = s.copyWith(pending: db.pendingOpCount() + db.pendingUploadCount(), failed: db.failedOps().length);
     if (!_status.isClosed) _status.add(_current);
   }
 
@@ -99,6 +102,7 @@ class SyncEngine {
         _set(_current.copyWith(phase: SyncPhase.syncing));
         try {
           final needSnapshot = await _push();
+          await _uploadPhotos();
           final outboxEmpty = db.pendingOpCount() == 0;
           if (needSnapshot || db.getMeta(_cursorKey) == null || (outboxEmpty && db.getMeta(_resnapKey) != null)) {
             db.setMeta(_resnapKey, null);
@@ -176,6 +180,41 @@ class SyncEngine {
           }
         }
       });
+    }
+  }
+
+  /// Uploads photo binaries whose metadata record already exists on the
+  /// server. Idempotent (same bytes → same result), so lost answers are harmless.
+  Future<void> _uploadPhotos() async {
+    if (uploadAllowed != null && !await uploadAllowed!()) return;
+    for (final u in db.dueUploads(limit: 20)) {
+      if (db.record('photos', u.photoId) == null) {
+        db.completeUpload(u.photoId); // deleted meanwhile
+        continue;
+      }
+      if (db.hasPendingOps('photos', u.photoId)) continue; // record not on the server yet
+      try {
+        final res = await api.putBytes(
+          '/api/v1/photos/${u.photoId}/content',
+          u.data,
+          headers: {'Content-SHA256': u.sha256},
+        );
+        db.transaction(() {
+          db.completeUpload(u.photoId);
+          if (res is Map<String, dynamic> && !db.hasPendingOps('photos', u.photoId)) {
+            db.putRecord('photos', res, version: (res['version'] as num?)?.toInt());
+          }
+        });
+      } on NetworkException catch (e) {
+        db.retryUploadLater(u.photoId, e.toString());
+        rethrow;
+      } on ApiException catch (e) {
+        if (e.status == 404 || e.status == 410 || e.code == 'photo.already_uploaded') {
+          db.completeUpload(u.photoId); // photo gone on the server, or already there
+        } else {
+          db.retryUploadLater(u.photoId, e.title);
+        }
+      }
     }
   }
 

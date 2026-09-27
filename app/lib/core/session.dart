@@ -8,6 +8,7 @@ import '../data/local/database.dart';
 import '../data/sync/background_sync.dart';
 import '../data/repositories/colony_repository.dart' show newId;
 import '../data/sync/sync_engine.dart';
+import '../data/sync/upload_policy.dart';
 import 'api_client.dart';
 
 const appVersion = '0.1.0';
@@ -306,6 +307,7 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
     db: db,
     api: ctrl.api,
     userId: auth.user.id,
+    uploadAllowed: uploadPolicy(db),
     device: DeviceIdentity(
       id: deviceIdOf(db),
       name: kIsWeb ? 'Web-Browser' : 'Android',

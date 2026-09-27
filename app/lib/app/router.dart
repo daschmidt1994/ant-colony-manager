@@ -10,6 +10,7 @@ import '../features/colonies/colony_list_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/labels/labels_screen.dart';
 import '../features/nfc/nfc_screens.dart';
+import '../features/photos/photos.dart';
 import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
 import '../features/settings/settings_screen.dart';
@@ -89,6 +90,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'timeline',
                         builder: (_, s) => TimelineScreen(colonyId: s.pathParameters['id']!),
+                      ),
+                      GoRoute(
+                        path: 'photos',
+                        builder: (_, s) => GalleryScreen(colonyId: s.pathParameters['id']!),
                       ),
                       GoRoute(
                         path: 'nfc',

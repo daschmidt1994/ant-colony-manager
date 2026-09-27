@@ -14,6 +14,7 @@ import '../../nfc/nfc_driver.dart';
 import '../../nfc/nfc_controller.dart';
 import '../../shared/widgets.dart';
 import '../actions/actions.dart';
+import '../photos/photos.dart';
 import '../scan/scan_screens.dart';
 import '../scan/scanner_view.dart';
 
@@ -26,6 +27,7 @@ const _doneWords = {
   'problem': 'Problem',
   'note': 'Notiz',
   'measurement': 'Messung',
+  'photo': 'Fotos',
 };
 
 /// S18 – Pflege-Rundgang. Without a running round: choose colonies and start.
@@ -564,10 +566,11 @@ class _ColonyCard extends ConsumerWidget {
                     onTap: () => showNoteSheet(context, ref, colony),
                   ),
                   QuickActionTile(
-                    icon: Icons.warning_amber_rounded,
-                    label: 'Problem',
-                    done: done.contains('problem'),
-                    onTap: () => showNoteSheet(context, ref, colony, type: 'problem'),
+                    icon: Icons.photo_camera_outlined,
+                    label: 'Foto',
+                    done: done.contains('photo'),
+                    onTap: () => takePhoto(context, ref, colony),
+                    onLongPress: () => takePhoto(context, ref, colony, fromGallery: true),
                   ),
                 ],
               ),

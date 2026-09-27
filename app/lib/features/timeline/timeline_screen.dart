@@ -6,8 +6,10 @@ import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
+import '../photos/photos.dart';
 
 const _filterTypes = [
+  ('photo', 'Fotos'),
   ('feeding', 'Fütterung'),
   ('water', 'Wasser'),
   ('cleaning', 'Reinigung'),
@@ -33,7 +35,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     final colony = ref.watch(colonyProvider(widget.colonyId)).value;
     final role = ref.watch(roleProvider(widget.colonyId)).value ?? 'owner';
     final all = ref.watch(colonyEventsProvider(widget.colonyId)).value ?? const <ColonyEvent>[];
-    final events = _types.isEmpty ? all : all.where((e) => _types.contains(e.type)).toList();
+    final byEvent = photosByEvent(ref.watch(colonyPhotosProvider(widget.colonyId)).value ?? const <Photo>[]);
+    final events = _types.isEmpty
+        ? all
+        : all.where((e) => _types.contains(e.type) || (_types.contains('photo') && byEvent.containsKey(e.id))).toList();
 
     // Group by calendar day.
     final now = DateTime.now();
@@ -47,7 +52,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       }
       rows.add(
         Card(
-          child: EventTile(event: e, canEdit: role != 'viewer'),
+          child: EventTile(event: e, canEdit: role != 'viewer', photos: byEvent[e.id] ?? const []),
         ),
       );
       rows.add(const SizedBox(height: 6));
@@ -91,9 +96,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
 
 /// One timeline entry. Tap opens details (edit acceptance, note, delete).
 class EventTile extends ConsumerWidget {
-  const EventTile({super.key, required this.event, this.canEdit = true});
+  const EventTile({super.key, required this.event, this.canEdit = true, this.photos = const []});
   final ColonyEvent event;
   final bool canEdit;
+  final List<Photo> photos;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,7 +114,7 @@ class EventTile extends ConsumerWidget {
     final acceptance = event.type == 'feeding' && event.acceptance != 'unknown'
         ? ' · ${S.acceptance[event.acceptance]}'
         : '';
-    return ListTile(
+    final tile = ListTile(
       leading: Icon(eventIcon(event.type), color: color),
       title: Text(S.eventSummary(event), maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Text(
@@ -122,6 +128,17 @@ class EventTile extends ConsumerWidget {
             )
           : null,
       onTap: () => _details(context, ref),
+    );
+    if (photos.isEmpty) return tile;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        tile,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(72, 0, 16, 12),
+          child: PhotoStrip(photos: photos, size: 64),
+        ),
+      ],
     );
   }
 

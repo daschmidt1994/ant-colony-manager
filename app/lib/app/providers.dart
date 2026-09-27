@@ -78,3 +78,5 @@ final roundSummaryProvider = StreamProvider.family<RoundSummary?, String>(
 final recentRoundsProvider = StreamProvider<List<RoundSummary>>(
   (ref) => _watch(ref, (r) => [for (final c in r.recentRounds()) ?r.roundSummary(c.id)]),
 );
+
+final colonyPhotosProvider = StreamProvider.family<List<Photo>, String>((ref, id) => _watch(ref, (r) => r.photos(id)));

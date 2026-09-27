@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -76,6 +77,25 @@ class ApiClient {
   Future<dynamic> patch(String path, Object body) => _send('PATCH', path, body: body);
   Future<dynamic> delete(String path) => _send('DELETE', path);
 
+  /// Uploads raw bytes (photo content).
+  Future<dynamic> putBytes(String path, Uint8List bytes, {Map<String, String>? headers}) =>
+      _send('PUT', path, bytes: bytes, extraHeaders: headers);
+
+  /// Downloads a file, e.g. a signed `/files/…` URL returned by the server.
+  Future<Uint8List> download(String url) async {
+    final u = url.startsWith('http') ? Uri.parse(url) : Uri.parse('$baseUrl$url');
+    final http.Response res;
+    try {
+      res = await _http.get(u).timeout(const Duration(seconds: 60));
+    } on TimeoutException catch (e) {
+      throw NetworkException(e);
+    } on http.ClientException catch (e) {
+      throw NetworkException(e);
+    }
+    if (res.statusCode != 200) throw ApiException(res.statusCode, 'http_${res.statusCode}', 'Download fehlgeschlagen');
+    return res.bodyBytes;
+  }
+
   /// Unauthenticated request (instance info, login, setup).
   Future<dynamic> public(String method, String path, [Object? body]) => _send(method, path, body: body, auth: false);
 
@@ -83,16 +103,24 @@ class ApiClient {
     String method,
     String path, {
     Object? body,
+    Uint8List? bytes,
     Map<String, String>? query,
     Map<String, String>? extraHeaders,
     bool auth = true,
   }) async {
     Future<http.Response> once() async {
-      final req = http.Request(method, uri(path, query))..headers.addAll({..._headers(), ...?extraHeaders});
+      final req = http.Request(method, uri(path, query))
+        ..headers.addAll({..._headers(json: bytes == null), ...?extraHeaders});
       if (!auth) req.headers.remove('Authorization');
       if (body != null) req.body = jsonEncode(body);
+      if (bytes != null) {
+        req.headers['Content-Type'] = 'application/octet-stream';
+        req.bodyBytes = bytes;
+      }
       try {
-        return await http.Response.fromStream(await _http.send(req).timeout(timeout));
+        return await http.Response.fromStream(
+          await _http.send(req).timeout(bytes != null ? const Duration(seconds: 120) : timeout),
+        );
       } on TimeoutException catch (e) {
         throw NetworkException(e);
       } on http.ClientException catch (e) {

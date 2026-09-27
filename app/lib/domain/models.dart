@@ -194,3 +194,16 @@ class RoundSummary {
 
 /// What happened when a colony was scanned during a round.
 enum VisitResult { first, again, added }
+
+/// Photo metadata (`photos`); the binary is uploaded separately.
+class Photo {
+  Photo(this.json);
+  final Map<String, dynamic> json;
+  String get id => json['id'] as String;
+  String get colonyId => json['colony_id'] as String;
+  String? get eventId => json['event_id'] as String?;
+  String? get caption => json['caption'] as String?;
+  DateTime get takenAt =>
+      _date(json['taken_at']) ?? _date(json['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0);
+  bool get stored => json['upload_state'] == 'stored';
+}

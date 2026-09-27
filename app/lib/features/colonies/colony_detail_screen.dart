@@ -15,6 +15,7 @@ import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../actions/actions.dart';
+import '../photos/photos.dart';
 import '../timeline/timeline_screen.dart';
 
 class ColonyDetailScreen extends ConsumerWidget {
@@ -56,6 +57,8 @@ class _ColonyPage extends ConsumerWidget {
     final canEdit = role != 'viewer';
     final isOwner = role == 'owner';
     final lastFeeding = events.where((e) => e.type == 'feeding').firstOrNull;
+    final photos = ref.watch(colonyPhotosProvider(colony.id)).value ?? const <Photo>[];
+    final byEvent = photosByEvent(photos);
     final now = DateTime.now();
 
     DateTime? lastOf(String type) => events.where((e) => e.type == type).firstOrNull?.occurredAt;
@@ -177,6 +180,13 @@ class _ColonyPage extends ConsumerWidget {
                         onTap: () => showNoteSheet(context, ref, colony),
                       ),
                       QuickActionTile(
+                        icon: Icons.photo_camera_outlined,
+                        label: 'Foto',
+                        subtitle: photos.isEmpty ? null : '${photos.length}',
+                        onTap: () => takePhoto(context, ref, colony),
+                        onLongPress: () => takePhoto(context, ref, colony, fromGallery: true),
+                      ),
+                      QuickActionTile(
                         icon: Icons.thermostat_outlined,
                         label: 'Messung',
                         subtitle: ago(lastOf('measurement')),
@@ -218,6 +228,16 @@ class _ColonyPage extends ConsumerWidget {
                     ),
                   ),
                 ],
+                if (photos.isNotEmpty) ...[
+                  SectionHeader(
+                    'Fotos · ${photos.length}',
+                    trailing: TextButton(
+                      onPressed: () => context.go('/colonies/${colony.id}/photos'),
+                      child: const Text('Galerie'),
+                    ),
+                  ),
+                  PhotoStrip(photos: photos.take(12).toList(), size: 88),
+                ],
                 SectionHeader(
                   'Timeline',
                   trailing: TextButton(
@@ -230,7 +250,10 @@ class _ColonyPage extends ConsumerWidget {
                 else
                   Card(
                     child: Column(
-                      children: [for (final e in events.take(8)) EventTile(event: e, canEdit: canEdit)],
+                      children: [
+                        for (final e in events.take(8))
+                          EventTile(event: e, canEdit: canEdit, photos: byEvent[e.id] ?? const []),
+                      ],
                     ),
                   ),
               ],

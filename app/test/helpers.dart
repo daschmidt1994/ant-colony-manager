@@ -37,6 +37,9 @@ class FakeServer {
   double failBefore = 0, failAfter = 0;
   final createCount = <String, int>{};
 
+  /// Photo id → how often its content was stored (must stay 1).
+  final uploads = <String, int>{};
+
   /// Simulates „signed out from another device“.
   bool deviceRevoked = false;
   int horizon = 0;
@@ -118,6 +121,25 @@ class FakeServer {
         throw http.ClientException('connection reset after commit');
       }
       return _json({'results': results, 'server_seq': seq});
+    }
+    final upload = RegExp(r'^/api/v1/photos/([^/]+)/content$').firstMatch(path);
+    if (upload != null && req.method == 'PUT') {
+      final id = upload.group(1)!;
+      final row = rows['photos']?[id];
+      if (row == null || row['deleted_at'] != null)
+        return _json({'code': 'photo.not_found', 'title': 'not found'}, 404);
+      if (row['upload_state'] != 'stored') {
+        put('photos', {...row, 'upload_state': 'stored', 'sha256': req.headers['content-sha256']});
+        uploads[id] = (uploads[id] ?? 0) + 1;
+      }
+      if (chaos != null && chaos!.nextDouble() < failAfter) {
+        throw http.ClientException('chaos: response lost after upload');
+      }
+      if (dropNextResponse) {
+        dropNextResponse = false;
+        throw http.ClientException('connection reset after upload');
+      }
+      return _json(rows['photos']![id]!);
     }
     if (path == '/api/v1/sync/pull') {
       final since = int.parse(req.url.queryParameters['since']!);

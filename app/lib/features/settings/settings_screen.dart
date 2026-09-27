@@ -9,6 +9,7 @@ import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../data/sync/sync_engine.dart';
+import '../../data/sync/upload_policy.dart';
 import '../../shared/widgets.dart';
 
 /// Conflicts the server resolved automatically (docs/05 §5) – losing values stay visible.
@@ -36,6 +37,36 @@ const _fieldNames = {
   'occurred_at': 'Zeitpunkt',
   'details_rev': 'Details',
 };
+
+/// „Fotos nur im WLAN“ – a device setting, not synced.
+class _WifiOnlySwitch extends ConsumerStatefulWidget {
+  const _WifiOnlySwitch();
+  @override
+  ConsumerState<_WifiOnlySwitch> createState() => _WifiOnlySwitchState();
+}
+
+class _WifiOnlySwitchState extends ConsumerState<_WifiOnlySwitch> {
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.read(databaseProvider);
+    final on = db.getMeta(photosWifiOnlyKey) == '1';
+    return Card(
+      child: SwitchListTile(
+        secondary: const Icon(Icons.wifi),
+        title: const Text('Fotos nur im WLAN hochladen'),
+        subtitle: Text(
+          db.pendingUploadCount() == 0 ? 'Alle Fotos sind hochgeladen' : '${db.pendingUploadCount()} Fotos warten',
+        ),
+        value: on,
+        onChanged: (v) {
+          db.setMeta(photosWifiOnlyKey, v ? '1' : null);
+          setState(() {});
+          if (!v) ref.read(syncEngineProvider)?.sync(resetBackoff: true);
+        },
+      ),
+    );
+  }
+}
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -75,6 +106,7 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/sync'),
               ),
             ),
+            if (!kIsWeb) const _WifiOnlySwitch(),
             if (kIsWeb) ...[
               const SectionHeader('Geräte'),
               Card(

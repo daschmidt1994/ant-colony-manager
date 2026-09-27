@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
 
 import 'package:uuid/uuid.dart';
 
@@ -507,7 +510,84 @@ class ColonyRepository {
   void updateEvent(String eventId, Map<String, dynamic> patch) =>
       _write(() => _update('colony_events', eventId, patch));
 
-  void deleteEvent(String eventId) => _write(() => _delete('colony_events', eventId));
+  void deleteEvent(String eventId) => _write(() {
+    // A photo entry takes its photos with it.
+    if (db.record('colony_events', eventId)?.json['type'] == 'photo') {
+      for (final p in photosOfEvent(eventId)) {
+        _delete('photos', p.id);
+        db.removePhotoData(p.id);
+      }
+    }
+    _delete('colony_events', eventId);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Photos (docs/05 §7): metadata through the outbox, the image in
+  // photo_uploads until the sync engine has uploaded it.
+
+  List<Photo> photos(String colonyId) =>
+      db.records('photos', colonyId: colonyId, orderBy: 'id').map((r) => Photo(r.json)).toList()
+        ..sort((a, b) => b.takenAt.compareTo(a.takenAt));
+
+  List<Photo> photosOfEvent(String eventId) => db
+      .select("SELECT data FROM records WHERE entity = 'photos' AND json_extract(data, '\$.event_id') = ?", [eventId])
+      .map((r) => Photo(_decode(r['data'] as String)))
+      .toList();
+
+  /// Photo count per event of a colony (timeline badges).
+  Map<String, List<String>> photoIdsByEvent(String colonyId) {
+    final out = <String, List<String>>{};
+    for (final p in photos(colonyId)) {
+      if (p.eventId != null) (out[p.eventId!] ??= []).add(p.id);
+    }
+    return out;
+  }
+
+  /// Saves a photo – offline. Without [eventId] it becomes its own timeline
+  /// entry („Foto“); otherwise it is attached to that event.
+  Photo addPhoto(
+    String colonyId,
+    Uint8List jpeg, {
+    required Uint8List thumb,
+    String? eventId,
+    String? caption,
+    DateTime? takenAt,
+  }) => _write(() {
+    final at = (takenAt ?? now()).toUtc().toIso8601String();
+    eventId ??= logEvent(colonyId, 'photo', note: caption, at: takenAt).id;
+    final data = _create('photos', {
+      'colony_id': colonyId,
+      'event_id': eventId,
+      'taken_at': at,
+      if (caption != null && caption.trim().isNotEmpty) 'caption': caption.trim(),
+    });
+    final local = {...data, 'upload_state': 'pending', 'created_by': userId};
+    db.putRecord('photos', local, pending: true);
+    db.putPhotoUpload(data['id'] as String, jpeg, sha256.convert(jpeg).toString());
+    db.putThumb(data['id'] as String, thumb);
+    return Photo(local);
+  });
+
+  void setCaption(String photoId, String caption) => _write(() {
+    final p = db.record('photos', photoId);
+    if (p == null) return;
+    final c = caption.trim();
+    _update('photos', photoId, {'caption': c.isEmpty ? null : c});
+    final ev = db.record('colony_events', p.json['event_id'] as String? ?? '');
+    if (ev != null && ev.json['type'] == 'photo') _update('colony_events', ev.id, {'note': c.isEmpty ? null : c});
+  });
+
+  void deletePhoto(String photoId) => _write(() {
+    final p = db.record('photos', photoId)?.json;
+    if (p == null) return;
+    _delete('photos', photoId);
+    db.removePhotoData(photoId);
+    // The „Foto“ timeline entry goes when its last photo goes.
+    final ev = p['event_id'] as String?;
+    if (ev != null && db.record('colony_events', ev)?.json['type'] == 'photo' && photosOfEvent(ev).isEmpty) {
+      _delete('colony_events', ev);
+    }
+  });
 
   String createLocation(String name, {String? parentId}) => _write(() {
     final parent = parentId == null ? null : _locations()[parentId];

@@ -9,6 +9,7 @@ import '../../core/api_client.dart';
 import '../../core/session.dart';
 import '../local/database.dart';
 import 'sync_engine.dart';
+import 'upload_policy.dart';
 
 const _task = 'acm-sync';
 
@@ -43,6 +44,7 @@ Future<bool> runBackgroundSync() async {
       db: db,
       api: api,
       userId: user.id,
+      uploadAllowed: uploadPolicy(db),
       device: DeviceIdentity(id: deviceIdOf(db), name: 'Android', platform: 'android', appVersion: appVersion),
     );
     await engine.sync(resetBackoff: true);

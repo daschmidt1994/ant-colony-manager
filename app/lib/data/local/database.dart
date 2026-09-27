@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:sqlite3/common.dart';
 
@@ -109,7 +111,7 @@ class AppDatabase {
   int _txDepth = 0;
   Timer? _flushTimer;
 
-  static const tables = {'records', 'outbox', 'meta'};
+  static const tables = {'records', 'outbox', 'meta', 'photos'};
 
   void _migrate() {
     final version = _db.select('PRAGMA user_version').first.values.first as int;
@@ -129,6 +131,16 @@ class AppDatabase {
         CREATE INDEX IF NOT EXISTS outbox_entity ON outbox (entity, entity_id);
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         PRAGMA user_version = 1;
+      ''');
+    }
+    if (version < 2) {
+      // Photos: full image until uploaded, small thumbnail kept for offline viewing.
+      _db.execute('''
+        CREATE TABLE IF NOT EXISTS photo_uploads (
+          photo_id TEXT PRIMARY KEY, data BLOB NOT NULL, sha256 TEXT NOT NULL,
+          attempts INTEGER NOT NULL DEFAULT 0, next_try_at INTEGER NOT NULL DEFAULT 0, last_error TEXT);
+        CREATE TABLE IF NOT EXISTS photo_thumbs (photo_id TEXT PRIMARY KEY, data BLOB NOT NULL);
+        PRAGMA user_version = 2;
       ''');
     }
     // Ops that were being sent when the app died are simply sent again –
@@ -301,6 +313,67 @@ class AppDatabase {
     execute('DELETE FROM records', const [], {'records'});
     execute('DELETE FROM outbox', const [], {'outbox'});
     execute('DELETE FROM meta', const [], {'meta'});
+    execute('DELETE FROM photo_uploads', const [], {'photos'});
+    execute('DELETE FROM photo_thumbs', const [], {'photos'});
+  });
+
+  // ---------------------------------------------------------------------------
+  // Photo binaries (the metadata record syncs through the outbox)
+
+  void putPhotoUpload(String photoId, Uint8List data, String sha256) => execute(
+    'INSERT OR REPLACE INTO photo_uploads (photo_id, data, sha256) VALUES (?, ?, ?)',
+    [photoId, data, sha256],
+    {'photos'},
+  );
+
+  /// Uploads that are due now (oldest first).
+  List<({String photoId, Uint8List data, String sha256, int attempts})> dueUploads({int limit = 5}) =>
+      select(
+            'SELECT photo_id, data, sha256, attempts FROM photo_uploads WHERE next_try_at <= ? ORDER BY rowid LIMIT ?',
+            [DateTime.now().millisecondsSinceEpoch, limit],
+          )
+          .map(
+            (r) => (
+              photoId: r['photo_id'] as String,
+              data: r['data'] as Uint8List,
+              sha256: r['sha256'] as String,
+              attempts: r['attempts'] as int,
+            ),
+          )
+          .toList();
+
+  Uint8List? photoUpload(String photoId) {
+    final r = select('SELECT data FROM photo_uploads WHERE photo_id = ?', [photoId]);
+    return r.isEmpty ? null : r.first['data'] as Uint8List;
+  }
+
+  int pendingUploadCount() => select('SELECT count(*) AS n FROM photo_uploads').first['n'] as int;
+
+  void completeUpload(String photoId) => execute('DELETE FROM photo_uploads WHERE photo_id = ?', [photoId], {'photos'});
+
+  void retryUploadLater(String photoId, String error) {
+    final r = select('SELECT attempts FROM photo_uploads WHERE photo_id = ?', [photoId]);
+    if (r.isEmpty) return;
+    final a = (r.first['attempts'] as int) + 1;
+    final delay = Duration(seconds: min(900, 1 << a.clamp(1, 10)));
+    execute(
+      'UPDATE photo_uploads SET attempts = ?, next_try_at = ?, last_error = ? WHERE photo_id = ?',
+      [a, DateTime.now().add(delay).millisecondsSinceEpoch, error, photoId],
+      {'photos'},
+    );
+  }
+
+  void putThumb(String photoId, Uint8List data) =>
+      execute('INSERT OR REPLACE INTO photo_thumbs (photo_id, data) VALUES (?, ?)', [photoId, data], {'photos'});
+
+  Uint8List? thumb(String photoId) {
+    final r = select('SELECT data FROM photo_thumbs WHERE photo_id = ?', [photoId]);
+    return r.isEmpty ? null : r.first['data'] as Uint8List;
+  }
+
+  void removePhotoData(String photoId) => transaction(() {
+    execute('DELETE FROM photo_uploads WHERE photo_id = ?', [photoId], {'photos'});
+    execute('DELETE FROM photo_thumbs WHERE photo_id = ?', [photoId], {'photos'});
   });
 
   // ---------------------------------------------------------------------------
@@ -411,7 +484,10 @@ class AppDatabase {
   }
 
   /// Makes all queued ops immediately eligible again (connectivity regained).
-  void resetBackoff() => execute('UPDATE outbox SET next_try_at = 0 WHERE failed = 0', const [], {'outbox'});
+  void resetBackoff() => transaction(() {
+    execute('UPDATE outbox SET next_try_at = 0 WHERE failed = 0', const [], {'outbox'});
+    execute('UPDATE photo_uploads SET next_try_at = 0', const [], {'photos'});
+  });
 
   int pendingOpCount() => select('SELECT count(*) AS n FROM outbox WHERE failed = 0').first['n'] as int;
 
