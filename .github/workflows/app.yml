@@ -113,7 +113,8 @@ jobs:
       # Public download without a GitHub account; a stable link always points to the newest:
       # https://github.com/<owner>/<repo>/releases/latest/download/app-arm64-v8a-release.apk
       - name: Publish release (main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # push to main, or a manual run without a custom App-Link domain
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.app_link_host == ''))
         env:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.run_number }}
