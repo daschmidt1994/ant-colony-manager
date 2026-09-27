@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../data/local/database.dart';
 import '../data/sync/background_sync.dart';
@@ -11,17 +10,15 @@ import '../data/sync/sync_engine.dart';
 import '../data/sync/upload_policy.dart';
 import '../features/reminders/reminders.dart';
 import 'api_client.dart';
+import 'key_value_store.dart';
 
 const appVersion = '0.1.0';
 
 /// Persistent credentials. Android: Keystore-backed secure storage.
 /// Web: only server/user info – the refresh token is an HttpOnly cookie.
 class SessionStore implements TokenStore {
-  SessionStore([FlutterSecureStorage? storage]) : _s = storage ?? const FlutterSecureStorage();
-  final FlutterSecureStorage _s;
-
-  Future<String?> read(String k) => _s.read(key: 'acm_$k');
-  Future<void> write(String k, String? v) => v == null ? _s.delete(key: 'acm_$k') : _s.write(key: 'acm_$k', value: v);
+  Future<String?> read(String k) => kvRead('acm_$k');
+  Future<void> write(String k, String? v) => v == null ? kvDelete('acm_$k') : kvWrite('acm_$k', v);
 
   @override
   Future<String?> readRefresh() => read('refresh_token');
@@ -124,6 +121,17 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _init() async {
+    try {
+      await _restore();
+    } on Object catch (e) {
+      // Never leave the app on /splash: unexpected errors (not just Exceptions,
+      // e.g. a JS TypeError from browser storage) end at the login screen.
+      debugPrint('session restore failed: $e');
+      if (state is AuthLoading) state = kIsWeb ? await _signedOut(Uri.base.origin) : const NeedsServer();
+    }
+  }
+
+  Future<void> _restore() async {
     final url = kIsWeb ? Uri.base.origin : await _store.read('server_url');
     if (url == null) {
       state = const NeedsServer();
