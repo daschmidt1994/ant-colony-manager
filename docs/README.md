@@ -73,3 +73,13 @@ Abweichungen vom Plan: siehe Hinweis in [01-produkt-und-stack.md](01-produkt-und
 | Offline | lokale SQLite-DB + Outbox; Push → Pull → Snapshot |
 | Tests | Unit-, Widget- und Sync-Tests; Vertragstest gegen den echten Server (CI) |
 | Build | CI baut Web (WASM, ohne CDN) und APK; das Server-Image enthält die Web-App |
+
+## Phase 6 – QR & NFC (umgesetzt)
+
+| Bereich | Stand |
+|---|---|
+| NFC | Reader-Modus in der App, `NDEF_DISCOVERED` bei geschlossener App, Zuweisen mit Prüfung, Umhängen nach Bestätigung, Seriennummer-Fallback, optional Schreibschutz |
+| QR | Kamera-Scanner (Android), Code-Eingabe (Web), „App verbinden“ per QR, QR neu generieren |
+| Deep Links | `/c/<code>` aus NFC, Kamera-App, Browser-Button; verifizierte App Links per Build-Parameter |
+| Etiketten | PDF mit gebündelter Schrift; 7 Vorlagen; Startfeld für angebrochene Bögen |
+| Signatur | eigener Release-Schlüssel in GitHub-Secrets |

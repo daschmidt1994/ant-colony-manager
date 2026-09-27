@@ -20,9 +20,10 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 | 3 | Datenbank & Backend (Go, PostgreSQL 18), API, Tests | ✅ [server/](server/README.md) |
 | 4 | Docker, Backup/Restore, Reverse Proxy, Updates | ✅ diese Datei |
 | 5 | Android-MVP (Flutter) + Web-App: Login, Dashboard, Kolonien, Fütterung/Wasser/Reinigung, Timeline, lokale DB + Sync | ✅ [app/](app/README.md) |
-| 6–9 | QR/NFC-Workflows in der App, Offline-Sync, Pflege-Rundgang, Statistiken | geplant |
+| 6 | QR-Scanner, NFC zuweisen/scannen, Deep Links, App Links, Etiketten-PDF, Signatur | ✅ |
+| 7–9 | Offline-Sync-Härtung, Pflege-Rundgang, Statistiken, Fotos | geplant |
 
-Die Web-App ist im Server-Image enthalten. Die Android-App (APK) entsteht in der CI ([App-Workflow](.github/workflows/app.yml), Artefakt am jeweiligen Lauf). QR-Scan per Kamera und NFC folgen in Phase 6.
+Die Web-App ist im Server-Image enthalten. Die Android-App (APK) entsteht in der CI ([App-Workflow](.github/workflows/app.yml), Artefakt am jeweiligen Lauf). 
 
 <!-- Screenshots folgen mit der App (Phase 5). -->
 
@@ -148,7 +149,9 @@ Der vollständige Ablauf Installation → Backup → Zerstören → Restore → 
 
 ## Android-App
 
-Die APK wird von der CI gebaut (GitHub → Actions → „App“ → Artefakt `ant-colony-manager-apk`); feste Releases folgen. Installieren, Server-Adresse eingeben (z. B. `http://192.168.1.50:8080`), anmelden. Die App funktioniert offline und synchronisiert automatisch, sobald der Server erreichbar ist. Das Verbinden per QR-Code aus der Web-App („Mehr → Android-App verbinden“) wird mit dem Kamera-Scanner in Phase 6 nutzbar. NFC-Tags und der In-App-Scanner funktionieren mit jeder Domain und auch im Heimnetz per `http://`; für das direkte Öffnen per Kamera-App kann eine APK mit eigener Domain gebaut werden ([Details](docs/06-nfc-qr-deeplinks.md#5-deep-links--app-links--die-ehrliche-einschränkung)).
+Die APK wird von der CI gebaut und signiert (GitHub → Actions → „App“ → Artefakt `ant-colony-manager-apk`; für fast alle Handys die Datei `app-arm64-v8a-release.apk`). Installieren, dann entweder die Server-Adresse eingeben oder in der Web-App „Mehr → Android-App verbinden“ öffnen und den QR-Code mit der App scannen. Die App funktioniert offline und synchronisiert automatisch.
+
+**NFC & QR:** Kolonie öffnen → ⋮ → „NFC-Tag zuweisen“ → Tag ans Handy halten. Danach genügt Antippen, auch wenn die App geschlossen ist. QR-Etiketten: „Mehr → Etiketten drucken“ (Einzeletiketten, Brother 62 mm, A4-Bögen). Verifizierte App Links für die Kamera-App: siehe [app/README.md](app/README.md#signatur-und-app-links). NFC-Tags und der In-App-Scanner funktionieren mit jeder Domain und auch im Heimnetz per `http://`; für das direkte Öffnen per Kamera-App kann eine APK mit eigener Domain gebaut werden ([Details](docs/06-nfc-qr-deeplinks.md#5-deep-links--app-links--die-ehrliche-einschränkung)).
 
 ## Troubleshooting
 
