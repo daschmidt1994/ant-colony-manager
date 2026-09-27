@@ -21,7 +21,8 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 | 4 | Docker, Backup/Restore, Reverse Proxy, Updates | ✅ diese Datei |
 | 5 | Android-MVP (Flutter) + Web-App: Login, Dashboard, Kolonien, Fütterung/Wasser/Reinigung, Timeline, lokale DB + Sync | ✅ [app/](app/README.md) |
 | 6 | QR-Scanner, NFC zuweisen/scannen, Deep Links, App Links, Etiketten-PDF, Signatur | ✅ |
-| 7–9 | Offline-Sync-Härtung, Pflege-Rundgang, Statistiken, Fotos | geplant |
+| 7 | Offline-Sync vollständig: Hintergrund-Sync, Netz-/Server-Signale, Tab-Schutz, Geräte-Abmeldung, Chaos-Tests | ✅ |
+| 8–9 | Pflege-Rundgang, Statistiken, Fotos, Erinnerungen | geplant |
 
 Die Web-App ist im Server-Image enthalten. Die Android-App (APK) entsteht in der CI ([App-Workflow](.github/workflows/app.yml), Artefakt am jeweiligen Lauf). 
 

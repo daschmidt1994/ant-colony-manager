@@ -83,3 +83,7 @@ Abweichungen vom Plan: siehe Hinweis in [01-produkt-und-stack.md](01-produkt-und
 | Deep Links | `/c/<code>` aus NFC, Kamera-App, Browser-Button; verifizierte App Links per Build-Parameter |
 | Etiketten | PDF mit gebündelter Schrift; 7 Vorlagen; Startfeld für angebrochene Bögen |
 | Signatur | eigener Release-Schlüssel in GitHub-Secrets |
+
+## Phase 7 – Offline-Sync (umgesetzt)
+
+Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase-7). Wichtigster Fund: nachgetragene Änderungen konnten nach einer verlorenen Serverantwort verloren gehen – behoben und durch Regressions- und Chaos-Tests abgesichert.

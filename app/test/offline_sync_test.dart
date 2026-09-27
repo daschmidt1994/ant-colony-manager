@@ -31,7 +31,7 @@ class _Device {
 void main() {
   const user = 'user-1';
 
-  for (final seed in [20260927, 1, 2, 3, 4]) {
+  for (final seed in [20260927, 1, 2, 3, 4, 5, 6, 7]) {
     test('chaos (seed $seed): two devices, random network failures – both converge, nothing duplicated', () async {
       await _chaos(seed);
     });

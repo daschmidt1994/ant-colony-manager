@@ -50,6 +50,12 @@ class SyncEngine {
   Timer? _periodic;
 
   static const _cursorKey = 'sync_cursor';
+
+  /// Pull position to re-read from once the outbox is empty: changes of records
+  /// with unsent local edits were skipped, and a retried push that the server
+  /// answers as „duplicate“ creates no new change to catch them later.
+  static const _rewindKey = 'sync_rewind';
+  static const _resnapKey = 'sync_resnapshot';
   static const _lastSyncKey = 'sync_last';
 
   Stream<SyncStatus> get status => _status.stream;
@@ -93,7 +99,9 @@ class SyncEngine {
         _set(_current.copyWith(phase: SyncPhase.syncing));
         try {
           final needSnapshot = await _push();
-          if (needSnapshot || db.getMeta(_cursorKey) == null) {
+          final outboxEmpty = db.pendingOpCount() == 0;
+          if (needSnapshot || db.getMeta(_cursorKey) == null || (outboxEmpty && db.getMeta(_resnapKey) != null)) {
+            db.setMeta(_resnapKey, null);
             await snapshot();
           } else {
             await _pull();
@@ -180,7 +188,13 @@ class SyncEngine {
 
   Future<void> _pull() async {
     var cursor = int.parse(db.getMeta(_cursorKey) ?? '0');
+    final rewind = int.tryParse(db.getMeta(_rewindKey) ?? '');
+    if (rewind != null && db.pendingOpCount() == 0) {
+      if (rewind < cursor) cursor = rewind;
+      db.setMeta(_rewindKey, null);
+    }
     final newlyShared = <String>{};
+    int? skippedFrom;
     while (true) {
       final Map<String, dynamic> res;
       try {
@@ -192,20 +206,29 @@ class SyncEngine {
       final changes = (res['changes'] as List).cast<Map<String, dynamic>>();
       db.transaction(() {
         for (final c in changes) {
-          _apply(c, newlyShared);
+          if (!_apply(c, newlyShared)) {
+            final seq = (c['seq'] as num).toInt();
+            if (skippedFrom == null || seq < skippedFrom!) skippedFrom = seq;
+          }
         }
         cursor = (res['next'] as num).toInt();
         db.setMeta(_cursorKey, '$cursor');
       });
       if (res['has_more'] != true) break;
     }
+    if (skippedFrom != null) {
+      final prev = int.tryParse(db.getMeta(_rewindKey) ?? '');
+      final to = skippedFrom! - 1;
+      db.setMeta(_rewindKey, '${prev == null || to < prev ? to : prev}');
+    }
     if (newlyShared.isNotEmpty) await snapshot(onlyColonies: newlyShared);
   }
 
-  void _apply(Map<String, dynamic> c, Set<String> newlyShared) {
+  /// Applies one change; returns false if it was skipped (local edits pending).
+  bool _apply(Map<String, dynamic> c, Set<String> newlyShared) {
     final entity = c['entity'] as String;
     final id = c['id'] as String;
-    if (db.hasPendingOps(entity, id)) return; // local changes win until pushed
+    if (db.hasPendingOps(entity, id)) return false; // local changes win until pushed – re-read later
     if (c['op'] == 'delete') {
       if (entity == 'colony_members') {
         final m = db.record(entity, id)?.json;
@@ -214,7 +237,7 @@ class SyncEngine {
       // A deleted colony takes its events, schedules, links … with it.
       if (entity == 'colonies') db.purgeColony(id);
       db.removeRecord(entity, id);
-      return;
+      return true;
     }
     final data = (c['data'] as Map).cast<String, dynamic>();
     if (entity == 'colony_members' &&
@@ -224,6 +247,7 @@ class SyncEngine {
       newlyShared.add(data['colony_id'] as String);
     }
     db.putRecord(entity, data, version: (data['version'] as num?)?.toInt());
+    return true;
   }
 
   /// Replaces local state with the server state (keeping unsent changes).
@@ -243,6 +267,8 @@ class SyncEngine {
         for (final row in (rows as List).cast<Map<String, dynamic>>()) {
           if (!db.hasPendingOps(entity, row['id'] as String)) {
             db.putRecord(entity, row, version: (row['version'] as num?)?.toInt());
+          } else if (onlyColonies == null) {
+            db.setMeta(_resnapKey, '1'); // re-read once the local edits are sent
           }
         }
       });

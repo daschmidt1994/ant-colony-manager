@@ -156,3 +156,18 @@ Sync-Status sichtbar, aber unaufdringlich: kleines Wolken-Icon in der App-Leiste
 ## 10. Web-Client
 
 Nutzt dieselbe Sync-Engine mit Drift-WASM als Cache (Pull beim Laden, Push sofort). Die Outbox existiert auch hier, damit kurze Verbindungsabbrüche nichts verlieren. Mehrere Tabs teilen sich die DB über einen SharedWorker (Drift-Standard).
+
+## 11. Umsetzungsstand (Phase 7)
+
+| Thema | Umsetzung |
+|---|---|
+| Outbox-Verdichtung | Änderungen werden nur in **nie gesendete** Operationen gemischt. Eine einmal gesendete Operation bleibt unverändert – der Server hat sie womöglich schon angewendet (Antwort verloren) und beantwortet die Wiederholung als Duplikat, ohne die Nutzdaten erneut zu lesen. Gefunden durch den Chaos-Test. Ebenso wird eine gesendete Anlage beim Löschen nicht lokal verworfen, sondern das Löschen mitgeschickt. |
+| Sendeversuche | zählen beim Entnehmen aus der Outbox (auch wenn die App mitten im Senden beendet wird) |
+| Auslöser | lokales Schreiben (1,5 s), App wieder im Vordergrund, Netz wieder da (`connectivity_plus`), Server-Signal per SSE (Android im Vordergrund), Web: alle 30 s bei sichtbarem Tab, Android-Hintergrund: WorkManager alle 15 min bei Netz |
+| Hintergrund-Sync | eigener Isolate; schreibt in dieselbe SQLite-Datei, die App lädt ihre Anzeigen beim Zurückkehren neu |
+| Web, mehrere Tabs | nur der erste Tab öffnet die lokale Datenbank; weitere Tabs zeigen einen Hinweis (BroadcastChannel – funktioniert auch unter `http://`) |
+| Gerät abgemeldet | Refresh antwortet `device.revoked` → die App löscht ihre lokalen Daten und zeigt einen Hinweis; erneutes Anmelden auf demselben Gerät hebt die Sperre auf |
+| Kolonie gelöscht | Ereignisse, Intervalle, Codes der Kolonie werden auf allen Geräten mit entfernt |
+| Konflikte | „Mehr → Synchronisierung“ zeigt übernommene und verworfene Werte, quittierbar |
+
+**Tests:** `app/test/offline_sync_test.dart` – Chaos-Test mit fünf Seeds (zwei Geräte, 400 Zufallsaktionen, 25 % Verbindungsabbrüche, 20 % verlorene Antworten nach dem Speichern; danach müssen beide Geräte exakt dem Server entsprechen und jeder Datensatz genau einmal angelegt sein), Restore während Offline-Einträge warten, Kolonie-Löschung, Geräte-Abmeldung. Gegen den echten Server (`server_contract_test.dart`): zwei Geräte, genau-einmal, feldweises Zusammenführen, Konfliktprotokoll, Geräte-Abmeldung.
