@@ -126,8 +126,9 @@ class FakeServer {
     if (upload != null && req.method == 'PUT') {
       final id = upload.group(1)!;
       final row = rows['photos']?[id];
-      if (row == null || row['deleted_at'] != null)
+      if (row == null || row['deleted_at'] != null) {
         return _json({'code': 'photo.not_found', 'title': 'not found'}, 404);
+      }
       if (row['upload_state'] != 'stored') {
         put('photos', {...row, 'upload_state': 'stored', 'sha256': req.headers['content-sha256']});
         uploads[id] = (uploads[id] ?? 0) + 1;
