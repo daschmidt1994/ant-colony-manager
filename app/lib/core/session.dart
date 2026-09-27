@@ -131,6 +131,7 @@ class AuthController extends Notifier<AuthState> {
             final user = User(me['user'] as Map<String, dynamic>);
             await _store.write('user', jsonEncode(user.json));
             state = SignedIn(url, user);
+            _cacheInstanceInfo();
             return;
           }
         } on Exception {
@@ -142,7 +143,12 @@ class AuthController extends Notifier<AuthState> {
     }
     final user = User(jsonDecode(userJson) as Map<String, dynamic>);
     try {
-      state = await api.refresh() ? SignedIn(url, user) : await _signedOut(url);
+      if (await api.refresh()) {
+        state = SignedIn(url, user);
+        _cacheInstanceInfo();
+      } else {
+        state = await _signedOut(url);
+      }
     } on NetworkException {
       state = SignedIn(url, user, offline: true); // offline-first: open with local data
     }
@@ -207,6 +213,26 @@ class AuthController extends Notifier<AuthState> {
     }
     await _store.write('user', jsonEncode(user.json));
     state = SignedIn(url, user);
+    _cacheInstanceInfo();
+  }
+
+  /// Remembers the public address (for QR/NFC links – may differ from the
+  /// address this device uses, e.g. a LAN IP) and the NFC UID key.
+  Future<void> _cacheInstanceInfo() async {
+    try {
+      final inst = await api.public('GET', '/api/v1/instance') as Map<String, dynamic>;
+      _db.setMeta('public_url', inst['public_url'] as String?);
+      final me = await api.get('/api/v1/me') as Map<String, dynamic>;
+      _db.setMeta('nfc_uid_key', me['nfc_uid_key'] as String?);
+    } on Exception {
+      // offline – cached values (if any) stay valid
+    }
+  }
+
+  /// „Android-App verbinden“: server address + one-time code from the web app's QR.
+  Future<void> linkDevice(String server, String code) async {
+    await connect(server);
+    await _signIn('/api/v1/auth/device-link/redeem', {'code': code});
   }
 
   /// Called when the server rejected the session (sync reports loginRequired).

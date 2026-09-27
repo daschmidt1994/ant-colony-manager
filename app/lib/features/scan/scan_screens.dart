@@ -9,17 +9,12 @@ import '../../core/api_client.dart';
 import '../../core/session.dart';
 import '../../core/web_meta.dart';
 import '../../data/repositories/colony_repository.dart';
+import '../../domain/scan.dart';
+export '../../domain/scan.dart' show parseScanInput;
+import '../../nfc/nfc_controller.dart';
+import '../../nfc/nfc_driver.dart';
 import '../../shared/widgets.dart';
-
-final _tokenRe = RegExp(r'^[0-9A-Za-z]{16}$');
-
-/// Extracts the scan token from a pasted link (`…/c/<token>`) or a bare code.
-String? parseScanInput(String input) {
-  final s = input.trim();
-  if (_tokenRe.hasMatch(s)) return s;
-  final m = RegExp(r'/c/([0-9A-Za-z]{16})(?:[/?#]|$)').firstMatch(s);
-  return m?.group(1);
-}
+import 'scanner_view.dart';
 
 sealed class ScanOutcome {}
 
@@ -89,48 +84,127 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     }
   }
 
+  Future<void> _fromCamera(String raw) async {
+    if (parseDeviceLink(raw) != null) {
+      setState(() => _message = 'Das ist ein Code zum Verbinden der App – du bist bereits angemeldet.');
+      return;
+    }
+    _code.text = raw;
+    await _go();
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Kolonie scannen'), actions: const [SyncBadge()]),
-    body: ContentWidth(
-      maxWidth: 560,
-      child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Icon(Icons.qr_code_scanner, size: 64, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(height: 12),
-                  const Text('Kamera- und NFC-Scan folgen mit dem nächsten Update.', textAlign: TextAlign.center),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Bis dahin: Code vom Etikett oder den Link eingeben.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: context.colors.muted),
+  Widget build(BuildContext context) {
+    final nfc = ref.watch(nfcControllerProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Kolonie scannen'), actions: const [SyncBadge()]),
+      body: ContentWidth(
+        maxWidth: 560,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            if (cameraScanSupported)
+              ScannerView(onCode: _fromCamera)
+            else
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Icon(Icons.qr_code_scanner, size: 64, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(height: 12),
+                      const Text('Den Kamera-Scan gibt es in der Android-App.', textAlign: TextAlign.center),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Hier: Code vom Etikett oder den Link eingeben.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: context.colors.muted),
+                      ),
+                    ],
                   ),
+                ),
+              ),
+            if (nfc == NfcState.ready) ...[
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.contactless_outlined, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  const Text('NFC ist bereit – Tag einfach antippen'),
                 ],
               ),
+            ] else if (nfc == NfcState.disabled) ...[
+              const SizedBox(height: 12),
+              Text(
+                'NFC ist ausgeschaltet.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.colors.muted),
+              ),
+            ],
+            const SizedBox(height: 20),
+            TextField(
+              controller: _code,
+              autocorrect: false,
+              decoration: const InputDecoration(labelText: 'Code oder Link', hintText: 'https://…/c/7Kq2mZr9XbT4pLwA'),
+              onSubmitted: (_) => _go(),
             ),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _code,
-            autocorrect: false,
-            decoration: const InputDecoration(labelText: 'Code oder Link', hintText: 'https://…/c/7Kq2mZr9XbT4pLwA'),
-            onSubmitted: (_) => _go(),
-          ),
-          const SizedBox(height: 12),
-          if (_message != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(_message!, style: TextStyle(color: context.colors.soon)),
-            ),
-          FilledButton(onPressed: _busy ? null : _go, child: const Text('Kolonie öffnen')),
-        ],
+            const SizedBox(height: 12),
+            if (_message != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(_message!, style: TextStyle(color: context.colors.soon)),
+              ),
+            FilledButton(onPressed: _busy ? null : _go, child: const Text('Kolonie öffnen')),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// Before sign-in (Android): scan the „Android-App verbinden“ QR of the web app.
+class ConnectScanScreen extends ConsumerStatefulWidget {
+  const ConnectScanScreen({super.key});
+  @override
+  ConsumerState<ConnectScanScreen> createState() => _ConnectScanScreenState();
+}
+
+class _ConnectScanScreenState extends ConsumerState<ConnectScanScreen> {
+  String? _message;
+  bool _busy = false;
+
+  Future<void> _onCode(String raw) async {
+    if (_busy) return;
+    final link = parseDeviceLink(raw);
+    if (link == null) {
+      setState(() => _message = 'Das ist kein Verbindungs-Code. In der Web-App: „Mehr → Android-App verbinden“.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _message = 'Verbinde mit ${link.server} …';
+    });
+    try {
+      await ref.read(authProvider.notifier).linkDevice(link.server, link.code);
+    } catch (e) {
+      if (mounted) setState(() => _message = errorText(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('App verbinden')),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const Text('Öffne in der Web-App „Mehr → Android-App verbinden“ und scanne den QR-Code.'),
+        const SizedBox(height: 16),
+        ScannerView(onCode: _onCode, height: 380),
+        if (_message != null) ...[const SizedBox(height: 16), Text(_message!, textAlign: TextAlign.center)],
+      ],
     ),
   );
 }
@@ -154,7 +228,7 @@ class _ScanLandingScreenState extends ConsumerState<ScanLandingScreen> {
   }
 
   Future<void> _resolve() async {
-    if (!_tokenRe.hasMatch(widget.token)) {
+    if (!isScanToken(widget.token)) {
       setState(() => _message = 'Ungültiger Code.');
       return;
     }

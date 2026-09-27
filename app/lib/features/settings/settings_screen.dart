@@ -60,6 +60,16 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ],
+            const SectionHeader('Etiketten'),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.print_outlined),
+                title: const Text('Etiketten drucken'),
+                subtitle: const Text('QR-Etiketten als PDF – einzeln oder als Bogen'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/labels'),
+              ),
+            ),
             const SectionHeader('Darstellung'),
             SegmentedButton<ThemeMode>(
               segments: const [

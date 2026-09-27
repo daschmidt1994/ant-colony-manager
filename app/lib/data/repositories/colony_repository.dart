@@ -260,6 +260,47 @@ class ColonyRepository {
     return ScanFound(link.colonyId);
   }
 
+  /// Normalised hex of a stored uid hash (pulled rows carry PostgreSQL's "\\x" prefix).
+  static const _uidExpr = "lower(replace(json_extract(data, '\$.uid_hash'), '\\x', ''))";
+
+  List<Map<String, dynamic>> nfcTags(String colonyId) =>
+      db.records('nfc_tags', colonyId: colonyId, orderBy: 'id').map((r) => r.json).toList();
+
+  String? colonyByUidHash(String hash) {
+    final r = db.select("SELECT colony_id FROM records WHERE entity = 'nfc_tags' AND $_uidExpr = ?", [
+      hash.toLowerCase(),
+    ]);
+    return r.isEmpty ? null : r.first['colony_id'] as String?;
+  }
+
+  ScanLink? linkByToken(String token) {
+    final r = db.select("SELECT data FROM records WHERE entity = 'scan_links' AND json_extract(data, '\$.token') = ?", [
+      token,
+    ]);
+    return r.isEmpty ? null : ScanLink(_decode(r.first['data'] as String));
+  }
+
+  /// Resolves an NFC tag: first by the URI on the tag, then by its serial number.
+  ScanResolution resolveTag(List<String> uris, String? uidHashValue, String? Function(String) tokenOf) {
+    var revoked = false;
+    for (final u in uris) {
+      final token = tokenOf(u);
+      if (token == null) continue;
+      switch (resolveToken(token)) {
+        case ScanFound f:
+          return f;
+        case ScanRevoked():
+          revoked = true;
+        case ScanUnknown():
+      }
+    }
+    if (uidHashValue != null) {
+      final c = colonyByUidHash(uidHashValue);
+      if (c != null && db.record('colonies', c) != null) return ScanFound(c);
+    }
+    return revoked ? ScanRevoked() : ScanUnknown();
+  }
+
   // ---------------------------------------------------------------------------
   // Writes
 
@@ -395,6 +436,65 @@ class ColonyRepository {
         },
     ];
     _update('colony_events', eventId, {'feeding': feeding});
+  });
+
+  void deactivateScanLink(String id) => _write(() => _update('scan_links', id, {'active': false}));
+
+  /// New QR code; the old printed label stops working. Offline-capable.
+  String regenerateQr(String colonyId) => _write(() {
+    for (final l in scanLinks(colonyId).where((l) => l.kind == 'qr' && l.active)) {
+      _update('scan_links', l.id, {'active': false});
+    }
+    final token = newScanToken();
+    _create('scan_links', {'colony_id': colonyId, 'token': token, 'kind': 'qr', 'active': true});
+    return token;
+  });
+
+  /// Registers a written (or serial-number-only) NFC tag for a colony.
+  /// A tag that was registered before (same serial) is moved over.
+  void assignNfc(
+    String colonyId, {
+    String? uidHashValue,
+    String? token,
+    String? tagType,
+    bool locked = false,
+    String? label,
+  }) => _write(() {
+    if (uidHashValue != null) {
+      final old = db.select("SELECT data FROM records WHERE entity = 'nfc_tags' AND $_uidExpr = ?", [
+        uidHashValue.toLowerCase(),
+      ]);
+      for (final r in old) {
+        final t = _decode(r['data'] as String);
+        _delete('nfc_tags', t['id'] as String);
+        final link = t['scan_link_id'] as String?;
+        if (link != null && db.record('scan_links', link) != null) _update('scan_links', link, {'active': false});
+      }
+    }
+    String? linkId;
+    if (token != null) {
+      linkId =
+          _create('scan_links', {'colony_id': colonyId, 'token': token, 'kind': 'nfc', 'active': true})['id'] as String;
+    }
+    if (uidHashValue != null) {
+      _create('nfc_tags', {
+        'colony_id': colonyId,
+        'scan_link_id': ?linkId,
+        'uid_hash': uidHashValue.toLowerCase(),
+        'tag_type': ?tagType,
+        'locked': locked,
+        'written_at': token == null ? null : now().toUtc().toIso8601String(),
+        'label': ?label,
+      });
+    }
+  });
+
+  void removeNfcTag(String tagId) => _write(() {
+    final t = db.record('nfc_tags', tagId)?.json;
+    if (t == null) return;
+    _delete('nfc_tags', tagId);
+    final link = t['scan_link_id'] as String?;
+    if (link != null && db.record('scan_links', link) != null) _update('scan_links', link, {'active': false});
   });
 
   void updateEvent(String eventId, Map<String, dynamic> patch) =>

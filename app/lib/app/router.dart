@@ -8,13 +8,15 @@ import '../features/colonies/colony_detail_screen.dart';
 import '../features/colonies/colony_form_screen.dart';
 import '../features/colonies/colony_list_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/labels/labels_screen.dart';
+import '../features/nfc/nfc_screens.dart';
 import '../features/scan/scan_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/shell.dart';
 import '../features/timeline/timeline_screen.dart';
 
 /// Paths reachable without an account.
-const _publicPaths = {'/connect', '/login', '/setup', '/register', '/reset-password', '/splash'};
+const _publicPaths = {'/connect', '/connect/scan', '/login', '/setup', '/register', '/reset-password', '/splash'};
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -33,9 +35,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         case AuthLoading():
           return path == '/splash' ? null : withFrom('/splash');
         case NeedsServer():
-          return path == '/connect' ? null : withFrom('/connect');
+          return path == '/connect' || path == '/connect/scan' ? null : withFrom('/connect');
         case SignedOut(:final setupRequired):
-          if (path == '/register' || path == '/reset-password') return null;
+          if (path == '/register' || path == '/reset-password' || path == '/connect/scan') return null;
           final want = setupRequired ? '/setup' : '/login';
           return path == want ? null : withFrom(want);
         case SignedIn():
@@ -46,6 +48,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const SplashScreen()),
       GoRoute(path: '/connect', builder: (_, _) => const ServerScreen()),
+      GoRoute(path: '/connect/scan', builder: (_, _) => const ConnectScanScreen()),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
       GoRoute(
@@ -86,6 +89,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                         path: 'timeline',
                         builder: (_, s) => TimelineScreen(colonyId: s.pathParameters['id']!),
                       ),
+                      GoRoute(
+                        path: 'nfc',
+                        builder: (_, s) => NfcAssignScreen(colonyId: s.pathParameters['id']!),
+                      ),
                     ],
                   ),
                 ],
@@ -100,7 +107,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/settings',
                 builder: (_, _) => const SettingsScreen(),
-                routes: [GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen())],
+                routes: [
+                  GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen()),
+                  GoRoute(
+                    path: 'labels',
+                    builder: (_, s) => LabelsScreen(preselected: {...?s.uri.queryParameters['colony']?.split(',')}),
+                  ),
+                ],
               ),
             ],
           ),

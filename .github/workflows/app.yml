@@ -6,6 +6,11 @@ on:
   pull_request:
     paths: ["app/**", "test-vectors/**"]
   workflow_dispatch:
+    inputs:
+      app_link_host:
+        description: "Domain für verifizierte App Links (z. B. ants.example.com) – leer = Standard-APK"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -35,6 +40,18 @@ jobs:
       - name: Test
         if: success() || failure() # also report tests when analysis failed
         run: flutter test --reporter expanded
+      - name: Label previews (PNG from the PDFs written by the tests)
+        if: success() || failure()
+        run: |
+          [ -d build/label-previews ] || exit 0
+          sudo apt-get install -y -qq poppler-utils >/dev/null
+          for f in build/label-previews/*.pdf; do pdftoppm -png -r 110 -f 1 -l 1 "$f" "${f%.pdf}"; done
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: label-previews
+          path: app/build/label-previews
+          if-no-files-found: ignore
       - name: Build web
         run: |
           ./tool/fetch_web_assets.sh
@@ -64,8 +81,25 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Release signing key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then echo "no signing secrets – debug-signed APK"; exit 0; fi
+          echo "$KEYSTORE" | base64 -d > android/app/upload.jks
+          printf 'storeFile=upload.jks\nstorePassword=%s\nkeyPassword=%s\nkeyAlias=%s\n' "$PASSWORD" "$PASSWORD" "$ALIAS" > android/key.properties
+          echo "Certificate SHA-256 (for ANDROID_CERT_SHA256 on the server):"
+          keytool -list -v -keystore android/app/upload.jks -storepass "$PASSWORD" | grep 'SHA256:'
       - name: Build APK
+        env:
+          ORG_GRADLE_PROJECT_appLinkHost: ${{ inputs.app_link_host || vars.APP_LINK_HOST }}
         run: flutter build apk --release --build-number=${{ github.run_number }}
+      - name: Verify signature
+        run: |
+          APKSIGNER=$(ls $ANDROID_HOME/build-tools/*/apksigner | sort -V | tail -1)
+          $APKSIGNER verify --print-certs build/app/outputs/flutter-apk/app-release.apk | grep -E 'Signer #1 certificate (DN|SHA-256)'
       - uses: actions/upload-artifact@v4
         with:
           name: ant-colony-manager-apk

@@ -8,6 +8,9 @@ import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
+import '../../data/repositories/colony_repository.dart';
+import '../../nfc/nfc_controller.dart';
+import '../../nfc/nfc_driver.dart';
 import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
@@ -80,6 +83,9 @@ class _ColonyPage extends ConsumerWidget {
               if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Bearbeiten')),
               const PopupMenuItem(value: 'timeline', child: Text('Timeline')),
               if (canEdit) const PopupMenuItem(value: 'measure', child: Text('Messung erfassen')),
+              if (canEdit && ref.read(nfcControllerProvider) != NfcState.unsupported)
+                const PopupMenuItem(value: 'nfc', child: Text('NFC-Tag zuweisen')),
+              const PopupMenuItem(value: 'label', child: Text('Etikett drucken')),
               if (isOwner)
                 PopupMenuItem(value: 'archive', child: Text(colony.archived ? 'Aus Archiv holen' : 'Archivieren')),
               if (isOwner) const PopupMenuItem(value: 'delete', child: Text('Löschen')),
@@ -242,6 +248,10 @@ class _ColonyPage extends ConsumerWidget {
         context.go('/colonies/${colony.id}/edit');
       case 'timeline':
         context.go('/colonies/${colony.id}/timeline');
+      case 'nfc':
+        context.push('/colonies/${colony.id}/nfc');
+      case 'label':
+        context.push('/settings/labels?colony=${colony.id}');
       case 'measure':
         showMeasurementSheet(context, ref, colony);
       case 'archive':
@@ -360,47 +370,148 @@ class _Banner extends StatelessWidget {
   );
 }
 
-/// QR code of the colony (label printing follows with the QR/NFC update).
-Future<void> showQrSheet(BuildContext context, WidgetRef ref, Colony colony) {
-  final auth = ref.read(authProvider);
-  final server = auth is SignedIn ? auth.serverUrl : '';
-  final link =
-      ref.read(scanLinksProvider(colony.id)).value?.where((l) => l.kind == 'qr' && l.active).firstOrNull ??
-      ref.read(repositoryProvider)!.scanLinks(colony.id).where((l) => l.kind == 'qr' && l.active).firstOrNull;
-  return showModalBottomSheet<void>(
-    context: context,
-    builder: (c) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        child: link == null
-            ? const Text('Diese Kolonie hat noch keinen aktiven QR-Code.')
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(colony.name, style: Theme.of(c).textTheme.titleLarge),
-                  if (colony.species.isNotEmpty)
-                    Text(colony.species, style: const TextStyle(fontStyle: FontStyle.italic)),
-                  const SizedBox(height: 16),
-                  Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(12),
-                    child: QrImageView(data: '$server/c/${link.token}', size: 220, backgroundColor: Colors.white),
-                  ),
-                  const SizedBox(height: 12),
-                  SelectableText('$server/c/${link.token}', textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: '$server/c/${link.token}'));
-                      Navigator.pop(c);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link kopiert')));
-                    },
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Link kopieren'),
-                  ),
-                ],
+/// QR code, NFC tags and labels of a colony (docs/12 S11).
+Future<void> showQrSheet(BuildContext context, WidgetRef ref, Colony colony) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  builder: (_) => ContentWidth(maxWidth: 560, child: _QrSheet(colony: colony)),
+);
+
+class _QrSheet extends ConsumerWidget {
+  const _QrSheet({required this.colony});
+  final Colony colony;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.watch(repositoryProvider)!;
+    final auth = ref.watch(authProvider);
+    final base = publicUrl(repo.db, auth is SignedIn ? auth.serverUrl : '');
+    final links = ref.watch(scanLinksProvider(colony.id)).value ?? repo.scanLinks(colony.id);
+    final qr = links.where((l) => l.kind == 'qr' && l.active).firstOrNull;
+    final tags = repo.nfcTags(colony.id);
+    final canEdit = (ref.watch(roleProvider(colony.id)).value ?? 'owner') != 'viewer';
+    final nfc = ref.watch(nfcControllerProvider);
+    final url = qr == null ? null : '$base/c/${qr.token}';
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(colony.name, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+          if (colony.species.isNotEmpty)
+            Text(
+              colony.species,
+              style: const TextStyle(fontStyle: FontStyle.italic),
+              textAlign: TextAlign.center,
+            ),
+          const SizedBox(height: 16),
+          if (url == null)
+            const Text('Kein aktiver QR-Code.', textAlign: TextAlign.center)
+          else ...[
+            Center(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: QrImageView(data: url, size: 220, backgroundColor: Colors.white),
               ),
+            ),
+            const SizedBox(height: 10),
+            SelectableText(
+              url,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.colors.muted),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.push('/settings/labels?colony=${colony.id}');
+                },
+                icon: const Icon(Icons.print_outlined),
+                label: const Text('Etikett drucken'),
+              ),
+              if (url != null)
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: url));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link kopiert')));
+                  },
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Link kopieren'),
+                ),
+              if (canEdit)
+                OutlinedButton.icon(
+                  onPressed: () => _regenerate(context, repo),
+                  icon: const Icon(Icons.autorenew),
+                  label: const Text('Neu generieren'),
+                ),
+            ],
+          ),
+          SectionHeader(
+            'NFC-Tags (${tags.length})',
+            trailing: canEdit && nfc != NfcState.unsupported
+                ? TextButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.push('/colonies/${colony.id}/nfc');
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Tag zuweisen'),
+                  )
+                : null,
+          ),
+          if (tags.isEmpty)
+            Text(
+              nfc == NfcState.unsupported
+                  ? 'NFC-Tags werden mit der Android-App zugewiesen.'
+                  : 'Noch kein Tag. Tipp: Aufkleber außen am Formicarium, etwas Abstand zu Metall und Heizmatten.',
+              style: TextStyle(color: context.colors.muted),
+            )
+          else
+            for (final t in tags)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.contactless_outlined),
+                title: Text(t['label'] as String? ?? t['tag_type'] as String? ?? 'NFC-Tag'),
+                subtitle: Text(
+                  [
+                    if (t['scan_link_id'] == null) 'nur Seriennummer',
+                    if (t['locked'] == true) 'schreibgeschützt',
+                    if (t['written_at'] != null) 'beschrieben ${S.date(DateTime.parse(t['written_at'] as String))}',
+                  ].join(' · '),
+                ),
+                trailing: canEdit
+                    ? IconButton(
+                        tooltip: 'Entfernen',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => repo.removeNfcTag(t['id'] as String),
+                      )
+                    : null,
+              ),
+        ],
       ),
-    ),
-  );
+    );
+  }
+
+  Future<void> _regenerate(BuildContext context, ColonyRepository repo) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('QR-Code neu generieren?'),
+        content: const Text('Gedruckte Etiketten mit dem alten Code funktionieren danach nicht mehr.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Neu generieren')),
+        ],
+      ),
+    );
+    if (ok == true) repo.regenerateQr(colony.id);
+  }
 }

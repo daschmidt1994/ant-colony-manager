@@ -124,10 +124,16 @@ class _ServerScreenState extends ConsumerState<ServerScreen> with _Busy {
       const SizedBox(height: 20),
       errorBox(),
       FilledButton(onPressed: busy ? null : _connect, child: Text(busy ? 'Verbinde …' : 'Weiter')),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
+      if (!kIsWeb)
+        OutlinedButton.icon(
+          onPressed: () => context.push('/connect/scan'),
+          icon: const Icon(Icons.qr_code_scanner),
+          label: const Text('QR-Code aus der Web-App scannen'),
+        ),
+      const SizedBox(height: 8),
       Text(
-        'Tipp: In der Web-App unter „Mehr → Android-App verbinden“ gibt es einen QR-Code '
-        '(Scannen folgt mit dem Kamera-Update).',
+        'In der Web-App: „Mehr → Android-App verbinden“ – dann ist kein Passwort nötig.',
         style: TextStyle(color: context.colors.muted, fontSize: 13),
       ),
     ],

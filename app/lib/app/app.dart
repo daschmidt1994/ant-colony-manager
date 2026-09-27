@@ -7,6 +7,9 @@ import 'router.dart';
 import 'strings.dart';
 import 'theme.dart';
 
+/// Global messenger for notices from outside a screen (e.g. an NFC tag was read).
+final rootMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 /// Theme preference (system / light / dark), stored locally per device.
 final themeModeProvider = NotifierProvider<ThemeModeController, ThemeMode>(ThemeModeController.new);
 
@@ -31,6 +34,7 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
     title: S.appName,
     debugShowCheckedModeBanner: false,
+    scaffoldMessengerKey: rootMessengerKey,
     theme: buildTheme(Brightness.light),
     darkTheme: buildTheme(Brightness.dark),
     themeMode: ref.watch(themeModeProvider),
