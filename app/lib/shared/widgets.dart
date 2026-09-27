@@ -333,7 +333,25 @@ class ColonyTitle extends StatelessWidget {
   }
 }
 
-/// Time chip for back-dating (docs/11 rule 9): „jetzt“ by default.
+/// Date, then time – for entries logged afterwards (up to a year back, not in the future).
+Future<DateTime?> pickPastDateTime(BuildContext context, {DateTime? initial}) async {
+  final now = DateTime.now();
+  final start = initial ?? now;
+  final d = await showDatePicker(
+    context: context,
+    firstDate: now.subtract(const Duration(days: 365)),
+    lastDate: now,
+    initialDate: start.isAfter(now) ? now : start,
+    helpText: 'Wann war das?',
+  );
+  if (d == null || !context.mounted) return null;
+  final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(start), helpText: 'Uhrzeit');
+  if (t == null) return null;
+  final at = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+  return at.isAfter(now) ? now : at;
+}
+
+/// Time chip for back-dating (docs/11 rule 9): „Jetzt“ by default, highlighted once changed.
 class WhenChip extends StatelessWidget {
   const WhenChip({super.key, required this.value, required this.onChanged});
   final DateTime? value; // null = now
@@ -341,7 +359,8 @@ class WhenChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = value == null ? 'jetzt' : '${S.relativeDay(value!, DateTime.now())} ${S.time(value!)}';
+    final label = value == null ? 'Jetzt' : '${S.relativeDay(value!, DateTime.now())} ${S.time(value!)}';
+    final scheme = Theme.of(context).colorScheme;
     return PopupMenuButton<String>(
       tooltip: 'Zeitpunkt',
       onSelected: (v) async {
@@ -356,16 +375,8 @@ class WhenChip extends StatelessWidget {
           case 'yesterday':
             onChanged(DateTime(now.year, now.month, now.day - 1, 18));
           case 'pick':
-            final d = await showDatePicker(
-              context: context,
-              firstDate: now.subtract(const Duration(days: 365)),
-              lastDate: now,
-              initialDate: now,
-            );
-            if (d == null || !context.mounted) return;
-            final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(now));
-            if (t == null) return;
-            onChanged(DateTime(d.year, d.month, d.day, t.hour, t.minute));
+            final at = await pickPastDateTime(context, initial: value);
+            if (at != null) onChanged(at);
         }
       },
       itemBuilder: (_) => const [
@@ -375,7 +386,17 @@ class WhenChip extends StatelessWidget {
         PopupMenuItem(value: 'yesterday', child: Text('Gestern Abend')),
         PopupMenuItem(value: 'pick', child: Text('Datum/Uhrzeit wählen …')),
       ],
-      child: Chip(avatar: const Icon(Icons.schedule, size: 18), label: Text(label)),
+      child: Chip(
+        avatar: Icon(Icons.schedule, size: 18, color: value == null ? null : scheme.onPrimaryContainer),
+        backgroundColor: value == null ? null : scheme.primaryContainer,
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: TextStyle(color: value == null ? null : scheme.onPrimaryContainer)),
+            Icon(Icons.arrow_drop_down, size: 18, color: value == null ? null : scheme.onPrimaryContainer),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -168,6 +168,28 @@ void main() {
     expect(repo.winterRest(c), isNotNull, reason: 'a running winter rest is ended, not deleted');
   });
 
+  test('entries logged afterwards count at their own time', () {
+    final c = repo.createColony({'name': 'Messor', 'species_text': 'Messor barbarus'}, intervals: {'water': 3});
+    now = DateTime.utc(2026, 9, 25, 10);
+    expect(repo.due(c).single.days, lessThan(0), reason: 'water overdue');
+    // Forgot to log yesterday's water → due again in 2 days, not 3.
+    repo.logEvent(c, 'water', at: DateTime.utc(2026, 9, 24, 18));
+    expect(repo.due(c).single.nextDue!.toUtc(), DateTime.utc(2026, 9, 27, 18));
+    // A later entry logged afterwards sorts in, but does not push the due date back.
+    repo.logEvent(
+      c,
+      'water',
+      at: DateTime.utc(2026, 9, 22, 8),
+      details: {
+        'water': {
+          'kinds': ['drinker_refilled'],
+        },
+      },
+    );
+    expect(repo.due(c).single.nextDue!.toUtc(), DateTime.utc(2026, 9, 27, 18));
+    expect(repo.events(c, types: {'water'}).map((e) => e.occurredAt.toUtc().day), [24, 22]);
+  });
+
   test('daily overview counts colonies, not tasks', () {
     final a = repo.createColony({'name': 'A', 'species_text': 'x'}, intervals: {'protein': 2, 'water': 2});
     repo.createColony({'name': 'B', 'species_text': 'x'}, intervals: {'water': 3});

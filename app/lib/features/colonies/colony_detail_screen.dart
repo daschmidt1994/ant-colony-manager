@@ -84,6 +84,7 @@ class _ColonyPage extends ConsumerWidget {
           PopupMenuButton<String>(
             onSelected: (v) => _menu(context, ref, v),
             itemBuilder: (_) => [
+              if (canEdit) const PopupMenuItem(value: 'backdate', child: Text('Nachtragen …')),
               if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Bearbeiten')),
               const PopupMenuItem(value: 'timeline', child: Text('Timeline')),
               if (canEdit) const PopupMenuItem(value: 'measure', child: Text('Messung erfassen')),
@@ -202,7 +203,8 @@ class _ColonyPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Wasser und Kontrolle speichern sofort – lange drücken für Details.',
+                    'Wasser und Kontrolle speichern sofort – lange drücken für Details. '
+                    'Vergessen einzutragen? Menü oben rechts → Nachtragen, oder im Dialog auf „Jetzt“ tippen.',
                     style: TextStyle(color: context.colors.muted, fontSize: 12),
                   ),
                 ],
@@ -273,6 +275,8 @@ class _ColonyPage extends ConsumerWidget {
   Future<void> _menu(BuildContext context, WidgetRef ref, String v) async {
     final repo = ref.read(repositoryProvider)!;
     switch (v) {
+      case 'backdate':
+        showBackdateFlow(context, ref, colony);
       case 'edit':
         context.go('/colonies/${colony.id}/edit');
       case 'timeline':

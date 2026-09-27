@@ -12,7 +12,7 @@ import '../features/reminders/reminders.dart';
 import 'api_client.dart';
 import 'key_value_store.dart';
 
-const appVersion = '1.0.0';
+const appVersion = '1.1.0';
 
 /// Persistent credentials. Android: Keystore-backed secure storage.
 /// Web: only server/user info – the refresh token is an HttpOnly cookie.

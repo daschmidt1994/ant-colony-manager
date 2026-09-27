@@ -24,9 +24,9 @@ void _undoable(ScaffoldMessengerState m, ColonyRepository repo, ColonyEvent e, {
 }
 
 /// „Letzte Fütterung wiederholen“ – one tap, with a guard against double taps.
-Future<void> repeatFeeding(BuildContext context, WidgetRef ref, Colony colony) async {
+Future<void> repeatFeeding(BuildContext context, WidgetRef ref, Colony colony, {DateTime? at}) async {
   final repo = _repo(ref);
-  if (repo.fedJustNow(colony.id)) {
+  if (at == null && repo.fedJustNow(colony.id)) {
     final again = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -40,7 +40,7 @@ Future<void> repeatFeeding(BuildContext context, WidgetRef ref, Colony colony) a
     );
     if (again != true) return;
   }
-  final e = repo.repeatLastFeeding(colony.id);
+  final e = repo.repeatLastFeeding(colony.id, at: at);
   if (e != null && context.mounted) _undoable(ScaffoldMessenger.of(context), repo, e);
 }
 
@@ -122,9 +122,9 @@ class _SheetFrame extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // Feeding
 
-Future<void> showFeedingSheet(BuildContext context, WidgetRef ref, Colony colony) async {
-  final r = await _sheet<String>(context, _FeedingSheet(colony: colony));
-  if (r == 'repeat' && context.mounted) await repeatFeeding(context, ref, colony);
+Future<void> showFeedingSheet(BuildContext context, WidgetRef ref, Colony colony, {DateTime? at}) async {
+  final r = await _sheet<(String, DateTime?)>(context, _FeedingSheet(colony: colony, at: at));
+  if (r?.$1 == 'repeat' && context.mounted) await repeatFeeding(context, ref, colony, at: r!.$2);
 }
 
 class _Selected {
@@ -135,8 +135,9 @@ class _Selected {
 }
 
 class _FeedingSheet extends ConsumerStatefulWidget {
-  const _FeedingSheet({required this.colony});
+  const _FeedingSheet({required this.colony, this.at});
   final Colony colony;
+  final DateTime? at;
   @override
   ConsumerState<_FeedingSheet> createState() => _FeedingSheetState();
 }
@@ -145,7 +146,7 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
   final _selected = <String, _Selected>{};
   String _acceptance = 'unknown';
   final _note = TextEditingController();
-  DateTime? _when;
+  late DateTime? _when = widget.at;
   bool _showAll = false;
 
   /// Foods used for this colony come first.
@@ -210,7 +211,7 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
               title: const Text('Wie letztes Mal'),
               subtitle: Text(S.eventSummary(last)),
               trailing: const Icon(Icons.check),
-              onTap: () => Navigator.pop(context, 'repeat'),
+              onTap: () => Navigator.pop(context, ('repeat', _when)),
             ),
           ),
         group('protein', 'Protein'),
@@ -302,13 +303,14 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
 // -----------------------------------------------------------------------------
 // Water & cleaning (kind chips)
 
-Future<void> showWaterSheet(BuildContext context, WidgetRef ref, Colony colony, {ColonyEvent? edit}) => _sheet(
-  context,
-  _KindsSheet(colony: colony, type: 'water', kinds: S.waterKinds, edit: edit, withMeasurements: true),
-);
+Future<void> showWaterSheet(BuildContext context, WidgetRef ref, Colony colony, {ColonyEvent? edit, DateTime? at}) =>
+    _sheet(
+      context,
+      _KindsSheet(colony: colony, type: 'water', kinds: S.waterKinds, edit: edit, at: at, withMeasurements: true),
+    );
 
-Future<void> showCleaningSheet(BuildContext context, WidgetRef ref, Colony colony) =>
-    _sheet(context, _KindsSheet(colony: colony, type: 'cleaning', kinds: S.cleaningKinds));
+Future<void> showCleaningSheet(BuildContext context, WidgetRef ref, Colony colony, {DateTime? at}) =>
+    _sheet(context, _KindsSheet(colony: colony, type: 'cleaning', kinds: S.cleaningKinds, at: at));
 
 class _KindsSheet extends ConsumerStatefulWidget {
   const _KindsSheet({
@@ -316,12 +318,14 @@ class _KindsSheet extends ConsumerStatefulWidget {
     required this.type,
     required this.kinds,
     this.edit,
+    this.at,
     this.withMeasurements = false,
   });
   final Colony colony;
   final String type;
   final Map<String, String> kinds;
   final ColonyEvent? edit;
+  final DateTime? at;
   final bool withMeasurements;
 
   @override
@@ -347,7 +351,7 @@ class _KindsSheetState extends ConsumerState<_KindsSheet> {
     _sel = {...lastKinds()};
     if (_sel.isEmpty) _sel.add(widget.type == 'water' ? 'drinker_refilled' : 'food_remains');
     _note.text = widget.edit?.note ?? '';
-    if (widget.edit != null) _when = widget.edit!.occurredAt;
+    _when = widget.edit?.occurredAt ?? widget.at;
   }
 
   @override
@@ -437,13 +441,15 @@ Future<void> showNoteSheet(
   Colony colony, {
   String type = 'note',
   ColonyEvent? edit,
-}) => _sheet(context, _NoteSheet(colony: colony, type: type, edit: edit));
+  DateTime? at,
+}) => _sheet(context, _NoteSheet(colony: colony, type: type, edit: edit, at: at));
 
 class _NoteSheet extends ConsumerStatefulWidget {
-  const _NoteSheet({required this.colony, required this.type, this.edit});
+  const _NoteSheet({required this.colony, required this.type, this.edit, this.at});
   final Colony colony;
   final String type;
   final ColonyEvent? edit;
+  final DateTime? at;
   @override
   ConsumerState<_NoteSheet> createState() => _NoteSheetState();
 }
@@ -452,7 +458,7 @@ class _NoteSheetState extends ConsumerState<_NoteSheet> {
   late final _text = TextEditingController(text: widget.edit?.note ?? '');
   late bool _problem = widget.type == 'problem';
   String _severity = 'warning';
-  DateTime? _when;
+  late DateTime? _when = widget.edit?.occurredAt ?? widget.at;
 
   @override
   Widget build(BuildContext context) => _SheetFrame(
@@ -519,12 +525,13 @@ class _NoteSheetState extends ConsumerState<_NoteSheet> {
 // -----------------------------------------------------------------------------
 // Measurement
 
-Future<void> showMeasurementSheet(BuildContext context, WidgetRef ref, Colony colony) =>
-    _sheet(context, _MeasurementSheet(colony: colony));
+Future<void> showMeasurementSheet(BuildContext context, WidgetRef ref, Colony colony, {DateTime? at}) =>
+    _sheet(context, _MeasurementSheet(colony: colony, at: at));
 
 class _MeasurementSheet extends ConsumerStatefulWidget {
-  const _MeasurementSheet({required this.colony});
+  const _MeasurementSheet({required this.colony, this.at});
   final Colony colony;
+  final DateTime? at;
   @override
   ConsumerState<_MeasurementSheet> createState() => _MeasurementSheetState();
 }
@@ -536,7 +543,7 @@ class _MeasurementSheetState extends ConsumerState<_MeasurementSheet> {
   late final _hum = TextEditingController(
     text: widget.colony.lastHumidity == null ? '' : '${widget.colony.lastHumidity!.round()}',
   );
-  DateTime? _when;
+  late DateTime? _when = widget.at;
 
   @override
   Widget build(BuildContext context) => _SheetFrame(
@@ -576,12 +583,13 @@ class _MeasurementSheetState extends ConsumerState<_MeasurementSheet> {
 // -----------------------------------------------------------------------------
 // Colony size and brood (spec §11, §12) – feeds the growth and brood charts.
 
-Future<void> showCensusSheet(BuildContext context, WidgetRef ref, Colony colony) =>
-    _sheet(context, _CensusSheet(colony: colony));
+Future<void> showCensusSheet(BuildContext context, WidgetRef ref, Colony colony, {DateTime? at}) =>
+    _sheet(context, _CensusSheet(colony: colony, at: at));
 
 class _CensusSheet extends ConsumerStatefulWidget {
-  const _CensusSheet({required this.colony});
+  const _CensusSheet({required this.colony, this.at});
   final Colony colony;
+  final DateTime? at;
   @override
   ConsumerState<_CensusSheet> createState() => _CensusSheetState();
 }
@@ -590,7 +598,7 @@ class _CensusSheetState extends ConsumerState<_CensusSheet> {
   (int, int?)? _range;
   final _exact = TextEditingController();
   final _brood = <String, String>{};
-  DateTime? _when;
+  late DateTime? _when = widget.at;
 
   static const _stages = {
     'eggs': 'Eier',
@@ -688,4 +696,61 @@ class _CensusSheetState extends ConsumerState<_CensusSheet> {
         ),
     ],
   );
+}
+
+// -----------------------------------------------------------------------------
+// Logging afterwards
+
+/// „Nachtragen“: forgot to log something – pick when, then what; the matching
+/// sheet opens with that time (still changeable there).
+Future<void> showBackdateFlow(BuildContext context, WidgetRef ref, Colony colony) async {
+  final now = DateTime.now();
+  final at = await pickPastDateTime(context, initial: DateTime(now.year, now.month, now.day - 1, now.hour, now.minute));
+  if (at == null || !context.mounted) return;
+  const kinds = <(String, IconData, String)>[
+    ('feeding', Icons.pest_control_outlined, 'Fütterung'),
+    ('water', Icons.water_drop_outlined, 'Wasser'),
+    ('cleaning', Icons.cleaning_services_outlined, 'Reinigung'),
+    ('check', Icons.visibility_outlined, 'Kontrolle'),
+    ('note', Icons.sticky_note_2_outlined, 'Notiz'),
+    ('measurement', Icons.thermostat_outlined, 'Messung'),
+    ('census', Icons.groups_outlined, 'Größe & Brut'),
+  ];
+  final type = await showModalBottomSheet<String>(
+    context: context,
+    useSafeArea: true,
+    builder: (c) => SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Text(
+              'Nachtragen · ${S.relativeDay(at, now)} ${S.time(at)}',
+              style: Theme.of(c).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          for (final (id, icon, label) in kinds)
+            ListTile(leading: Icon(icon), title: Text(label), onTap: () => Navigator.pop(c, id)),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+  if (type == null || !context.mounted) return;
+  switch (type) {
+    case 'feeding':
+      await showFeedingSheet(context, ref, colony, at: at);
+    case 'water':
+      await showWaterSheet(context, ref, colony, at: at);
+    case 'cleaning':
+      await showCleaningSheet(context, ref, colony, at: at);
+    case 'check' || 'note':
+      await showNoteSheet(context, ref, colony, type: type, at: at);
+    case 'measurement':
+      await showMeasurementSheet(context, ref, colony, at: at);
+    case 'census':
+      await showCensusSheet(context, ref, colony, at: at);
+  }
 }

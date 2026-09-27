@@ -26,6 +26,9 @@ x-settings: &settings
   UPLOAD_MAX_MB: ${UPLOAD_MAX_MB:-20}
   PHOTO_KEEP_ORIGINAL: ${PHOTO_KEEP_ORIGINAL:-false}
   LEGACY_APP_URLS: ${LEGACY_APP_URLS:-}
+  # Hinter einem Reverse Proxy/Tunnel (Caddy, Pangolin/Newt, Nginx …): dessen
+  # IP oder Netz, z. B. 172.16.0.0/12 – keine URL. Leer = kein Proxy.
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
   # E-Mail (Passwort vergessen, Tages-Überblick) – leer lassen = aus
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_PORT: ${SMTP_PORT:-587}
