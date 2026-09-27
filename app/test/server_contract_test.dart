@@ -8,7 +8,9 @@ import 'package:ant_colony_manager/core/api_client.dart';
 import 'package:ant_colony_manager/data/local/database.dart';
 import 'package:ant_colony_manager/data/repositories/colony_repository.dart';
 import 'package:ant_colony_manager/data/sync/sync_engine.dart';
+import 'package:ant_colony_manager/features/settings/devices_screen.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -196,6 +198,10 @@ void main() {
 
       final sessions = (await api.get('/api/v1/auth/sessions') as Map<String, dynamic>)['sessions'] as List;
       final mine = sessions.firstWhere((s) => s['device_id'] == deviceId);
+      // What „Geräte & Sitzungen“ shows.
+      final shown = DeviceSession((mine as Map).cast<String, dynamic>());
+      expect((shown.name, shown.current, shown.icon), ('Pixel', false, Icons.phone_android));
+      expect(sessions.where((s) => s['current'] == true), hasLength(1), reason: 'exactly one „dieses Gerät“');
       await api.delete('/api/v1/auth/sessions/${mine['id']}');
 
       phoneApi.setAccessToken(null);

@@ -152,10 +152,21 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             const SectionHeader('Konto'),
             Card(
-              child: ListTile(
-                leading: CircleAvatar(child: Text(auth.user.displayName.characters.first.toUpperCase())),
-                title: Text(auth.user.displayName),
-                subtitle: Text('${auth.user.email}${auth.user.isAdmin ? ' · Administrator' : ''}'),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: CircleAvatar(child: Text(auth.user.displayName.characters.first.toUpperCase())),
+                    title: Text(auth.user.displayName),
+                    subtitle: Text('${auth.user.email}${auth.user.isAdmin ? ' · Administrator' : ''}'),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.devices),
+                    title: const Text('Geräte & Sitzungen'),
+                    subtitle: const Text('Wo du angemeldet bist – verlorenes Handy abmelden'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/settings/devices'),
+                  ),
+                ],
               ),
             ),
             const SectionHeader('Auswertung'),
