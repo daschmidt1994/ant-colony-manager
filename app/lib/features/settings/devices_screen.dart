@@ -32,7 +32,9 @@ class DeviceSession {
 
 /// „Firefox auf Windows“ from a user agent – good enough to recognise a device.
 String? describeUserAgent(String? ua) {
-  if (ua == null || ua.isEmpty) return null;
+  if (ua == null || ua.isEmpty || ua.startsWith('Dart/')) return null;
+  // Scripts and tools (curl, a sensor gateway …): their own name.
+  if (!ua.startsWith('Mozilla/')) return ua.split(' ').first;
   final browser = ua.contains('Edg/')
       ? 'Edge'
       : ua.contains('Firefox/')

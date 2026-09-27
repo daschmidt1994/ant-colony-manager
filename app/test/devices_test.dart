@@ -21,6 +21,7 @@ void main() {
     );
     expect(describeUserAgent('Mozilla/5.0 (Windows NT 10.0) Chrome/140.0 Safari/537.36 Edg/140.0'), 'Edge auf Windows');
     expect(describeUserAgent('Dart/3.12 (dart:io)'), isNull);
+    expect(describeUserAgent('curl/8.5.0'), 'curl/8.5.0');
     expect(describeUserAgent(null), isNull);
   });
 
