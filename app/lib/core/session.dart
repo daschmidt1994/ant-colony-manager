@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../data/local/database.dart';
+import '../data/sync/background_sync.dart';
 import '../data/repositories/colony_repository.dart' show newId;
 import '../data/sync/sync_engine.dart';
 import 'api_client.dart';
@@ -58,10 +59,13 @@ class NeedsServer extends AuthState {
 }
 
 class SignedOut extends AuthState {
-  const SignedOut(this.serverUrl, {this.setupRequired = false, this.instanceName});
+  const SignedOut(this.serverUrl, {this.setupRequired = false, this.instanceName, this.notice});
   final String serverUrl;
   final bool setupRequired;
   final String? instanceName;
+
+  /// Why the user was signed out (shown on the login screen).
+  final String? notice;
 }
 
 class SignedIn extends AuthState {
@@ -149,6 +153,8 @@ class AuthController extends Notifier<AuthState> {
       } else {
         state = await _signedOut(url);
       }
+    } on DeviceRevokedException {
+      await deviceRevoked();
     } on NetworkException {
       state = SignedIn(url, user, offline: true); // offline-first: open with local data
     }
@@ -241,8 +247,33 @@ class AuthController extends Notifier<AuthState> {
     if (s is SignedIn) state = SignedOut(s.serverUrl);
   }
 
+  /// The device was signed out elsewhere: remove all local data (docs/08 §7).
+  Future<void> deviceRevoked() async {
+    final url = switch (state) {
+      SignedIn(:final serverUrl) => serverUrl,
+      SignedOut(:final serverUrl) => serverUrl,
+      _ => null,
+    };
+    await _store.writeRefresh(null);
+    await _store.write('user', null);
+    _api?.setAccessToken(null);
+    _db.wipe();
+    if (url != null) {
+      final s = await _signedOut(url);
+      state = s is SignedOut
+          ? SignedOut(
+              url,
+              setupRequired: s.setupRequired,
+              instanceName: s.instanceName,
+              notice: 'Dieses Gerät wurde abgemeldet. Die lokalen Daten wurden entfernt.',
+            )
+          : s;
+    }
+  }
+
   Future<void> logout({bool keepData = false}) async {
     final s = state;
+    await cancelBackgroundSync().catchError((Object _) {});
     try {
       await _api?.post('/api/v1/auth/logout');
     } on Exception {
@@ -284,6 +315,7 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
   );
   final sub = engine.status.listen((s) {
     if (s.phase == SyncPhase.loginRequired) ctrl.sessionExpired();
+    if (s.phase == SyncPhase.deviceRevoked) ctrl.deviceRevoked();
   });
   engine.start();
   ref.onDispose(() {

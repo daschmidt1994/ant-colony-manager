@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:ant_colony_manager/core/api_client.dart';
 import 'package:ant_colony_manager/data/local/database.dart';
@@ -29,6 +30,15 @@ class FakeServer {
   final rows = <String, Map<String, Map<String, dynamic>>>{}; // entity -> id -> row
   final log = <Map<String, dynamic>>[]; // change log
   final rejectEntities = <String>{};
+
+  /// Chaos mode: requests fail before processing, or their response is lost
+  /// after the server applied them.
+  Random? chaos;
+  double failBefore = 0, failAfter = 0;
+  final createCount = <String, int>{};
+
+  /// Simulates „signed out from another device“.
+  bool deviceRevoked = false;
   int horizon = 0;
   int pushes = 0;
 
@@ -43,6 +53,12 @@ class FakeServer {
 
   late final http.Client client = MockClient((req) async {
     if (!online) throw http.ClientException('offline');
+    if (chaos != null && chaos!.nextDouble() < failBefore) throw http.ClientException('chaos: no connection');
+    if (deviceRevoked) {
+      return req.url.path == '/api/v1/auth/refresh'
+          ? _json({'code': 'device.revoked', 'title': 'signed out'}, 401)
+          : _json({'code': 'auth.unauthorized', 'title': 'unauthorized'}, 401);
+    }
     final path = req.url.path;
     if (path == '/api/v1/sync/push') {
       pushes++;
@@ -66,14 +82,36 @@ class FakeServer {
         } else if (op['op'] == 'create' && rows[entity]?.containsKey(eid) == true) {
           result = {'op_id': id, 'status': 'duplicate', 'version': rows[entity]![eid]!['version']};
         } else if (op['op'] == 'delete') {
-          put(entity, rows[entity]![eid]!, deleted: true);
-          result = {'op_id': id, 'status': 'applied', 'version': seq};
+          final row = rows[entity]?[eid];
+          if (row == null || row['deleted_at'] != null) {
+            result = {'op_id': id, 'status': 'duplicate', 'version': row?['version'] ?? 0};
+          } else {
+            put(entity, row, deleted: true);
+            result = {'op_id': id, 'status': 'applied', 'version': seq};
+          }
+        } else if (op['op'] == 'update') {
+          final row = rows[entity]?[eid];
+          if (row == null || row['deleted_at'] != null) {
+            // like the real server: delete wins
+            result = {
+              'op_id': id,
+              'status': 'rejected',
+              'error': {'code': row == null ? 'entity.not_found' : 'entity.deleted', 'title': 'deleted'},
+            };
+          } else {
+            put(entity, {...row, ...(op['payload'] as Map<String, dynamic>), 'id': eid});
+            result = {'op_id': id, 'status': 'applied', 'version': seq};
+          }
         } else {
-          put(entity, {...?rows[entity]?[eid], ...(op['payload'] as Map<String, dynamic>), 'id': eid});
+          put(entity, {...(op['payload'] as Map<String, dynamic>), 'id': eid});
+          createCount[eid] = (createCount[eid] ?? 0) + 1;
           result = {'op_id': id, 'status': 'applied', 'version': seq};
         }
         appliedOps[id] = result;
         results.add(result);
+      }
+      if (chaos != null && chaos!.nextDouble() < failAfter) {
+        throw http.ClientException('chaos: response lost after commit');
       }
       if (dropNextResponse) {
         dropNextResponse = false;
@@ -84,9 +122,23 @@ class FakeServer {
     if (path == '/api/v1/sync/pull') {
       final since = int.parse(req.url.queryParameters['since']!);
       if (since < horizon) return _json({'code': 'sync.resync_required', 'title': 'resync'}, 410);
+      // Like the server: one entry per record with its *current* state.
+      final latest = <String, Map<String, dynamic>>{};
+      for (final c in log.where((c) => (c['seq'] as int) > since)) {
+        latest['${c['entity']}/${c['id']}'] = c;
+      }
       final changes = [
-        for (final c in log.where((c) => (c['seq'] as int) > since))
-          {...c, if (c['op'] == 'upsert') 'data': rows[c['entity']]![c['id']]},
+        for (final c in latest.values.toList()..sort((a, b) => (a['seq'] as int).compareTo(b['seq'] as int)))
+          if (rows[c['entity']]![c['id']]!['deleted_at'] != null)
+            {'seq': c['seq'], 'entity': c['entity'], 'id': c['id'], 'op': 'delete'}
+          else
+            {
+              'seq': c['seq'],
+              'entity': c['entity'],
+              'id': c['id'],
+              'op': 'upsert',
+              'data': rows[c['entity']]![c['id']],
+            },
       ];
       return _json({'changes': changes, 'next': seq, 'has_more': false});
     }

@@ -161,6 +161,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with _Busy {
       title: 'Anmelden',
       subtitle: kIsWeb ? null : server,
       children: [
+        if (auth is SignedOut && auth.notice != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(auth.notice!, style: TextStyle(color: context.colors.soon)),
+          ),
         TextField(
           controller: _email,
           keyboardType: TextInputType.emailAddress,

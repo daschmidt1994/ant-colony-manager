@@ -11,6 +11,32 @@ import '../../core/session.dart';
 import '../../data/sync/sync_engine.dart';
 import '../../shared/widgets.dart';
 
+/// Conflicts the server resolved automatically (docs/05 §5) – losing values stay visible.
+final conflictsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final res = await ref.read(authProvider.notifier).api.get('/api/v1/sync/conflicts') as Map<String, dynamic>;
+  return (res['conflicts'] as List).cast<Map<String, dynamic>>();
+});
+
+const _entityNames = {
+  'colonies': 'Kolonie',
+  'colony_events': 'Eintrag',
+  'locations': 'Standort',
+  'care_schedules': 'Intervall',
+  'queens': 'Königin',
+  'food_items': 'Futtermittel',
+};
+
+const _fieldNames = {
+  'name': 'Name',
+  'notes': 'Notizen',
+  'note': 'Notiz',
+  'status': 'Status',
+  'location_id': 'Standort',
+  'interval_days': 'Intervall',
+  'occurred_at': 'Zeitpunkt',
+  'details_rev': 'Details',
+};
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -226,6 +252,45 @@ class SyncDetailsScreen extends ConsumerWidget {
               icon: const Icon(Icons.cloud_download_outlined),
               label: const Text('Alles neu vom Server laden'),
             ),
+            ...ref
+                .watch(conflictsProvider)
+                .maybeWhen(
+                  data: (list) => list.isEmpty
+                      ? <Widget>[]
+                      : [
+                          const SectionHeader('Gleichzeitig geändert'),
+                          Text(
+                            'Diese Felder wurden auf zwei Geräten geändert. Die neuere Änderung wurde übernommen.',
+                            style: TextStyle(color: context.colors.muted),
+                          ),
+                          const SizedBox(height: 8),
+                          for (final c in list)
+                            Card(
+                              child: ListTile(
+                                leading: Icon(Icons.merge_type, color: context.colors.soon),
+                                title: Text(
+                                  '${_entityNames[c['entity']] ?? c['entity']} · ${_fieldNames[c['field']] ?? c['field']}',
+                                ),
+                                subtitle: Text(
+                                  'übernommen: ${_show(c['kept_value'])}\nverworfen: ${_show(c['lost_value'])}',
+                                ),
+                                isThreeLine: true,
+                                trailing: IconButton(
+                                  tooltip: 'Hinweis entfernen',
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () async {
+                                    await ref
+                                        .read(authProvider.notifier)
+                                        .api
+                                        .delete('/api/v1/sync/conflicts/${c['id']}');
+                                    ref.invalidate(conflictsProvider);
+                                  },
+                                ),
+                              ),
+                            ),
+                        ],
+                  orElse: () => <Widget>[],
+                ),
             if (failed.isNotEmpty) ...[
               const SectionHeader('Vom Server abgelehnt'),
               for (final op in failed)
@@ -250,3 +315,5 @@ class SyncDetailsScreen extends ConsumerWidget {
     );
   }
 }
+
+String _show(Object? v) => v == null ? '–' : (v is String ? v : v.toString());

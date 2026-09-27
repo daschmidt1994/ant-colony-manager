@@ -259,6 +259,10 @@ func (s *Service) issueSession(ctx context.Context, q db.Querier, user, family u
 	actor := Actor{UserID: user}
 	var deviceID *uuid.UUID
 	if meta.Device != nil && meta.Device.ID != uuid.Nil {
+		// A fresh sign-in on a device that was signed out before re-enables it.
+		if _, err := q.Exec(ctx, `UPDATE devices SET revoked_at = NULL WHERE id = $1 AND user_id = $2`, meta.Device.ID, user); err != nil {
+			return nil, err
+		}
 		if err := s.RegisterDevice(ctx, actor, *meta.Device); err != nil {
 			return nil, err
 		}
@@ -309,10 +313,12 @@ func (s *Service) Refresh(ctx context.Context, token string, meta ClientMeta) (*
 		var id, user, family uuid.UUID
 		var device *uuid.UUID
 		var expires time.Time
-		var rotated, revoked, disabled *time.Time
-		err := tx.QueryRow(ctx, `SELECT s.id, s.user_id, s.family_id, s.device_id, s.expires_at, s.rotated_at, s.revoked_at, u.disabled_at
-			FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 FOR UPDATE OF s`,
-			auth.HashToken(token)).Scan(&id, &user, &family, &device, &expires, &rotated, &revoked, &disabled)
+		var rotated, revoked, disabled, deviceRevoked *time.Time
+		err := tx.QueryRow(ctx, `SELECT s.id, s.user_id, s.family_id, s.device_id, s.expires_at, s.rotated_at, s.revoked_at,
+			u.disabled_at, d.revoked_at
+			FROM sessions s JOIN users u ON u.id = s.user_id LEFT JOIN devices d ON d.id = s.device_id
+			WHERE s.token_hash = $1 FOR UPDATE OF s`,
+			auth.HashToken(token)).Scan(&id, &user, &family, &device, &expires, &rotated, &revoked, &disabled, &deviceRevoked)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrUnauthorized
 		}
@@ -321,6 +327,9 @@ func (s *Service) Refresh(ctx context.Context, token string, meta ClientMeta) (*
 		}
 		now := s.Now()
 		switch {
+		case revoked != nil && deviceRevoked != nil:
+			// Signed out from another device: the app must wipe its local data.
+			return ErrDeviceRevoked
 		case revoked != nil, disabled != nil, now.After(expires):
 			return ErrUnauthorized
 		case rotated != nil:

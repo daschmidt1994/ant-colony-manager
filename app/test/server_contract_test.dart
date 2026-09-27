@@ -161,6 +161,44 @@ void main() {
       expect(phone.repo.colony(colony)!.notes, 'vom Handy');
       expect(phone.repo.colony(colony)!.status, 'founding');
       expect(tablet.repo.colony(colony)!.notes, 'vom Handy');
+
+      // Same field on both devices: they agree afterwards, the loser is logged.
+      phone.repo.updateColony(colony, {'name': 'Vom Handy'});
+      tablet.repo.updateColony(colony, {'name': 'Vom Tablet'});
+      await phone.sync();
+      await tablet.sync();
+      await phone.sync();
+      expect(phone.repo.colony(colony)!.name, tablet.repo.colony(colony)!.name);
+      final conflicts = await api.get('/api/v1/sync/conflicts') as Map<String, dynamic>;
+      expect((conflicts['conflicts'] as List).where((c) => c['field'] == 'name'), isNotEmpty);
+    },
+    skip: server == null ? 'set ACM_TEST_SERVER to run against a real server' : false,
+  );
+
+  test(
+    'a device signed out in the web app is told to wipe its data',
+    () async {
+      final deviceId = newId();
+      final phoneApi = ApiClient(baseUrl: server!, tokens: MemoryTokens(), isWeb: false);
+      final session =
+          await phoneApi.public('POST', '/api/v1/auth/login', {
+                'email': 'contract@ants.test',
+                'password': 'Contract-Test-2026',
+                'device': {'device_id': deviceId, 'device_name': 'Pixel', 'platform': 'android'},
+              })
+              as Map<String, dynamic>;
+      await phoneApi.adopt(session);
+      final phone = Device('revoked-phone', phoneApi, userId);
+      await phone.sync();
+
+      final sessions = (await api.get('/api/v1/auth/sessions') as Map<String, dynamic>)['sessions'] as List;
+      final mine = sessions.firstWhere((s) => s['device_id'] == deviceId);
+      await api.delete('/api/v1/auth/sessions/${mine['id']}');
+
+      phoneApi.setAccessToken(null);
+      phone.repo.createColony({'name': 'Nach Abmeldung', 'species_text': 'x'});
+      await phone.engine.sync();
+      expect(phone.engine.current.phase, SyncPhase.deviceRevoked);
     },
     skip: server == null ? 'set ACM_TEST_SERVER to run against a real server' : false,
   );

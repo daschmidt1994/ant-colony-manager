@@ -186,7 +186,7 @@ func TestDeviceLinkConnectsAppWithoutPassword(t *testing.T) {
 	if !strings.HasPrefix(link["qr_payload"].(string), "https://ants.test/link#code=") {
 		t.Fatalf("unexpected payload %v", link["qr_payload"])
 	}
-	device := map[string]any{"device_id": testenv.NewID(), "device_name": "Pixel", "platform": "android"}
+	device := map[string]any{"device_id": testenv.NewID().String(), "device_name": "Pixel", "platform": "android"}
 	r := env.Anon().Do("POST", "/api/v1/auth/device-link/redeem", map[string]any{"code": link["code"], "device": device}).Must(t, 200)
 	if r.JSON()["user"].(map[string]any)["email"] != "web@ants.test" {
 		t.Fatalf("wrong user: %s", r.Body)
@@ -253,4 +253,34 @@ func TestWebAssetsRevalidateWithETag(t *testing.T) {
 	// App routes fall back to index.html, unknown files are 404.
 	env.Anon().Do("GET", "/colonies/abc", nil).Must(t, 200)
 	env.Anon().Do("GET", "/missing.js", nil).Must(t, 404)
+}
+
+func TestSignedOutDeviceIsToldToWipeAndCanSignInAgain(t *testing.T) {
+	env := testenv.New(t)
+	web := env.User(t, "Anna")
+	device := map[string]any{"device_id": testenv.NewID().String(), "device_name": "Pixel", "platform": "android"}
+	login := map[string]any{"email": "anna@ants.test", "password": "Messor-barbarus-12", "device": device}
+	phone := env.Anon().Do("POST", "/api/v1/auth/login", login).Must(t, 200).JSON()
+
+	// Web: sign the phone out.
+	var phoneSession string
+	for _, s := range web.Do("GET", "/api/v1/auth/sessions", nil).Must(t, 200).JSON()["sessions"].([]any) {
+		if m := s.(map[string]any); m["device_id"] == device["device_id"] {
+			phoneSession = m["id"].(string)
+		}
+	}
+	if phoneSession == "" {
+		t.Fatal("phone session not listed")
+	}
+	web.Do("DELETE", "/api/v1/auth/sessions/"+phoneSession, nil).Must(t, 204)
+
+	r := env.Anon().Do("POST", "/api/v1/auth/refresh", map[string]any{"refresh_token": phone["refresh_token"]})
+	if r.Status != 401 || r.Code() != "device.revoked" {
+		t.Fatalf("expected device.revoked, got %d %s", r.Status, r.Body)
+	}
+
+	// Signing in again on the same device works, including sync.
+	again := env.Anon().Do("POST", "/api/v1/auth/login", login).Must(t, 200).JSON()
+	c := &testenv.Client{Env: env, Token: again["access_token"].(string), Headers: map[string]string{}}
+	c.Do("POST", "/api/v1/sync/push", map[string]any{"device_id": device["device_id"], "platform": "android", "ops": []any{}}).Must(t, 200)
 }

@@ -40,6 +40,7 @@ var (
 	ErrInvalidCredentials = newProblem(http.StatusUnauthorized, "auth.invalid_credentials", "e-mail or password is wrong")
 	ErrForbidden          = newProblem(http.StatusForbidden, "auth.forbidden", "not allowed")
 	ErrGone               = newProblem(http.StatusGone, "entity.deleted", "this record was deleted")
+	ErrDeviceRevoked      = newProblem(http.StatusUnauthorized, "device.revoked", "this device was signed out – local data must be removed")
 )
 
 func Conflict(code, title string) *Problem { return newProblem(http.StatusConflict, code, title) }

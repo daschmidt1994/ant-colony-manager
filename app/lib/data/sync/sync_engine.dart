@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/api_client.dart';
 import '../local/database.dart';
 
-enum SyncPhase { idle, syncing, offline, error, loginRequired }
+enum SyncPhase { idle, syncing, offline, error, loginRequired, deviceRevoked }
 
 @immutable
 class SyncStatus {
@@ -103,6 +103,9 @@ class SyncEngine {
           _set(_current.copyWith(phase: SyncPhase.idle, lastSync: now));
         } on NetworkException {
           _set(_current.copyWith(phase: SyncPhase.offline, message: 'Keine Verbindung zum Server'));
+          return;
+        } on DeviceRevokedException {
+          _set(_current.copyWith(phase: SyncPhase.deviceRevoked, message: 'Dieses Gerät wurde abgemeldet'));
           return;
         } on SessionExpiredException {
           _set(_current.copyWith(phase: SyncPhase.loginRequired, message: 'Bitte erneut anmelden'));
@@ -208,6 +211,8 @@ class SyncEngine {
         final m = db.record(entity, id)?.json;
         if (m != null && m['user_id'] == userId) db.purgeColony(m['colony_id'] as String);
       }
+      // A deleted colony takes its events, schedules, links … with it.
+      if (entity == 'colonies') db.purgeColony(id);
       db.removeRecord(entity, id);
       return;
     }

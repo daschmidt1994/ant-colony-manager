@@ -26,6 +26,10 @@ class NetworkException implements Exception {
 /// Session is gone (refresh failed) – the user must log in again.
 class SessionExpiredException implements Exception {}
 
+/// This device was signed out from another device (web: „Geräte“) –
+/// local data must be removed.
+class DeviceRevokedException extends SessionExpiredException {}
+
 class Tokens {
   Tokens({required this.access, required this.refresh});
   final String access;
@@ -156,8 +160,11 @@ class ApiClient {
     }
     _access = null;
     if (!isWeb) await tokens.writeRefresh(null);
+    if (res.statusCode == 401 && res.body.contains('device.revoked')) throw DeviceRevokedException();
     return false;
   }
+
+  String? get accessToken => _access;
 
   /// Applies a login/setup/refresh answer.
   Future<void> adopt(Map<String, dynamic> session) async {

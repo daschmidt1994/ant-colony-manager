@@ -192,6 +192,10 @@ class AppDatabase {
     }
   }
 
+  /// Another process (the background sync) wrote to the database file:
+  /// re-run all reactive queries.
+  void notifyExternalChange() => _markDirty(tables);
+
   /// Emits [query] now and again whenever one of [on] changes.
   Stream<T> watch<T>(T Function() query, {Set<String> on = const {'records'}}) {
     late StreamController<T> c;

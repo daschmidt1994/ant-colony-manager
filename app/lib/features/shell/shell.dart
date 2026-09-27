@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../nfc/nfc_screens.dart';
+import 'sync_triggers.dart';
 
 /// Navigation: bottom bar on phones, rail on wide screens (web/tablet).
 /// Scanning is the main navigation, so it sits in the middle.
@@ -19,7 +20,7 @@ class AppShell extends StatelessWidget {
   void _go(int i) => shell.goBranch(i, initialLocation: i == shell.currentIndex);
 
   @override
-  Widget build(BuildContext context) => NfcScope(child: _layout(context));
+  Widget build(BuildContext context) => SyncTriggers(child: NfcScope(child: _layout(context)));
 
   Widget _layout(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 900;
