@@ -67,7 +67,7 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
     if (c.locationPath != null) ('Standort', c.locationPath!),
     if (c.queenCount != null) ('Königinnen', '${c.queenCount}'),
     ('Arbeiterinnen', c.workerMin == null ? 'keine Angabe' : 'ca. ${S.workers(c.workerMin, c.workerMax)}'),
-    ('Koloniegründung', S.gyneNames[c.gyneType] ?? c.gyneType),
+    if (c.gyneType != 'unknown') ('Gynie', S.gyneNames[c.gyneType] ?? c.gyneType),
     if (c.lastTemperature != null || c.lastHumidity != null)
       (
         'Letzte Messung',
@@ -156,7 +156,8 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
 
         if (all.temperature.isNotEmpty || all.humidity.isNotEmpty) ...[
           h2('Temperatur und Luftfeuchtigkeit'),
-          if (all.temperature.isNotEmpty)
+          if (all.temperature.isNotEmpty) ...[
+            pw.Text('Temperatur', style: small),
             _lineChart(
               [(all.temperature, _protein, false)],
               from: all.buckets.from,
@@ -164,8 +165,10 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
               format: (v) => '${S.decimal(v)} °C',
               small: small,
             ),
+          ],
           if (all.humidity.isNotEmpty) ...[
             pw.SizedBox(height: 8),
+            pw.Text('Luftfeuchtigkeit', style: small),
             _lineChart(
               [(all.humidity, _water, false)],
               from: all.buckets.from,

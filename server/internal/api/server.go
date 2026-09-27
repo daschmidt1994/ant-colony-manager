@@ -127,6 +127,7 @@ func (s *Server) Handler() *chi.Mux {
 
 			r.Get("/dashboard", s.dashboard)
 			r.Get("/export.json", s.export)
+			r.Get("/export.zip", s.exportZip)
 
 			r.Get("/colonies", s.listColonies)
 			r.Post("/colonies", s.createEntity("colonies"))

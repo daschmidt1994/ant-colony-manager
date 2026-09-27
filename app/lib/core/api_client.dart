@@ -81,6 +81,27 @@ class ApiClient {
   Future<dynamic> putBytes(String path, Uint8List bytes, {Map<String, String>? headers}) =>
       _send('PUT', path, bytes: bytes, extraHeaders: headers);
 
+  /// Authenticated binary GET (e.g. the ZIP export).
+  Future<Uint8List> getBytes(String path, {Map<String, String>? query}) async {
+    Future<http.Response> once() async {
+      try {
+        return await _http.get(uri(path, query), headers: _headers(json: false)).timeout(const Duration(minutes: 10));
+      } on TimeoutException catch (e) {
+        throw NetworkException(e);
+      } on http.ClientException catch (e) {
+        throw NetworkException(e);
+      }
+    }
+
+    var res = await once();
+    if (res.statusCode == 401) {
+      if (!await refresh()) throw SessionExpiredException();
+      res = await once();
+    }
+    if (res.statusCode != 200) _decode(res); // throws the server's problem
+    return res.bodyBytes;
+  }
+
   /// Downloads a file, e.g. a signed `/files/…` URL returned by the server.
   Future<Uint8List> download(String url) async {
     final u = url.startsWith('http') ? Uri.parse(url) : Uri.parse('$baseUrl$url');

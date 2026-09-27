@@ -109,9 +109,7 @@ class _ColonyStatsScreenState extends ConsumerState<ColonyStatsScreen> {
     final hum = [...s.humidity, ...?sensors['humidity']]..sort((a, b) => a.at.compareTo(b.at));
     return [
       const SizedBox(height: 16),
-      Wrap(
-        spacing: 10,
-        runSpacing: 10,
+      _KpiGrid(
         children: [
           _Kpi('${s.feedings}', 'Fütterungen', sub: 'Protein ${s.protein} · KH ${s.carbohydrate}'),
           _Kpi('${s.water}', 'Wasser'),
@@ -213,26 +211,46 @@ const _broodNames = {
 };
 const _broodColors = [Color(0xFFE0C068), Color(0xFFD08A5A), Color(0xFF8EAE6A), Color(0xFF6AA0B8), Color(0xFFB07AC0)];
 
+/// Two columns on phones, four on wide screens; tiles fill the width.
+class _KpiGrid extends StatelessWidget {
+  const _KpiGrid({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final n = box.maxWidth >= 640 ? 4 : 2;
+      final w = (box.maxWidth - 10 * (n - 1)) / n;
+      return Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [for (final c in children) SizedBox(width: w, child: c)],
+      );
+    },
+  );
+}
+
 class _Kpi extends StatelessWidget {
   const _Kpi(this.value, this.label, {this.sub});
   final String value, label;
   final String? sub;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 160,
-    child: Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-            Text(label, style: TextStyle(color: context.colors.muted)),
-            if (sub != null) Text(sub!, style: TextStyle(color: context.colors.muted, fontSize: 12)),
-          ],
-        ),
+  Widget build(BuildContext context) => Card(
+    margin: EdgeInsets.zero,
+    child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+          ),
+          Text(label, style: TextStyle(color: context.colors.muted)),
+          if (sub != null) Text(sub!, style: TextStyle(color: context.colors.muted, fontSize: 12)),
+        ],
       ),
     ),
   );
@@ -518,9 +536,7 @@ class CollectionStatsScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
+              _KpiGrid(
                 children: [
                   _Kpi('${s.colonies}', 'Kolonien'),
                   _Kpi('${s.species}', 'Arten'),

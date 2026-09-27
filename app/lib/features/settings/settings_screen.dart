@@ -9,6 +9,7 @@ import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
+import '../../core/web_meta.dart';
 import '../../data/sync/sync_engine.dart';
 import '../../data/sync/upload_policy.dart';
 import '../../shared/widgets.dart';
@@ -213,6 +214,24 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/labels'),
               ),
             ),
+            const SectionHeader('Daten'),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.download_outlined),
+                    title: const Text('Alles exportieren (ZIP)'),
+                    subtitle: const Text('JSON, CSV-Tabellen für Excel und alle Fotos – deine Daten gehören dir'),
+                    onTap: () => _export(context, ref, photos: true),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.table_chart_outlined),
+                    title: const Text('Nur Daten (ohne Fotos)'),
+                    onTap: () => _export(context, ref, photos: false),
+                  ),
+                ],
+              ),
+            ),
             const SectionHeader('Darstellung'),
             SegmentedButton<ThemeMode>(
               segments: const [
@@ -251,6 +270,37 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _export(BuildContext context, WidgetRef ref, {required bool photos}) async {
+    if (!kIsWeb) {
+      // Android has no convenient place for a large ZIP; the web app downloads it directly.
+      await showDialog<void>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: const Text('Export in der Web-App'),
+          content: const Text(
+            'Öffne die Web-App im Browser (gleiche Adresse wie der Server) und wähle dort '
+            '„Mehr → Alles exportieren“. Die ZIP-Datei landet im Download-Ordner.',
+          ),
+          actions: [FilledButton(onPressed: () => Navigator.pop(d), child: const Text('OK'))],
+        ),
+      );
+      return;
+    }
+    final m = ScaffoldMessenger.of(context);
+    m.showSnackBar(const SnackBar(content: Text('Export wird erstellt …')));
+    try {
+      final bytes = await ref
+          .read(authProvider.notifier)
+          .api
+          .getBytes('/api/v1/export.zip', query: {'photos': photos ? '1' : '0'});
+      final day = DateTime.now().toIso8601String().substring(0, 10);
+      downloadFile('ant-colony-manager-export-$day.zip', bytes, 'application/zip');
+      m.hideCurrentSnackBar();
+    } catch (e) {
+      m.showSnackBar(SnackBar(content: Text(errorText(e))));
+    }
   }
 
   static String _syncTitle(SyncStatus s) => switch (s.phase) {

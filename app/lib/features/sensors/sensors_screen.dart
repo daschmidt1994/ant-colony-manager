@@ -225,8 +225,8 @@ class _SensorSheet extends ConsumerWidget {
         .where((c) => repo.roleOn(c.id) == 'owner')
         .toList();
     final id = s['id'] as String;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -254,7 +254,29 @@ class _SensorSheet extends ConsumerWidget {
             value: s['active'] != false,
             onChanged: (v) => repo.updateSensor(id, {'active': v}),
           ),
+          const SectionHeader('Grenzwerte'),
+          Text(
+            'Liegt ein Messwert außerhalb, entsteht automatisch ein „Problem“-Eintrag bei der Kolonie '
+            'und eine Benachrichtigung (höchstens alle 6 Stunden).',
+            style: TextStyle(color: context.colors.muted, fontSize: 12),
+          ),
           const SizedBox(height: 8),
+          Row(
+            children: [
+              _LimitField(sensor: s, field: 'temp_min', label: 'Temp. min', suffix: '°C'),
+              const SizedBox(width: 8),
+              _LimitField(sensor: s, field: 'temp_max', label: 'Temp. max', suffix: '°C'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _LimitField(sensor: s, field: 'humidity_min', label: 'Feuchte min', suffix: '%'),
+              const SizedBox(width: 8),
+              _LimitField(sensor: s, field: 'humidity_max', label: 'Feuchte max', suffix: '%'),
+            ],
+          ),
+          const SizedBox(height: 16),
           OutlinedButton.icon(
             icon: const Icon(Icons.key),
             label: const Text('Neuen Schlüssel erzeugen'),
@@ -283,4 +305,55 @@ class _SensorSheet extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Saves when editing is finished; empty = no limit.
+class _LimitField extends ConsumerStatefulWidget {
+  const _LimitField({required this.sensor, required this.field, required this.label, required this.suffix});
+  final Map<String, dynamic> sensor;
+  final String field, label, suffix;
+  @override
+  ConsumerState<_LimitField> createState() => _LimitFieldState();
+}
+
+class _LimitFieldState extends ConsumerState<_LimitField> {
+  late final _c = TextEditingController(text: _text(widget.sensor[widget.field]));
+  final _focus = FocusNode();
+
+  static String _text(Object? v) => v == null ? '' : S.decimal((v as num).toDouble()).replaceAll(',0', '');
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() {
+      if (!_focus.hasFocus) _save();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final t = _c.text.trim().replaceAll(',', '.');
+    final v = t.isEmpty ? null : double.tryParse(t);
+    if (t.isNotEmpty && v == null) return;
+    final old = (widget.sensor[widget.field] as num?)?.toDouble();
+    if (v == old) return;
+    ref.read(repositoryProvider)!.updateSensor(widget.sensor['id'] as String, {widget.field: v});
+  }
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: TextField(
+      controller: _c,
+      focusNode: _focus,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+      decoration: InputDecoration(labelText: widget.label, suffixText: widget.suffix, isDense: true),
+      onSubmitted: (_) => _save(),
+    ),
+  );
 }

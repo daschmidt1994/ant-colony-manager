@@ -18,5 +18,9 @@ String? handleReminder(ColonyRepository repo, {String? actionId, String? payload
         return null;
     }
   }
-  return p['kind'] == 'digest' ? '/' : open;
+  return switch (p['kind']) {
+    'digest' => '/',
+    'sensor' => '/settings/sensors',
+    _ => open,
+  };
 }

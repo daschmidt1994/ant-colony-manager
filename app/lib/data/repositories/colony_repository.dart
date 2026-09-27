@@ -545,6 +545,15 @@ class ColonyRepository {
       tasks: openTasks(),
       now: now(),
       notifyOverdue: settings().notifyOverdue,
+      sensorProblems: [
+        for (final r in db.select(
+          '''SELECT data FROM records WHERE entity = 'colony_events' AND ts > ?
+             AND json_extract(data, '\$.type') = 'problem' AND json_extract(data, '\$.payload.source') = 'sensor' ''',
+          [now().subtract(const Duration(hours: 24)).millisecondsSinceEpoch],
+        ))
+          _decode(r['data'] as String),
+      ],
+      sensors: sensors(),
     );
   }
 

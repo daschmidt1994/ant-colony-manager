@@ -46,6 +46,8 @@ List<Reminder> overdueReminders({
   required List<Map<String, dynamic>> tasks,
   required DateTime now,
   required bool notifyOverdue,
+  List<Map<String, dynamic>> sensorProblems = const [],
+  List<Map<String, dynamic>> sensors = const [],
 }) {
   final byId = {for (final c in colonies) c.id: c};
   final out = <Reminder>[];
@@ -104,8 +106,44 @@ List<Reminder> overdueReminders({
       ),
     );
   }
+
+  // Automations: limits exceeded (the server wrote a „problem“ entry) …
+  for (final e in sensorProblems) {
+    final at = DateTime.tryParse(e['occurred_at'] as String? ?? '');
+    final c = byId[e['colony_id']];
+    if (at == null || c == null || now.difference(at) > const Duration(hours: 24)) continue;
+    out.add(
+      Reminder(
+        key: 'alert:${e['id']}',
+        slot: 'alert:${e['id']}',
+        title: '⚠ ${titleOf(c)}',
+        body: e['note'] as String? ?? 'Sensor-Grenzwert überschritten',
+        payload: {'kind': 'problem', 'colony': c.id},
+      ),
+    );
+  }
+  // … and sensors that went silent.
+  for (final s in sensors) {
+    final seen = DateTime.tryParse(s['last_seen_at'] as String? ?? '');
+    if (seen == null || s['active'] == false) continue;
+    final silent = now.difference(seen);
+    if (silent < sensorSilentAfter) continue;
+    out.add(
+      Reminder(
+        key: 'silent:${s['id']}:${s['last_seen_at']}',
+        slot: 'silent:${s['id']}',
+        title: 'Sensor „${s['name'] ?? 'Sensor'}“',
+        body:
+            'Sendet seit ${silent.inHours < 48 ? '${silent.inHours} Stunden' : '${silent.inDays} Tagen'} keine Daten – Stromversorgung oder WLAN prüfen.',
+        payload: {'kind': 'sensor', 'sensor': s['id']},
+      ),
+    );
+  }
   return out;
 }
+
+/// A sensor that sent nothing for this long is reported.
+const sensorSilentAfter = Duration(hours: 6);
 
 /// „7 Kolonien brauchen heute Aufmerksamkeit (3 überfällig)“ – null if nothing is due.
 Digest? digestFor(Map<String, List<DueTask>> due, {int winterEnds = 0}) {

@@ -382,6 +382,19 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusOK, ex)
 }
 
+// exportZip streams JSON + CSV tables (+ photos unless ?photos=0) as one ZIP.
+func (s *Server) exportZip(w http.ResponseWriter, r *http.Request) {
+	photos := r.URL.Query().Get("photos") != "0"
+	// Many photos take longer than the server's normal write timeout.
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(30 * time.Minute))
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", `attachment; filename="ant-colony-manager-export-`+time.Now().Format("2006-01-02")+`.zip"`)
+	if err := s.svc.ExportZip(r.Context(), actorOf(r), w, photos); err != nil {
+		// Headers are gone already; the truncated ZIP is detected by any unzip tool.
+		s.log.Error("zip export failed", "err", err)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Members
 

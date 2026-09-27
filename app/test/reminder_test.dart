@@ -75,7 +75,7 @@ void main() {
       'water',
       details: {
         'water': {
-          'kinds': ['test_tube_changed'],
+          'kinds': ['water_changed'],
         },
       },
     );
@@ -87,7 +87,7 @@ void main() {
     }
     final feeding = repo.events(c, types: {'feeding'}).first;
     expect(feeding.items.single.foodName, 'Schabe');
-    expect(repo.events(c, types: {'water'}).first.waterKinds, ['test_tube_changed']);
+    expect(repo.events(c, types: {'water'}).first.waterKinds, ['water_changed']);
     expect(repo.reminders(), isEmpty, reason: 'done → no longer overdue');
   });
 
@@ -133,5 +133,41 @@ void main() {
     expect(notificationId('due:abc'), notificationId('due:abc'));
     expect(notificationId('due:abc'), isNot(notificationId('due:abd')));
     expect(notificationId('x'), greaterThan(0));
+  });
+
+  test('automations: sensor limit problems (24 h) and silent sensors are reported', () {
+    final c = repo.createColony({'name': 'Kolonie 12', 'species_text': 'Messor barbarus'});
+    db.putRecord('colony_events', {
+      'id': 'e1',
+      'colony_id': c,
+      'type': 'problem',
+      'occurred_at': now.subtract(const Duration(hours: 2)).toUtc().toIso8601String(),
+      'note': 'Sensor „Regal A“: Temperatur 31,5 °C – über dem Grenzwert 28,0 °C.',
+      'payload': {'source': 'sensor', 'metric': 'temperature'},
+    });
+    db.putRecord('colony_events', {
+      'id': 'e2',
+      'colony_id': c,
+      'type': 'problem',
+      'occurred_at': now.subtract(const Duration(days: 2)).toUtc().toIso8601String(),
+      'note': 'alt',
+      'payload': {'source': 'sensor'},
+    });
+    repo.logEvent(c, 'problem', note: 'selbst eingetragen – keine Benachrichtigung');
+    db.putRecord('sensors', {
+      'id': 's1',
+      'name': 'Regal A',
+      'active': true,
+      'last_seen_at': now.subtract(const Duration(hours: 7)).toUtc().toIso8601String(),
+    });
+    db.putRecord('sensors', {'id': 's2', 'name': 'Neu', 'active': true}); // never sent anything yet
+    final r = repo.reminders();
+    expect(r.map((x) => x.body), [
+      'Sensor „Regal A“: Temperatur 31,5 °C – über dem Grenzwert 28,0 °C.',
+      'Sendet seit 7 Stunden keine Daten – Stromversorgung oder WLAN prüfen.',
+    ]);
+    expect(r.first.title, '⚠ Messor barbarus – Kolonie 12');
+    expect(handleReminder(repo, payload: r.last.payloadJson), '/settings/sensors');
+    expect(handleReminder(repo, payload: r.first.payloadJson), '/colonies/$c');
   });
 }

@@ -334,6 +334,13 @@ paths:
       tags: [colonies]
       summary: "Complete JSON export of all data visible to the user (format ant-colony-manager/v1)"
       responses: { "200": { description: "file download" } }
+  /api/v1/export.zip:
+    get:
+      tags: [colonies]
+      summary: "ZIP: export.json, CSV tables (semicolon, UTF-8 BOM) and all photos"
+      parameters:
+        - { name: photos, in: query, schema: { type: string, enum: ["0", "1"] }, description: "0 = without photos" }
+      responses: { "200": { description: "file download (application/zip)" } }
   /api/v1/colonies:
     get:
       tags: [colonies]

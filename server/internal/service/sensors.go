@@ -5,6 +5,8 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -87,6 +89,9 @@ func (s *Service) IngestSensor(ctx context.Context, apiKey string, sensorID uuid
 	if err != nil {
 		return 0, problemFromDB(err)
 	}
+	if err := s.checkSensorLimits(ctx, id, readings, now); err != nil {
+		s.Log.Warn("sensor limit check failed", "sensor", id, "err", err)
+	}
 	// Throttle last_seen updates – every update is a synced change.
 	if lastSeen == nil || now.Sub(*lastSeen) > 10*time.Minute {
 		_, _ = s.Pool.Exec(ctx, `UPDATE sensors SET last_seen_at = now() WHERE id = $1`, id)
@@ -154,4 +159,66 @@ func (s *Service) RotateSensorKey(ctx context.Context, actor Actor, id uuid.UUID
 		return "", NotFound("sensor")
 	}
 	return "acm_sk_" + prefix + "_" + secret, nil
+}
+
+// sensorAlertPause: one alert per sensor and metric at most this often.
+const sensorAlertPause = 6 * time.Hour
+
+// checkSensorLimits writes a „problem“ event into the colony's timeline when
+// the newest reading of a metric is outside the sensor's limits. Old
+// (back-filled) readings never alert.
+func (s *Service) checkSensorLimits(ctx context.Context, sensor uuid.UUID, readings []SensorReading, now time.Time) error {
+	var name string
+	var colony *uuid.UUID
+	var tMin, tMax, hMin, hMax *float64
+	err := s.Pool.QueryRow(ctx, `SELECT name, colony_id, temp_min::float8, temp_max::float8, humidity_min::float8, humidity_max::float8
+		FROM sensors WHERE id = $1`, sensor).Scan(&name, &colony, &tMin, &tMax, &hMin, &hMax)
+	if err != nil || colony == nil {
+		return err
+	}
+	latest := map[string]SensorReading{}
+	for _, r := range readings {
+		if l, ok := latest[r.Metric]; !ok || r.MeasuredAt.After(l.MeasuredAt) {
+			latest[r.Metric] = r
+		}
+	}
+	for metric, r := range latest {
+		if now.Sub(r.MeasuredAt) > 2*time.Hour {
+			continue
+		}
+		lo, hi, label, unit := tMin, tMax, "Temperatur", "°C"
+		if metric == "humidity" {
+			lo, hi, label, unit = hMin, hMax, "Luftfeuchtigkeit", "%"
+		}
+		var note string
+		switch {
+		case hi != nil && r.Value > *hi:
+			note = fmt.Sprintf("Sensor „%s“: %s %s %s – über dem Grenzwert %s %s.", name, label, num(r.Value), unit, num(*hi), unit)
+		case lo != nil && r.Value < *lo:
+			note = fmt.Sprintf("Sensor „%s“: %s %s %s – unter dem Grenzwert %s %s.", name, label, num(r.Value), unit, num(*lo), unit)
+		default:
+			continue
+		}
+		// Claim the alert slot first: concurrent batches must not both alert.
+		tag, err := s.Pool.Exec(ctx, `INSERT INTO sensor_alerts (sensor_id, metric, alerted_at) VALUES ($1, $2, $3)
+			ON CONFLICT (sensor_id, metric) DO UPDATE SET alerted_at = excluded.alerted_at
+			WHERE sensor_alerts.alerted_at < $3 - make_interval(secs => $4)`, sensor, metric, now, sensorAlertPause.Seconds())
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			continue // alerted recently
+		}
+		payload, _ := json.Marshal(map[string]any{"source": "sensor", "sensor_id": sensor, "metric": metric, "value": r.Value})
+		if _, err := s.Pool.Exec(ctx, `INSERT INTO colony_events (id, colony_id, type, occurred_at, note, severity, payload)
+			VALUES ($1, $2, 'problem', $3, $4, 'warning', $5)`, uuid.Must(uuid.NewV7()), *colony, r.MeasuredAt, note, payload); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// num formats like the app: one decimal, comma as separator.
+func num(v float64) string {
+	return strings.Replace(strconv.FormatFloat(v, 'f', 1, 64), ".", ",", 1)
 }
