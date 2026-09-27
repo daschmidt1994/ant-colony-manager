@@ -2,7 +2,8 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
-web.BroadcastChannel? _channel;
+// Kept alive for the lifetime of the tab so it can answer later tabs.
+web.BroadcastChannel? channel;
 bool _owner = false;
 
 /// Asks other tabs of this app whether they are open. The local database lives
@@ -11,7 +12,7 @@ bool _owner = false;
 /// because the Web Locks API is missing on plain http:// (home network).
 Future<bool> otherTabActive() async {
   final ch = web.BroadcastChannel('ant-colony-manager-tab');
-  _channel = ch;
+  channel = ch;
   var seen = false;
   ch.onmessage = ((web.MessageEvent e) {
     final msg = (e.data as JSString?)?.toDart;

@@ -9,6 +9,7 @@ import '../../core/api_client.dart';
 /// [onChange] when the server reports new data – the engine then pulls.
 /// Used while the Android app is in the foreground; reconnects with backoff.
 class RealtimeListener {
+  // ignore: prefer_initializing_formals
   RealtimeListener({required this.api, required this.onChange, http.Client? client}) : _client = client;
 
   final ApiClient api;

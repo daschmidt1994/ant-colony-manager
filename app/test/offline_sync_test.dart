@@ -133,6 +133,31 @@ void main() {
     expect(server.createCount.length, greaterThan(100), reason: 'the scenario must actually do something');
   });
 
+  test('edit after a lost response is sent separately and not swallowed as duplicate', () async {
+    final server = FakeServer();
+    final a = _Device('A', server, user);
+    final c = a.repo.createColony({'name': 'A', 'species_text': 'x'});
+    await a.engine.sync();
+    final e = a.repo.logEvent(
+      c,
+      'feeding',
+      details: {
+        'feeding': {
+          'items': [
+            {'food_name': 'Schabe', 'category': 'protein'},
+          ],
+        },
+      },
+    );
+    server.dropNextResponse = true; // server stores the feeding, the answer is lost
+    await a.engine.sync();
+    a.repo.setAcceptance(e.id, 'accepted'); // must not be merged into the already sent create
+    expect(a.db.pendingOpCount(), 2);
+    await a.engine.sync(resetBackoff: true);
+    expect(server.rows['colony_events']![e.id]!['feeding']['acceptance'], 'accepted');
+    expect(server.createCount[e.id], 1);
+  });
+
   test('device signed out elsewhere: engine reports it, local data can be wiped', () async {
     final server = FakeServer();
     final a = _Device('A', server, user);

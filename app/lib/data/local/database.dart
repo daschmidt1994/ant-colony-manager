@@ -312,16 +312,19 @@ class AppDatabase {
   }
 
   /// Queues changed fields. Unsent changes of the same record are merged into
-  /// one operation (never into one that is currently being sent).
+  /// one operation – but never into one that was already sent: the server may
+  /// have applied it with the response lost, and a retry is answered as a
+  /// duplicate without looking at the payload again (found by the chaos test).
   void queueUpdate(String opId, String entity, String id, Map<String, dynamic> patch, int baseVersion) {
     transaction(() {
       final last = select(
-        'SELECT * FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0 AND inflight = 0 ORDER BY seq DESC LIMIT 1',
+        'SELECT * FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0 ORDER BY seq DESC LIMIT 1',
         [entity, id],
       );
       if (last.isNotEmpty) {
         final op = OutboxOp.fromRow(last.first);
-        if (op.op == 'create' || op.op == 'update') {
+        final neverSent = op.attempts == 0 && last.first['inflight'] == 0;
+        if (neverSent && (op.op == 'create' || op.op == 'update')) {
           final merged = {...?op.payload, ...patch};
           execute('UPDATE outbox SET payload = ? WHERE seq = ?', [jsonEncode(merged), op.seq], {'outbox'});
           return;
@@ -339,9 +342,14 @@ class AppDatabase {
       entity,
       id,
     ]).map(OutboxOp.fromRow).toList();
+    // Only a create that was never sent can be dropped – once sent, the server
+    // may already have the record, so the delete has to go out too.
     final unsentCreate =
         ops.any((o) => o.op == 'create') &&
-        select('SELECT 1 FROM outbox WHERE entity = ? AND entity_id = ? AND inflight = 1', [entity, id]).isEmpty;
+        select('SELECT 1 FROM outbox WHERE entity = ? AND entity_id = ? AND (inflight = 1 OR attempts > 0)', [
+          entity,
+          id,
+        ]).isEmpty;
     if (unsentCreate) {
       execute('DELETE FROM outbox WHERE entity = ? AND entity_id = ? AND failed = 0', [entity, id], {'outbox'});
       return DeleteOutcome.droppedLocally;
@@ -371,9 +379,12 @@ class AppDatabase {
       [DateTime.now().millisecondsSinceEpoch, limit],
     ).map(OutboxOp.fromRow).toList();
     if (rows.isNotEmpty) {
-      execute('UPDATE outbox SET inflight = 1 WHERE seq IN (${rows.map((o) => o.seq).join(',')})', const [], {
-        'outbox',
-      });
+      // Counted as an attempt as soon as it leaves – even if the app dies mid-request.
+      execute(
+        'UPDATE outbox SET inflight = 1, attempts = attempts + 1 WHERE seq IN (${rows.map((o) => o.seq).join(',')})',
+        const [],
+        {'outbox'},
+      );
     }
     return rows;
   });
@@ -389,9 +400,9 @@ class AppDatabase {
     transaction(() {
       for (final seq in seqs) {
         final a = (select('SELECT attempts FROM outbox WHERE seq = ?', [seq]).firstOrNull?['attempts'] as int?) ?? 0;
-        final delay = Duration(seconds: [2 << a.clamp(0, 9), 900].reduce((x, y) => x < y ? x : y));
+        final delay = Duration(seconds: [1 << a.clamp(1, 10), 900].reduce((x, y) => x < y ? x : y));
         execute(
-          'UPDATE outbox SET inflight = 0, attempts = attempts + 1, last_error = ?, next_try_at = ? WHERE seq = ?',
+          'UPDATE outbox SET inflight = 0, last_error = ?, next_try_at = ? WHERE seq = ?',
           [error, DateTime.now().add(delay).millisecondsSinceEpoch, seq],
           {'outbox'},
         );
