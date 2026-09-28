@@ -200,7 +200,7 @@ Server, Web-App und Android-App haben **eine gemeinsame Version** nach [SemVer](
 ./scripts/release.sh 1.2.0     # Version setzen → Commit → Tag v1.2.0 → pushen (fragt vorher nach)
 ```
 
-Der Tag `v1.2.0` baut in der CI die Server-Images (`1.2.0`, `1.2`, `latest`), das GitHub-Release **v1.2.0** mit den APKs und der Compose-Datei und aktualisiert das F-Droid-Repo. Pushes auf `main` werden nur getestet: APK als Artefakt am Workflow-Lauf, Images als `edge`. Die Buildnummer der APK (Android `versionCode`) ist die fortlaufende CI-Laufnummer.
+Der Tag `v1.2.0` baut in der CI die Server-Images (`1.2.0`, `1.2`, `latest`), das GitHub-Release **v1.2.0** mit den APKs und der Compose-Datei und aktualisiert das F-Droid-Repo. Pushes auf `main` bauen den Teststand: Images als `edge` und die Test-App **ACM Test** (eigene App-ID, läuft neben der echten App) im selben F-Droid-Repo – zum Ausprobieren auf einer [Testinstanz](docs/19-testinstanz.md), bevor eine Version veröffentlicht wird. Die Buildnummer der APK (Android `versionCode`) ist die fortlaufende CI-Laufnummer.
 
 ## Lizenz
 

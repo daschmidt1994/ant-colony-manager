@@ -1,8 +1,9 @@
 name: App
 
 # Releases come only from version tags (v1.2.3, created by scripts/release.sh):
-# GitHub release "v1.2.3" with the APKs + F-Droid update. Pushes to branches
-# only test and build (APK as workflow artifact).
+# GitHub release "v1.2.3" with the APKs + F-Droid update. Pushes to main build
+# the test app "ACM Test" (at.antcolony.manager.dev) into the same F-Droid repo.
+# Other branches only test and build (APK as workflow artifact).
 on:
   push:
     branches: ["**"]
@@ -82,6 +83,9 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write # GitHub release with the APKs (version tags only)
+    env:
+      # main → test app (own app ID, installs next to the real app)
+      DEV: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     defaults:
       run:
         working-directory: app
@@ -110,9 +114,19 @@ jobs:
           keytool -list -v -keystore android/app/upload.jks -storepass "$PASSWORD" | grep 'SHA256:'
       - name: Build APK
         env:
-          ORG_GRADLE_PROJECT_appLinkHost: ${{ inputs.app_link_host || vars.APP_LINK_HOST }}
+          # test app: only the test domain (never the real one's App Links)
+          ORG_GRADLE_PROJECT_appLinkHost: ${{ inputs.app_link_host || (env.DEV == 'true' && (vars.APP_LINK_HOST_DEV || 'applinks.invalid')) || vars.APP_LINK_HOST }}
+          ORG_GRADLE_PROJECT_devBuild: ${{ env.DEV }}
+          RUN: ${{ github.run_number }}
         # one APK per CPU architecture keeps downloads small (most phones: arm64-v8a)
-        run: flutter build apk --release --split-per-abi --build-number=${{ github.run_number }}
+        run: |
+          if [ "$DEV" = "true" ]; then
+            V=$(sed -nE 's/^version: *([^+ ]+).*/\1/p' pubspec.yaml)
+            flutter build apk --release --split-per-abi --build-number="$RUN" \
+              --build-name="$V-dev.$RUN" --dart-define=ACM_TEST_BUILD=true
+          else
+            flutter build apk --release --split-per-abi --build-number="$RUN"
+          fi
       - name: Verify signature
         run: |
           SDK=${ANDROID_HOME:-$ANDROID_SDK_ROOT}
@@ -121,7 +135,7 @@ jobs:
           "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | grep -E 'certificate (DN|SHA-256)'
       - uses: actions/upload-artifact@v4
         with:
-          name: ant-colony-manager-apk
+          name: ${{ env.DEV == 'true' && 'acm-test-apk' || 'ant-colony-manager-apk' }}
           path: app/build/app/outputs/flutter-apk/app-*-release.apk
           retention-days: 30
       # Public download without a GitHub account; a stable link always points to the newest:
@@ -140,12 +154,13 @@ jobs:
           **Server:** Docker-Images \`ghcr.io/${GITHUB_REPOSITORY_OWNER}/ant-colony-manager:$V\` (und \`:latest\`), fest mit \`ACM_VERSION=$V\`. docker-compose.yml zum Einfügen in Dockhand/Portainer: docs/17-unraid-dockhand.md"
       # Own F-Droid repo on GitHub Pages – add in F-Droid for updates on the phone:
       # https://<owner>.github.io/<repo>/fdroid/repo (see docs/18-fdroid.md)
-      - name: Update F-Droid repo (version tag)
-        if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+      - name: Update F-Droid repo (version tag → app, main → test app)
+        if: (startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push') || env.DEV == 'true'
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.run_number }}
+          PKG: ${{ env.DEV == 'true' && 'at.antcolony.manager.dev' || 'at.antcolony.manager' }}
           FDROID_KEYSTORE_BASE64: ${{ secrets.FDROID_KEYSTORE_BASE64 }}
           FDROID_KEYSTORE_PASS: ${{ secrets.FDROID_KEYSTORE_PASS }}
         run: |

@@ -2,8 +2,9 @@
 
 Jede veröffentlichte Version (Tag `v1.2.3`, siehe README → Versionen) landet
 automatisch in einem eigenen F-Droid-Repo (GitHub Pages). F-Droid zeigt neue
-Versionen dann wie jedes andere Update an. Stände von `main` ohne Release
-kommen nicht ins Repo.
+Versionen dann wie jedes andere Update an. Stände von `main` kommen als
+eigene App **ACM Test** ins selbe Repo – für die [Testinstanz](19-testinstanz.md),
+die echte App bleibt davon unberührt.
 
 ## Einrichten (einmal)
 

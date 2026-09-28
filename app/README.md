@@ -42,7 +42,7 @@ Vertragstest lokal: Server starten, dann
 
 ## Android
 
-- App-ID `at.antcolony.manager` (passt zu `ANDROID_APP_ID` des Servers)
+- App-ID `at.antcolony.manager` (passt zu `ANDROID_APP_ID` des Servers); Test-App mit `ORG_GRADLE_PROJECT_devBuild=true`: `at.antcolony.manager.dev`, Name „ACM Test“ ([Testinstanz](../docs/19-testinstanz.md))
 - `usesCleartextTraffic` ist aktiv, damit Server im Heimnetz per `http://192.168.x.x` funktionieren
 - Berechtigungen: Internet, NFC, Kamera – NFC und Kamera sind optional (ohne geht die Code-Eingabe)
 

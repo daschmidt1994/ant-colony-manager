@@ -10,6 +10,9 @@ import 'theme.dart';
 /// Global messenger for notices from outside a screen (e.g. an NFC tag was read).
 final rootMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+/// Set by CI for the test app (`--dart-define=ACM_TEST_BUILD=true`).
+const isTestBuild = bool.fromEnvironment('ACM_TEST_BUILD');
+
 /// Theme preference (system / light / dark), stored locally per device.
 final themeModeProvider = NotifierProvider<ThemeModeController, ThemeMode>(ThemeModeController.new);
 
@@ -34,6 +37,11 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
     title: S.appName,
     debugShowCheckedModeBanner: false,
+    // Test app (CI build from main): a corner banner so it is never mistaken for the real one.
+    builder: isTestBuild
+        ? (context, child) =>
+              Banner(message: 'TEST', location: BannerLocation.topEnd, color: Colors.deepOrange, child: child!)
+        : null,
     scaffoldMessengerKey: rootMessengerKey,
     theme: buildTheme(Brightness.light),
     darkTheme: buildTheme(Brightness.dark),
