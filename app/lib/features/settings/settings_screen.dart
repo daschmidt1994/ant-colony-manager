@@ -80,19 +80,12 @@ class _ReminderSettings extends ConsumerWidget {
                   });
                 },
               ),
-              SwitchListTile(
-                secondary: const Icon(Icons.notifications_active_outlined),
-                title: const Text('Überfällige einzeln melden'),
-                subtitle: const Text('Android: je Aufgabe eine Benachrichtigung mit „Erledigt“'),
-                value: s.notifyOverdue,
-                onChanged: (v) => repo.updateSettings({'notify_overdue': v}),
-              ),
               ListTile(
                 leading: const Icon(Icons.campaign_outlined),
-                title: const Text('Benachrichtigungen per ntfy und E-Mail'),
+                title: const Text('Benachrichtigungen'),
                 subtitle: Text(
                   'Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe – '
-                  '${mail ? 'E-Mail und ntfy' : 'ntfy'}, Häufigkeit, Ruhezeiten',
+                  'App, ntfy${mail ? ', E-Mail' : ''}; Häufigkeit, Ruhezeiten',
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/settings/notifications'),

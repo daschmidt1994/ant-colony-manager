@@ -131,7 +131,21 @@ class _ColonyPage extends ConsumerWidget {
                 if (due.isEmpty)
                   Text('Keine Pflegeintervalle festgelegt.', style: TextStyle(color: context.colors.muted))
                 else
-                  for (final t in due) DueRow(t),
+                  for (final t in due)
+                    DueRow(
+                      t,
+                      onSnooze: canEdit
+                          ? () {
+                              final repo = ref.read(repositoryProvider)!;
+                              final previous = repo.snoozeSchedule(t.schedule.id);
+                              showUndoSnack(
+                                context,
+                                'Auf morgen verschoben',
+                                onUndo: () => repo.setScheduleSnooze(t.schedule.id, previous),
+                              );
+                            }
+                          : null,
+                    ),
                 if (canEdit) ...[
                   if (lastFeeding != null) ...[
                     const SizedBox(height: 16),

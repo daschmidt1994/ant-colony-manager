@@ -8,6 +8,19 @@ String? handleReminder(ColonyRepository repo, {String? actionId, String? payload
   final p = payload == null ? const <String, dynamic>{} : (jsonDecode(payload) as Map).cast<String, dynamic>();
   final colony = p['colony'] as String?;
   final open = colony == null || repo.colony(colony) == null ? '/' : '/colonies/$colony';
+  if (actionId == 'snooze') {
+    switch (p['kind']) {
+      case 'due' when p['schedule'] is String:
+        repo.snoozeSchedule(p['schedule'] as String);
+        return null;
+      case 'task' when p['task'] is String:
+        repo.snoozeTask(p['task'] as String);
+        return null;
+      case 'winter' || 'winter_start' when colony != null:
+        repo.snoozeWinter(colony);
+        return null;
+    }
+  }
   if (actionId == 'done') {
     switch (p['kind']) {
       case 'due' when colony != null && repo.colony(colony) != null:

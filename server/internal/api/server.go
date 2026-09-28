@@ -105,6 +105,8 @@ func (s *Server) Handler() *chi.Mux {
 
 		// Signed, short-lived export link (opened in the browser from the app).
 		r.Get("/export/download", s.exportDownload)
+		// „Morgen“ button in ntfy notifications (signed link).
+		r.Post("/snooze", s.snooze)
 
 		// Sensor ingest authenticates with the sensor key, not a user session.
 		r.Post("/sensors/{id}/measurements", s.ingestSensor)

@@ -17,6 +17,7 @@ class Reminder {
     required this.body,
     required this.payload,
     this.canComplete = false,
+    this.canSnooze = false,
   });
   final String key;
 
@@ -27,6 +28,9 @@ class Reminder {
 
   /// Offer „Erledigt“ (one tap documents the care without opening the app).
   final bool canComplete;
+
+  /// Offer „Morgen“ (no time today – postpone by one day).
+  final bool canSnooze;
 
   String get payloadJson => jsonEncode(payload);
 }
@@ -46,6 +50,8 @@ List<Reminder> overdueReminders({
   required List<Map<String, dynamic>> tasks,
   required DateTime now,
   required bool notifyOverdue,
+  bool notifyWinter = true,
+  bool notifySensor = true,
   List<Map<String, dynamic>> sensorProblems = const [],
   List<Map<String, dynamic>> sensors = const [],
 }) {
@@ -69,6 +75,7 @@ List<Reminder> overdueReminders({
             body: '$name seit ${since == 1 ? '1 Tag' : '$since Tagen'} überfällig.',
             payload: {'kind': 'due', 'colony': c.id, 'schedule': s.id, 'task_type': s.taskType},
             canComplete: true,
+            canSnooze: true,
           ),
         );
       }
@@ -76,7 +83,7 @@ List<Reminder> overdueReminders({
   }
 
   final today = _date(now);
-  for (final w in winterRests) {
+  for (final w in notifyWinter ? winterRests : const <Map<String, dynamic>>[]) {
     final c = byId[w['colony_id']];
     if (w['ended_on'] != null || c == null) continue;
     if (w['started_on'] == null) {
@@ -89,6 +96,7 @@ List<Reminder> overdueReminders({
           title: titleOf(c),
           body: 'Winterruhe beginnen? Der geplante Start ist erreicht.',
           payload: {'kind': 'winter_start', 'colony': c.id},
+          canSnooze: true,
         ),
       );
       continue;
@@ -102,6 +110,7 @@ List<Reminder> overdueReminders({
         title: titleOf(c),
         body: 'Winterruhe beenden? Das geplante Ende ist erreicht.',
         payload: {'kind': 'winter', 'colony': c.id},
+        canSnooze: true,
       ),
     );
   }
@@ -118,10 +127,12 @@ List<Reminder> overdueReminders({
         body: '${t['title'] ?? 'Aufgabe'} ist fällig.',
         payload: {'kind': 'task', 'colony': ?c?.id, 'task': t['id']},
         canComplete: true,
+        canSnooze: true,
       ),
     );
   }
 
+  if (!notifySensor) return out;
   // Automations: limits exceeded (the server wrote a „problem“ entry) …
   for (final e in sensorProblems) {
     final at = DateTime.tryParse(e['occurred_at'] as String? ?? '');
