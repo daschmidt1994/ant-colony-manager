@@ -129,18 +129,75 @@ class EventTile extends ConsumerWidget {
             )
           : null,
       onTap: () => _details(context, ref),
+      onLongPress: canEdit ? () => _confirmDelete(context, ref) : null,
     );
-    if (photos.isEmpty) return tile;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        tile,
-        Padding(
-          padding: const EdgeInsets.fromLTRB(72, 0, 16, 12),
-          child: PhotoStrip(photos: photos, size: 64),
+    final content = photos.isEmpty
+        ? tile
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              tile,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(72, 0, 16, 12),
+                child: PhotoStrip(photos: photos, size: 64),
+              ),
+            ],
+          );
+    if (!canEdit) return content;
+    // Swipe left to delete an entry made by mistake (asks first).
+    return Dismissible(
+      key: ValueKey('event-${event.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: context.colors.overdue,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Löschen',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(width: 8),
+            Icon(Icons.delete_outline, color: Colors.white),
+          ],
         ),
-      ],
+      ),
+      confirmDismiss: (_) => _askDelete(context),
+      onDismissed: (_) => _delete(context, ref),
+      child: content,
     );
+  }
+
+  Future<bool> _askDelete(BuildContext context) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: const Text('Eintrag löschen?'),
+          content: Text(
+            '${S.eventTypes[event.type] ?? event.type} vom ${S.dateTime(event.occurredAt)}'
+            '${event.type == 'photo' ? ' – die Fotos werden mitgelöscht.' : ''}',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: d.colors.overdue),
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('Löschen'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
+  void _delete(BuildContext context, WidgetRef ref) {
+    ref.read(repositoryProvider)!.deleteEvent(event.id);
+    showUndoSnack(context, 'Eintrag gelöscht');
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    if (await _askDelete(context) && context.mounted) _delete(context, ref);
   }
 
   Future<void> _details(BuildContext context, WidgetRef ref) => showModalBottomSheet<void>(
@@ -187,19 +244,9 @@ class EventTile extends ConsumerWidget {
                 icon: const Icon(Icons.delete_outline),
                 label: const Text('Eintrag löschen'),
                 onPressed: () async {
-                  final ok = await showDialog<bool>(
-                    context: c,
-                    builder: (d) => AlertDialog(
-                      title: const Text('Eintrag löschen?'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
-                        FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Löschen')),
-                      ],
-                    ),
-                  );
-                  if (ok == true) {
-                    ref.read(repositoryProvider)!.deleteEvent(event.id);
-                    if (c.mounted) Navigator.pop(c);
+                  if (await _askDelete(c) && c.mounted) {
+                    Navigator.pop(c);
+                    if (context.mounted) _delete(context, ref);
                   }
                 },
               ),

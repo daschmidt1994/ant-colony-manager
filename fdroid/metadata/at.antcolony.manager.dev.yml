@@ -1,0 +1,16 @@
+Categories:
+  - Science & Education
+License: AGPL-3.0-only
+AuthorName: daschmidt1994
+SourceCode: https://github.com/daschmidt1994/ant-colony-manager
+IssueTracker: https://github.com/daschmidt1994/ant-colony-manager/issues
+
+Name: ACM Test
+Summary: Testversion des Ant Colony Managers (aktueller Stand von main)
+Description: |-
+  Testversion des Ant Colony Managers – gebaut aus jedem Stand von main,
+  noch nicht als Version veröffentlicht. Läuft neben der normalen App
+  (eigene App-ID) und ist für einen eigenen Test-Server gedacht.
+
+  Nicht für die tägliche Pflege: kann Fehler enthalten. Die normale App
+  heißt „Ant Colony Manager“.

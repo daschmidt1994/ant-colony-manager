@@ -127,6 +127,23 @@ class ColonyRepository {
       db.records('food_items', orderBy: 'id').map((r) => FoodItem(r.json)).where((f) => !f.archived).toList()
         ..sort((a, b) => a.sortOrder != b.sortOrder ? a.sortOrder.compareTo(b.sortOrder) : a.name.compareTo(b.name));
 
+  /// Catalog and own species, sorted by name.
+  List<Species> species() => _species().values.toList()..sort((a, b) => a.scientificName.compareTo(b.scientificName));
+
+  Species? speciesById(String id) => _species()[id];
+
+  /// Own species; the catalog is read-only (the server rejects changes).
+  String createSpecies(Map<String, dynamic> fields) => _write(() {
+    final data = _create('species', fields);
+    // owner_id is set by the server; mark it as own right away (not catalog)
+    db.putRecord('species', {...data, 'owner_id': userId}, pending: true);
+    return data['id'] as String;
+  });
+
+  void updateSpecies(String id, Map<String, dynamic> patch) => _write(() => _update('species', id, patch));
+
+  void deleteSpecies(String id) => _write(() => _delete('species', id));
+
   List<Location> locations() => _locations().values.toList()..sort((a, b) => a.path.compareTo(b.path));
 
   List<ScanLink> scanLinks(String colonyId) =>

@@ -87,3 +87,34 @@ func TestZipExportWithCSVAndPhotos(t *testing.T) {
 		}
 	}
 }
+
+// The app opens a signed link in the browser: no login there, but the link
+// expires, cannot be altered and dies with the session.
+func TestExportLinkForBrowser(t *testing.T) {
+	env := testenv.New(t)
+	anna := env.User(t, "Anna")
+	anna.CreateColony(t, map[string]any{"name": "Lasius #1"})
+	link := func(photos string) string {
+		return anna.Do("POST", "/api/v1/export/link?photos="+photos, nil).Must(t, 200).JSON()["url"].(string)
+	}
+
+	r := env.Anon().Do("GET", link("0"), nil).Must(t, http.StatusOK)
+	if !bytes.HasPrefix(r.Body, []byte("PK")) || !strings.Contains(r.Header.Get("Content-Disposition"), "attachment") {
+		t.Fatalf("expected a zip download: %q", r.Header)
+	}
+	// Reusable within its lifetime (Android download managers request twice).
+	u := link("1")
+	env.Anon().Do("GET", u, nil).Must(t, http.StatusOK)
+	env.Anon().Do("GET", u, nil).Must(t, http.StatusOK)
+
+	env.Anon().Do("GET", strings.Replace(u, "photos=1", "photos=0", 1), nil).Must(t, http.StatusUnauthorized)
+	env.Anon().Do("GET", strings.Replace(u, "sig=", "sig=x", 1), nil).Must(t, http.StatusUnauthorized)
+	env.Anon().Do("GET", "/api/v1/export/download", nil).Must(t, http.StatusUnauthorized)
+
+	env.Clock.Advance(6 * time.Minute)
+	env.Anon().Do("GET", u, nil).Must(t, http.StatusUnauthorized)
+
+	u = link("0")
+	anna.Do("POST", "/api/v1/auth/logout", map[string]any{}).Must(t, http.StatusNoContent)
+	env.Anon().Do("GET", u, nil).Must(t, http.StatusUnauthorized)
+}

@@ -5,6 +5,7 @@ import 'package:ant_colony_manager/data/repositories/colony_repository.dart';
 import 'package:ant_colony_manager/features/colonies/colony_detail_screen.dart';
 import 'package:ant_colony_manager/features/dashboard/dashboard_screen.dart';
 import 'package:ant_colony_manager/features/round/round_screens.dart';
+import 'package:ant_colony_manager/features/timeline/timeline_screen.dart';
 import 'package:ant_colony_manager/shared/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -147,6 +148,43 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 / 1 Kolonien kontrolliert'), findsOneWidget);
     expect(find.text('1 Wasser'), findsOneWidget);
+    db.dispose();
+  });
+
+  testWidgets('timeline: swipe or long-press deletes an entry after asking', (tester) async {
+    final db = memoryDb();
+    final repo = ColonyRepository(db, userId: 'u1', onChanged: () {});
+    final id = repo.createColony({'name': 'Lasius #1', 'species_text': 'Lasius niger'});
+    repo.logEvent(id, 'water', at: DateTime.now().subtract(const Duration(hours: 2)));
+    repo.logEvent(id, 'check', at: DateTime.now().subtract(const Duration(hours: 1)));
+
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    await tester.pumpWidget(_app(db, TimelineScreen(colonyId: id)));
+    await tester.pumpAndSettle();
+    expect(find.byType(EventTile), findsNWidgets(2));
+
+    // Swipe, then cancel: nothing happens.
+    await tester.drag(find.byType(EventTile).first, const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Eintrag löschen?'), findsOneWidget);
+    await tester.tap(find.text('Abbrechen'));
+    await tester.pumpAndSettle();
+    expect(repo.events(id), hasLength(2));
+
+    // Swipe and confirm.
+    await tester.drag(find.byType(EventTile).first, const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
+    await tester.pumpAndSettle();
+    expect(repo.events(id), hasLength(1));
+    expect(find.text('Eintrag gelöscht'), findsOneWidget);
+
+    // Long press works too.
+    await tester.longPress(find.byType(EventTile).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
+    await tester.pumpAndSettle();
+    expect(repo.events(id), isEmpty);
     db.dispose();
   });
 }

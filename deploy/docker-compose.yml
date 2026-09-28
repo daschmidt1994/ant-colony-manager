@@ -10,11 +10,15 @@
 #   APP_PORT        Port auf dem Server (8080 ist auf Unraid oft belegt)
 #   DATA_DIR        Ordner für Datenbank, Fotos, Backups, Schlüssel (absolut!)
 #
+# Zweite Instanz zum Testen (Stand von dev, eigene Domain und Daten):
+# dieselbe Datei als eigenen Stack mit ACM_VERSION=edge und
+# ANDROID_APP_ID=at.antcolony.manager.dev – Anleitung: docs/19-testinstanz.md
+#
 # Danach starten, im Log des Containers "app" den Setup-Code suchen und
 # <PUBLIC_APP_URL>/setup öffnen. Anleitung: docs/17-unraid-dockhand.md
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: ant-colony-manager
+name: ${STACK_NAME:-ant-colony-manager}
 
 x-settings: &settings
   # ── EINSTELLEN ──────────────────────────────────────────────────────────────
@@ -41,7 +45,7 @@ x-settings: &settings
   BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-7}
   BACKUP_KEEP_WEEKLY: ${BACKUP_KEEP_WEEKLY:-4}
   BACKUP_KEEP_MONTHLY: ${BACKUP_KEEP_MONTHLY:-6}
-  ANDROID_APP_ID: at.antcolony.manager
+  ANDROID_APP_ID: ${ANDROID_APP_ID:-at.antcolony.manager}
   ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   LOG_FORMAT: text

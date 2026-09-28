@@ -109,12 +109,36 @@ class Location {
   String? get parentId => json['parent_id'] as String?;
 }
 
+/// A species with its care sheet. Catalog species (no owner) are read-only.
 class Species {
   Species(this.json);
   final Map<String, dynamic> json;
   String get id => json['id'] as String;
   String get scientificName => json['scientific_name'] as String? ?? '';
   String get genus => json['genus'] as String? ?? '';
+  String? get germanName => text('german_name');
+  bool get isCatalog => json['owner_id'] == null;
+
+  /// Non-empty text field or null.
+  String? text(String key) {
+    final v = json[key];
+    return v is String && v.trim().isNotEmpty ? v : null;
+  }
+
+  double? number(String key) => _double(json[key]);
+  int? get difficulty => _int(json['difficulty']);
+  bool? get polymorphic => json['polymorphic'] as bool?;
+
+  List<({String title, String? url})> get sources => [
+    for (final s in (json['sources'] as List?) ?? const [])
+      if (s is Map && s['title'] is String) (title: s['title'] as String, url: s['url'] as String?),
+  ];
+
+  /// Matches scientific name, German name and genus, case-insensitively.
+  bool matches(String query) {
+    final q = query.trim().toLowerCase();
+    return q.isEmpty || [scientificName, germanName ?? '', genus].any((s) => s.toLowerCase().contains(q));
+  }
 }
 
 class ScanLink {
