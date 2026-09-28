@@ -206,30 +206,70 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
     final digestTime = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
     final quietOn = (_p['quiet_start'] as String? ?? '').isNotEmpty;
 
-    // App (Android) is a synced user setting – saved right away, works offline.
-    Widget channels(String prefix, {required String appSetting, bool? emailValue, ValueChanged<bool>? onEmail}) => Wrap(
-      spacing: 8,
-      children: [
-        FilterChip(
-          avatar: const Icon(Icons.phone_android, size: 18),
-          label: const Text('App'),
-          selected: settings?.json[appSetting] as bool? ?? true,
-          onSelected: repo == null ? null : (v) => repo.updateSettings({appSetting: v}),
-        ),
-        FilterChip(
-          avatar: const Icon(Icons.mail_outline, size: 18),
-          label: const Text('E-Mail'),
-          selected: emailValue ?? _p['${prefix}_email'] == true,
-          onSelected: _emailAvailable ? (onEmail ?? (v) => _set('${prefix}_email', v)) : null,
-        ),
-        FilterChip(
-          avatar: const Icon(Icons.notifications_outlined, size: 18),
-          label: const Text('ntfy'),
-          selected: _p['${prefix}_ntfy'] == true,
-          onSelected: hasNtfy ? (v) => _set('${prefix}_ntfy', v) : null,
-        ),
-      ],
-    );
+    // One switch per channel – on/off at a glance; unavailable channels are
+    // off and say why. App (Android) is a synced user setting (saved at once,
+    // works offline), e-mail and ntfy are saved with „Speichern“.
+    Widget channels(String prefix, {required String appSetting, bool? emailValue, ValueChanged<bool>? onEmail}) {
+      final app = settings?.json[appSetting] as bool? ?? true;
+      final email = _emailAvailable && (emailValue ?? _p['${prefix}_email'] == true);
+      final ntfy = hasNtfy && _p['${prefix}_ntfy'] == true;
+      final active = [if (app) 'App', if (email) 'E-Mail', if (ntfy) 'ntfy'];
+      final on = active.isNotEmpty;
+      Widget row(IconData icon, String label, bool value, ValueChanged<bool>? onChanged, String? unavailable) =>
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            secondary: Icon(icon, color: value ? context.colors.ok : context.colors.muted),
+            title: Text(label, style: const TextStyle(fontSize: 15)),
+            subtitle: unavailable == null ? null : Text(unavailable),
+            value: value,
+            onChanged: onChanged,
+          );
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: (on ? context.colors.ok : context.colors.muted).withValues(alpha: .14),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  on ? Icons.notifications_active : Icons.notifications_off_outlined,
+                  size: 18,
+                  color: on ? context.colors.ok : context.colors.muted,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    on ? 'Aktiv: ${active.join(', ')}' : 'Aus – keine Benachrichtigung',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: on ? context.colors.ok : context.colors.muted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          row(Icons.phone_android, 'App', app, repo == null ? null : (v) => repo.updateSettings({appSetting: v}), null),
+          row(
+            Icons.mail_outline,
+            'E-Mail',
+            email,
+            _emailAvailable ? (onEmail ?? (v) => _set('${prefix}_email', v)) : null,
+            _emailAvailable ? null : 'nicht eingerichtet (Server-Verwaltung)',
+          ),
+          row(
+            Icons.notifications_outlined,
+            'ntfy',
+            ntfy,
+            hasNtfy ? (v) => _set('${prefix}_ntfy', v) : null,
+            hasNtfy ? null : 'oben Server und Topic eintragen',
+          ),
+        ],
+      );
+    }
 
     Widget repeat(String key, Map<int, String> options) => DropdownButtonFormField<int>(
       initialValue: options.containsKey(_p[key]) ? _p[key] as int : options.keys.first,

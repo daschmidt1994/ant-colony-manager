@@ -216,21 +216,27 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    FilterChip chip(String label, int index) =>
-        tester.widgetList<FilterChip>(find.widgetWithText(FilterChip, label)).elementAt(index);
+    SwitchListTile toggle(String label, int topic) =>
+        tester.widgetList<SwitchListTile>(find.widgetWithText(SwitchListTile, label)).elementAt(topic);
 
     expect(find.text('https://ntfy.sh'), findsOneWidget); // default server
-    expect(chip('ntfy', 1).onSelected, isNull); // no topic yet
-    expect(chip('E-Mail', 1).onSelected, isNull); // no SMTP on the server
+    expect(toggle('ntfy', 1).onChanged, isNull); // no topic yet
+    expect(toggle('ntfy', 1).value, isFalse);
+    expect(toggle('E-Mail', 1).onChanged, isNull); // no SMTP on the server
+    expect(find.text('nicht eingerichtet (Server-Verwaltung)'), findsWidgets);
     expect(find.textContaining('keinen E-Mail-Versand'), findsOneWidget);
+    // App is on by default – the summary says so.
+    expect(toggle('App', 1).value, isTrue);
+    expect(find.text('Aktiv: App'), findsWidgets);
 
     await tester.enterText(find.widgetWithText(TextField, 'Server'), 'ntfy.meinedomain.at');
     await tester.enterText(find.widgetWithText(TextField, 'Topic'), 'ameisen');
     await tester.pumpAndSettle();
-    expect(chip('ntfy', 1).onSelected, isNotNull);
-    await tester.tap(find.widgetWithText(FilterChip, 'ntfy').at(1));
+    expect(toggle('ntfy', 1).onChanged, isNotNull);
+    await tester.tap(find.widgetWithText(SwitchListTile, 'ntfy').at(1));
     await tester.pumpAndSettle();
-    expect(chip('ntfy', 1).selected, isTrue);
+    expect(toggle('ntfy', 1).value, isTrue);
+    expect(find.text('Aktiv: App, ntfy'), findsOneWidget);
 
     await tester.enterText(find.widgetWithText(TextField, 'Topic'), 'ameisen/x');
     await tester.pumpAndSettle();
