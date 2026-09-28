@@ -5,11 +5,13 @@ import 'package:ant_colony_manager/data/repositories/colony_repository.dart';
 import 'package:ant_colony_manager/features/colonies/colony_detail_screen.dart';
 import 'package:ant_colony_manager/features/dashboard/dashboard_screen.dart';
 import 'package:ant_colony_manager/features/round/round_screens.dart';
+import 'package:ant_colony_manager/features/settings/notifications_screen.dart';
 import 'package:ant_colony_manager/features/timeline/timeline_screen.dart';
 import 'package:ant_colony_manager/shared/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -22,8 +24,9 @@ class _FakeAuth extends AuthController {
       SignedIn('https://ants.test', User({'id': 'u1', 'email': 'a@ants.test', 'display_name': 'Anna'}));
 }
 
-Widget _app(AppDatabase db, Widget home) => ProviderScope(
+Widget _app(AppDatabase db, Widget home, {List<Override> extra = const []}) => ProviderScope(
   overrides: [
+    ...extra,
     databaseProvider.overrideWithValue(db),
     authProvider.overrideWith(_FakeAuth.new),
     syncEngineProvider.overrideWith((ref) => null),
@@ -185,6 +188,53 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
     await tester.pumpAndSettle();
     expect(repo.events(id), isEmpty);
+    db.dispose();
+  });
+
+  testWidgets('notifications: ntfy needs server and topic; e-mail only with SMTP', (tester) async {
+    final db = memoryDb();
+    await tester.binding.setSurfaceSize(const Size(430, 2400));
+    await tester.pumpWidget(
+      _app(
+        db,
+        const NotificationsScreen(),
+        extra: [
+          notifyPrefsProvider.overrideWith(
+            (ref) async => {
+              'ntfy_url': '',
+              'ntfy_token_set': false,
+              'email_available': false,
+              'overdue_repeat_hours': 24,
+              'sensor_repeat_hours': 6,
+              'winter_repeat_hours': 24,
+              'quiet_start': '',
+              'quiet_end': '',
+              'quiet_except_sensor': true,
+            },
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    FilterChip chip(String label, int index) =>
+        tester.widgetList<FilterChip>(find.widgetWithText(FilterChip, label)).elementAt(index);
+
+    expect(find.text('https://ntfy.sh'), findsOneWidget); // default server
+    expect(chip('ntfy', 1).onSelected, isNull); // no topic yet
+    expect(chip('E-Mail', 1).onSelected, isNull); // no SMTP on the server
+    expect(find.textContaining('keinen E-Mail-Versand'), findsOneWidget);
+
+    await tester.enterText(find.widgetWithText(TextField, 'Server'), 'ntfy.meinedomain.at');
+    await tester.enterText(find.widgetWithText(TextField, 'Topic'), 'ameisen');
+    await tester.pumpAndSettle();
+    expect(chip('ntfy', 1).onSelected, isNotNull);
+    await tester.tap(find.widgetWithText(FilterChip, 'ntfy').at(1));
+    await tester.pumpAndSettle();
+    expect(chip('ntfy', 1).selected, isTrue);
+
+    await tester.enterText(find.widgetWithText(TextField, 'Topic'), 'ameisen/x');
+    await tester.pumpAndSettle();
+    expect(find.text('Nur Buchstaben, Ziffern, _ und - (max. 64)'), findsOneWidget);
     db.dispose();
   });
 }

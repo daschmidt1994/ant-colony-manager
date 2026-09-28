@@ -15,6 +15,7 @@ import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
 import '../features/sensors/sensors_screen.dart';
 import '../features/settings/devices_screen.dart';
+import '../features/settings/notifications_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/shell.dart';
 import '../features/species/species_screens.dart';
@@ -161,6 +162,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen()),
                   GoRoute(path: 'stats', builder: (_, _) => const CollectionStatsScreen()),
                   GoRoute(path: 'sensors', builder: (_, _) => const SensorsScreen()),
+                  GoRoute(path: 'notifications', builder: (_, _) => const NotificationsScreen()),
                   GoRoute(path: 'devices', builder: (_, _) => const DevicesScreen()),
                   GoRoute(
                     path: 'labels',

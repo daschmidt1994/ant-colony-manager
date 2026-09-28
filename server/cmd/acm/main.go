@@ -167,7 +167,8 @@ func serve() error {
 		}
 	}()
 
-	// E-mail digest: checked every minute, sent once per day at each user's time.
+	// Daily digest (e-mail/ntfy, once per day at each user's time) and
+	// notifications (overdue, sensor alarm, winter rest): checked every minute.
 	go func() {
 		t := time.NewTicker(time.Minute)
 		defer t.Stop()
@@ -178,9 +179,14 @@ func serve() error {
 			case <-t.C:
 			}
 			if n, err := svc.SendDigests(ctx); err != nil && ctx.Err() == nil {
-				log.Error("e-mail digest failed", "err", err)
+				log.Error("digest failed", "err", err)
 			} else if n > 0 {
-				log.Info("e-mail digest sent", "count", n)
+				log.Info("digest sent", "count", n)
+			}
+			if n, err := svc.SendNotifications(ctx); err != nil && ctx.Err() == nil {
+				log.Error("notifications failed", "err", err)
+			} else if n > 0 {
+				log.Info("notifications sent", "count", n)
 			}
 		}
 	}()
