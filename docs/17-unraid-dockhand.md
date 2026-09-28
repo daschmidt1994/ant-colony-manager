@@ -44,7 +44,11 @@ Weiter mit der Android-App: Schritt 2 in [16-anleitung-installieren-testen.md](1
 
 ## Optionale Einstellungen
 
-Alle im Block `x-settings` der Datei, z. B. E-Mail (`SMTP_*`) für „Passwort vergessen“ und den Tages-Überblick per Mail, `REGISTRATION_MODE` (`invite` = nur mit Einladung) oder die Backup-Aufbewahrung. Die Schlüssel (Datenbank-Passwort, JWT, Instanz-Schlüssel) werden beim ersten Start automatisch in `DATA_DIR/secrets` erzeugt.
+Alle im Block `x-settings` der Datei, z. B. `REGISTRATION_MODE` (`invite` = nur mit Einladung) oder die Backup-Aufbewahrung. Die Schlüssel (Datenbank-Passwort, JWT, Instanz-Schlüssel) werden beim ersten Start automatisch in `DATA_DIR/secrets` erzeugt.
+
+## E-Mail-Versand
+
+In der App als Administrator: **Mehr → Server-Verwaltung → E-Mail-Versand** – Server, Port, Verschlüsselung, Benutzer, Passwort, Absender eintragen, **Test-E-Mail an mich** senden. Gilt sofort, ohne Neustart. Nötig für „Passwort vergessen“, den Tages-Überblick und Benachrichtigungen per E-Mail.
 
 ## Aktualisieren
 

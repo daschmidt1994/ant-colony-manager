@@ -94,7 +94,7 @@ Alles steht kommentiert in [`.env.example`](.env.example) (Heimnetz) bzw. [`.env
 | `DATA_DIR` | Ort aller Daten (Standard `./data`) |
 | `PUID` / `PGID` | Besitzer der Dateien (Synology meist `1026`/`100`) |
 | `REGISTRATION_MODE` | `invite` (Standard) · `open` · `closed` |
-| `SMTP_*` | optional, für Passwort-Reset per Mail |
+| `SMTP_*` | optional – einfacher in der App: Mehr → Server-Verwaltung → E-Mail-Versand (hat Vorrang) |
 | `BACKUP_*` | Zeitplan und Aufbewahrung |
 | `COMPOSE_PROFILES=proxy`, `ACM_DOMAIN` | eingebauter HTTPS-Proxy |
 

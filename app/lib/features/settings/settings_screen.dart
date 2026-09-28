@@ -216,6 +216,18 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
             const _ReminderSettings(),
+            if (auth.user.isAdmin) ...[
+              const SectionHeader('Server-Verwaltung'),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.outgoing_mail),
+                  title: const Text('E-Mail-Versand'),
+                  subtitle: const Text('Postausgangsserver für Passwort vergessen, Überblick und Benachrichtigungen'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/smtp'),
+                ),
+              ),
+            ],
             const SectionHeader('Etiketten'),
             Card(
               child: ListTile(

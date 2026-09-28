@@ -171,6 +171,9 @@ func (s *Server) Handler() *chi.Mux {
 				r.Patch("/users/{id}", s.adminUpdateUser)
 				r.Post("/users/{id}/password-reset-link", s.adminResetLink)
 				r.Get("/system", s.adminSystem)
+				r.Get("/smtp", s.getSMTP)
+				r.Put("/smtp", s.setSMTP)
+				r.With(s.rateLimitUser(s.limScan)).Post("/smtp/test", s.testSMTP)
 			})
 
 			// Generic collections (locations, food-items, species, habitats, …)

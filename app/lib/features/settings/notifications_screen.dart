@@ -373,7 +373,8 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'E-Mail ist nicht verfügbar: Der Server hat keinen E-Mail-Versand (SMTP) eingerichtet.',
+                        'E-Mail ist nicht verfügbar: Der Server hat keinen E-Mail-Versand eingerichtet '
+                        '(Administrator: Mehr → Server-Verwaltung → E-Mail-Versand).',
                         style: muted.copyWith(fontSize: 12),
                       ),
                     ),
