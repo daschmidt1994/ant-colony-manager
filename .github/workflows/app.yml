@@ -1,7 +1,7 @@
 name: App
 
 # Releases come only from version tags (v1.2.3, created by scripts/release.sh):
-# GitHub release "v1.2.3" with the APKs + F-Droid update. Pushes to main build
+# GitHub release "v1.2.3" with the APKs + F-Droid update. Pushes to dev build
 # the test app "ACM Test" (at.antcolony.manager.dev) into the same F-Droid repo.
 # Other branches only test and build (APK as workflow artifact).
 on:
@@ -84,8 +84,8 @@ jobs:
     permissions:
       contents: write # GitHub release with the APKs (version tags only)
     env:
-      # main → test app (own app ID, installs next to the real app)
-      DEV: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      # dev → test app (own app ID, installs next to the real app)
+      DEV: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
     defaults:
       run:
         working-directory: app
@@ -154,7 +154,7 @@ jobs:
           **Server:** Docker-Images \`ghcr.io/${GITHUB_REPOSITORY_OWNER}/ant-colony-manager:$V\` (und \`:latest\`), fest mit \`ACM_VERSION=$V\`. docker-compose.yml zum Einfügen in Dockhand/Portainer: docs/17-unraid-dockhand.md"
       # Own F-Droid repo on GitHub Pages – add in F-Droid for updates on the phone:
       # https://<owner>.github.io/<repo>/fdroid/repo (see docs/18-fdroid.md)
-      - name: Update F-Droid repo (version tag → app, main → test app)
+      - name: Update F-Droid repo (version tag → app, dev → test app)
         if: (startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push') || env.DEV == 'true'
         working-directory: .
         env:

@@ -2,11 +2,11 @@ name: Images
 
 # Multi-arch images (linux/amd64 + linux/arm64) on GitHub Container Registry.
 # Tags: v1.2.3 → 1.2.3, 1.2, latest (newest release; the ready-made
-# deploy/docker-compose.yml pulls latest) · main → edge (tested, unreleased state)
+# deploy/docker-compose.yml pulls latest) · dev → edge (test instance, docs/19)
 on:
   push:
     tags: ["v*"]
-    branches: [main]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
@@ -59,7 +59,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=edge,enable={{is_default_branch}}
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/dev' }}
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}

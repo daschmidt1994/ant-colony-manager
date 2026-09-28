@@ -37,7 +37,7 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
     title: S.appName,
     debugShowCheckedModeBanner: false,
-    // Test app (CI build from main): a corner banner so it is never mistaken for the real one.
+    // Test app (CI build from dev): a corner banner so it is never mistaken for the real one.
     builder: isTestBuild
         ? (context, child) =>
               Banner(message: 'TEST', location: BannerLocation.topEnd, color: Colors.deepOrange, child: child!)

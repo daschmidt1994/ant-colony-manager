@@ -10,7 +10,7 @@
 #   APP_PORT        Port auf dem Server (8080 ist auf Unraid oft belegt)
 #   DATA_DIR        Ordner für Datenbank, Fotos, Backups, Schlüssel (absolut!)
 #
-# Zweite Instanz zum Testen (Stand von main, eigene Domain und Daten):
+# Zweite Instanz zum Testen (Stand von dev, eigene Domain und Daten):
 # dieselbe Datei als eigenen Stack mit ACM_VERSION=edge und
 # ANDROID_APP_ID=at.antcolony.manager.dev – Anleitung: docs/19-testinstanz.md
 #
