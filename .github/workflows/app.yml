@@ -120,12 +120,14 @@ jobs:
           RUN: ${{ github.run_number }}
         # one APK per CPU architecture keeps downloads small (most phones: arm64-v8a)
         run: |
+          V=$(sed -nE 's/^version: *([^+ ]+).*/\1/p' pubspec.yaml)
+          # same version as the server image: tag → 1.2.3, otherwise 1.2.3-dev.<commit>
+          [ "$GITHUB_REF_TYPE" = tag ] || V="$V-dev.${GITHUB_SHA::7}"
           if [ "$DEV" = "true" ]; then
-            V=$(sed -nE 's/^version: *([^+ ]+).*/\1/p' pubspec.yaml)
             flutter build apk --release --split-per-abi --build-number="$RUN" \
-              --build-name="$V-dev.$RUN" --dart-define=ACM_TEST_BUILD=true
+              --build-name="$V" --dart-define=ACM_VERSION="$V" --dart-define=ACM_TEST_BUILD=true
           else
-            flutter build apk --release --split-per-abi --build-number="$RUN"
+            flutter build apk --release --split-per-abi --build-number="$RUN" --dart-define=ACM_VERSION="$V"
           fi
       - name: Verify signature
         run: |

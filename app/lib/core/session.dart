@@ -12,7 +12,14 @@ import '../features/reminders/reminders.dart';
 import 'api_client.dart';
 import 'key_value_store.dart';
 
-const appVersion = '1.1.0';
+/// Set by CI from app/pubspec.yaml – the server image gets the same string
+/// (release: `1.2.3`, test build from dev: `1.2.3-dev.<commit>`).
+const appVersion = String.fromEnvironment('ACM_VERSION', defaultValue: 'lokal');
+
+/// App and server belong together: same version, or at least the same
+/// release line (a test build 1.2.3-dev.x fits server 1.2.3-dev.y only exactly).
+bool versionsMatch(String app, String? server) =>
+    server == null || app == 'lokal' || server == 'local' || app == server;
 
 /// Persistent credentials. Android: Keystore-backed secure storage.
 /// Web: only server/user info – the refresh token is an HttpOnly cookie.

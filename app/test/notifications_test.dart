@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:ant_colony_manager/core/session.dart';
 import 'package:ant_colony_manager/features/settings/notifications_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,5 +40,14 @@ void main() {
     expect(notifyPrefsBody(p, newToken: '  tk_abc ')['ntfy_token'], 'tk_abc');
     expect(notifyPrefsBody(p, newToken: '   ').containsKey('ntfy_token'), isFalse);
     expect(notifyPrefsBody(p, removeToken: true)['ntfy_token'], '');
+  });
+
+  test('app and server version belong together', () {
+    expect(versionsMatch('1.2.0', '1.2.0'), isTrue);
+    expect(versionsMatch('1.2.0', '1.1.0'), isFalse);
+    expect(versionsMatch('1.2.0-dev.abc1234', '1.2.0-dev.abc1234'), isTrue);
+    expect(versionsMatch('1.2.0-dev.abc1234', '1.2.0'), isFalse);
+    expect(versionsMatch('1.2.0', null), isTrue); // server unknown (offline)
+    expect(versionsMatch('lokal', '1.2.0'), isTrue); // local development build
   });
 }

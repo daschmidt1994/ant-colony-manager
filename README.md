@@ -189,7 +189,7 @@ Go ist lokal nicht nötig (`./scripts/go.sh go …` nutzt einen Container). Mehr
 
 ## Versionen und Releases
 
-Server, Web-App und Android-App haben **eine gemeinsame Version** nach [SemVer](https://semver.org/lang/de/); sie steht in [`app/pubspec.yaml`](app/pubspec.yaml).
+Server, Web-App und Android-App haben **eine gemeinsame Version** nach [SemVer](https://semver.org/lang/de/); sie steht in [`app/pubspec.yaml`](app/pubspec.yaml). Nur dort ändern (macht `scripts/release.sh`) – die CI gibt sie an Server, Web-App und APK weiter. Teststände aus `dev` heißen überall gleich `1.2.0-dev.<commit>` (ACM Test und `edge`-Server). In der App unter **Mehr → Server** stehen beide Versionen; passen sie nicht zusammen, erscheint ein Hinweis.
 
 | Änderung | Beispiel |
 |---|---|
