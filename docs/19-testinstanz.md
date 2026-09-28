@@ -78,5 +78,5 @@ allem bei Migrationen). Dafür einen Backup-Ordner aus
 `<DATA_DIR echt>/backups/` nach `<DATA_DIR test>/backups/` kopieren und in
 der Testinstanz wiederherstellen, wie in [09-backup-restore.md](09-backup-restore.md)
 beschrieben. Die Testinstanz hat eigene Schlüssel: nach dem Restore in ACM
-Test neu anmelden. E-Mail (`SMTP_*`) in der Testinstanz leer lassen, sonst
+Test neu anmelden. Den E-Mail-Versand in der Testinstanz nicht einrichten (bzw. nach dem Restore unter Mehr → Server-Verwaltung entfernen – er kommt mit dem Backup mit), sonst
 bekommen Nutzer doppelte Tagesüberblicke.

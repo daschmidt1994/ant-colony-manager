@@ -350,6 +350,20 @@ paths:
       tags: [auth]
       summary: "Replace notification settings; ntfy_token omitted = keep, \"\" = remove. Repeat hours: overdue 0/6/12/24, sensor 0/1/6/12/24, winter 0/24 (0 = only once)"
       responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/smtp:
+    get:
+      tags: [admin]
+      summary: "E-mail server settings (admin). source: app | env | none; the password is never returned (password_set)"
+      responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save SMTP settings (take effect immediately, precedence over SMTP_*); host \"\" removes them; password omitted = keep, \"\" = remove"
+      responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/smtp/test:
+    post:
+      tags: [admin]
+      summary: "Send a test e-mail to the administrator"
+      responses: { "204": { description: "sent" }, "502": { description: "SMTP failed (title explains)" } }
   /api/v1/me/notifications/test:
     post:
       tags: [auth]

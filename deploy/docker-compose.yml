@@ -33,13 +33,10 @@ x-settings: &settings
   # Hinter einem Reverse Proxy/Tunnel (Caddy, Pangolin/Newt, Nginx …): dessen
   # IP oder Netz, z. B. 172.16.0.0/12 – keine URL. Leer = kein Proxy.
   TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
-  # E-Mail (Passwort vergessen, Tages-Überblick) – leer lassen = aus
-  SMTP_HOST: ${SMTP_HOST:-}
-  SMTP_PORT: ${SMTP_PORT:-587}
-  SMTP_USER: ${SMTP_USER:-}
-  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-  SMTP_FROM: ${SMTP_FROM:-}
-  SMTP_TLS: ${SMTP_TLS:-starttls}
+  # E-Mail-Versand (Passwort vergessen, Tages-Überblick, Benachrichtigungen):
+  # in der App unter Mehr → Server-Verwaltung → E-Mail-Versand einrichten.
+  # (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM, SMTP_TLS
+  # funktionieren weiterhin, die Einstellung in der App hat Vorrang.)
   # Backups: täglich 03:00, 7 tägliche / 4 wöchentliche / 6 monatliche behalten
   BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 3 * * *}
   BACKUP_KEEP_DAILY: ${BACKUP_KEEP_DAILY:-7}

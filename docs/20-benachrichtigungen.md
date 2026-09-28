@@ -43,8 +43,8 @@ Ein Tipp auf die Nachricht öffnet die Kolonie in der Web-App.
 
 ## E-Mail
 
-Nur verfügbar, wenn der Server einen E-Mail-Versand hat (`SMTP_*` in der
-Compose-Datei). In der Testinstanz leer lassen, sonst kommen Nachrichten doppelt.
+Nur verfügbar, wenn der Server einen E-Mail-Versand hat – als Administrator
+in der App unter **Mehr → Server-Verwaltung → E-Mail-Versand** einrichten. In der Testinstanz leer lassen, sonst kommen Nachrichten doppelt.
 
 ## Technik
 

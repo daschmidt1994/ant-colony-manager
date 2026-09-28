@@ -131,8 +131,12 @@ func serve() error {
 	if err != nil {
 		return err
 	}
-	svc, err := service.New(ctx, pool, cfg, log, mail.New(cfg.SMTP, log), blobs)
+	svc, err := service.New(ctx, pool, cfg, log, mail.NewSwitch(mail.New(cfg.SMTP, log)), blobs)
 	if err != nil {
+		return err
+	}
+	// E-mail server set in the app (Mehr → Server-Verwaltung) wins over SMTP_*.
+	if err := svc.ApplyMailSettings(ctx); err != nil {
 		return err
 	}
 	if tok, err := svc.EnsureSetupToken(ctx); err != nil {
