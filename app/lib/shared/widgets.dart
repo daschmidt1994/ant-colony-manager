@@ -82,8 +82,11 @@ class DueChip extends StatelessWidget {
 
 /// One line per task on the colony page.
 class DueRow extends StatelessWidget {
-  const DueRow(this.task, {super.key});
+  const DueRow(this.task, {super.key, this.onSnooze});
   final DueTask task;
+
+  /// „Heute keine Zeit“ – offered on long press for care due by today.
+  final VoidCallback? onSnooze;
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +94,8 @@ class DueRow extends StatelessWidget {
     final name = task.schedule.taskType == 'custom'
         ? (task.schedule.title ?? 'Aufgabe')
         : S.taskNames[task.schedule.taskType]!;
-    return Padding(
+    final canSnooze = onSnooze != null && task.status != DueStatus.paused && task.days <= 0;
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
@@ -106,6 +110,33 @@ class DueRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+    if (!canSnooze) return row;
+    return InkWell(
+      onLongPress: () => showModalBottomSheet<void>(
+        context: context,
+        builder: (c) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(name, style: Theme.of(c).textTheme.titleMedium),
+                subtitle: Text(S.dueText(task)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.update),
+                title: const Text('Auf morgen verschieben'),
+                subtitle: const Text('Heute keine Zeit – ab morgen wieder fällig'),
+                onTap: () {
+                  Navigator.pop(c);
+                  onSnooze!();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      child: row,
     );
   }
 }

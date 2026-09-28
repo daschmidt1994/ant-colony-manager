@@ -97,7 +97,7 @@ var entities = map[string]*entity{
 	},
 	"care_schedules": {
 		Scope: scopeColony, Collection: "schedules",
-		Fields:    []string{"colony_id", "task_type", "title", "interval_days", "starts_at", "active", "winter_mode"},
+		Fields:    []string{"colony_id", "task_type", "title", "interval_days", "starts_at", "active", "winter_mode", "snoozed_until"},
 		Immutable: []string{"colony_id", "task_type"},
 	},
 	"tasks": {
@@ -172,7 +172,7 @@ var entities = map[string]*entity{
 	"user_settings": {
 		Scope: scopeSettings, Collection: "settings",
 		Fields: []string{"timezone", "locale", "theme", "due_soon_days", "digest_time",
-			"notify_overdue", "email_digest", "label_defaults"},
+			"notify_overdue", "email_digest", "label_defaults", "notify_digest_app", "notify_sensor_app", "notify_winter_app"},
 		beforeWrite: settingsBeforeWrite,
 	},
 	"sensors": {

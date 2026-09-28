@@ -165,6 +165,11 @@ class UserSettings {
   }
 
   bool get notifyOverdue => json['notify_overdue'] as bool? ?? true;
+
+  /// App (Android) notifications per topic – see the notifications screen.
+  bool get notifyDigestApp => json['notify_digest_app'] as bool? ?? true;
+  bool get notifySensorApp => json['notify_sensor_app'] as bool? ?? true;
+  bool get notifyWinterApp => json['notify_winter_app'] as bool? ?? true;
   bool get emailDigest => json['email_digest'] as bool? ?? false;
 }
 

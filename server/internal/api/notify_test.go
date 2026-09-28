@@ -223,3 +223,122 @@ func TestNotifyWinterPlanFromDigestTime(t *testing.T) {
 		t.Fatalf("repeated although once: %v", msgs)
 	}
 }
+
+func TestSnoozeFromNtfyAndApp(t *testing.T) {
+	env := testenv.New(t)
+	anna := env.User(t, "Anna")
+	ntfy := newFakeNtfy(t)
+	ctx := context.Background()
+	zone := middayZone()
+	loc, _ := time.LoadLocation(zone)
+	colony := anna.CreateColony(t, map[string]any{"name": "Messor #12"})
+	schedule := testenv.NewID()
+	anna.Push(t, testenv.Op{OpID: testenv.NewID(), Entity: "care_schedules", EntityID: schedule, Op: "create",
+		Payload: testenv.Payload(map[string]any{"colony_id": colony, "task_type": "water", "interval_days": 2,
+			"starts_at": time.Now().Add(-5 * 24 * time.Hour)})})
+	anna.Do("PATCH", "/api/v1/me/settings", map[string]any{"timezone": zone,
+		"notify_winter_app": false, "notify_sensor_app": false, "notify_digest_app": false}).Must(t, 200)
+	anna.Do("PUT", "/api/v1/me/notifications", map[string]any{"ntfy_url": ntfy.URL + "/ants", "overdue_ntfy": true,
+		"overdue_repeat_hours": 0, "sensor_repeat_hours": 6, "winter_repeat_hours": 24}).Must(t, 200)
+	nextDue := func() time.Time {
+		var at time.Time
+		if err := env.Pool.QueryRow(ctx, `SELECT next_due_at FROM care_due WHERE schedule_id = $1`, schedule).Scan(&at); err != nil {
+			t.Fatal(err)
+		}
+		return at
+	}
+	if _, err := env.Svc.SendNotifications(ctx); err != nil {
+		t.Fatal(err)
+	}
+	msgs := ntfy.take()
+	if len(msgs) != 1 {
+		t.Fatalf("overdue: %v", msgs)
+	}
+	actions, _ := msgs[0]["actions"].([]any)
+	if len(actions) != 1 || actions[0].(map[string]any)["label"] != "Morgen" || actions[0].(map[string]any)["method"] != "POST" {
+		t.Fatalf("snooze action: %v", msgs[0]["actions"])
+	}
+	link := actions[0].(map[string]any)["url"].(string)
+	path := strings.TrimPrefix(link, strings.TrimRight(env.Cfg.PublicURL.String(), "/"))
+
+	// Tampered or GET → refused; the real link (no login) moves it to tomorrow.
+	env.Anon().Do("POST", strings.Replace(path, "k=care", "k=winter", 1), nil).Must(t, http.StatusUnauthorized)
+	env.Anon().Do("POST", strings.Replace(path, "sig=", "sig=x", 1), nil).Must(t, http.StatusUnauthorized)
+	if r := env.Anon().Do("GET", path, nil); r.Status == 200 {
+		t.Fatal("snooze via GET")
+	}
+	r := env.Anon().Do("POST", path, nil).Must(t, 200).JSON()
+	if r["message"] != "Auf morgen verschoben" {
+		t.Fatalf("snooze: %v", r)
+	}
+	tomorrow := time.Date(time.Now().In(loc).Year(), time.Now().In(loc).Month(), time.Now().In(loc).Day()+1, 0, 0, 0, 0, loc)
+	if got := nextDue(); !got.Equal(tomorrow) {
+		t.Fatalf("next due %v, want start of tomorrow %v", got, tomorrow)
+	}
+	// Not overdue any more → no message; the day after tomorrow it is overdue again.
+	if _, err := env.Svc.SendNotifications(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if msgs := ntfy.take(); len(msgs) != 0 {
+		t.Fatalf("still reported after snooze: %v", msgs)
+	}
+	env.Clock.Advance(48 * time.Hour)
+	if _, err := env.Svc.SendNotifications(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if msgs := ntfy.take(); len(msgs) != 1 {
+		t.Fatalf("not reported again after the snooze day: %v", msgs)
+	}
+
+	// The app writes snoozed_until through sync like any other field.
+	var base int64
+	if err := env.Pool.QueryRow(ctx, `SELECT version FROM care_schedules WHERE id = $1`, schedule).Scan(&base); err != nil {
+		t.Fatal(err)
+	}
+	until := env.Svc.Now().Add(72 * time.Hour).UTC().Truncate(time.Second)
+	res := anna.Push(t, testenv.Op{OpID: testenv.NewID(), Entity: "care_schedules", EntityID: schedule, Op: "update",
+		BaseVersion: &base, Payload: testenv.Payload(map[string]any{"snoozed_until": until})})
+	if res.Results[0].Error != nil {
+		t.Fatalf("app snooze: %+v", res.Results[0].Error)
+	}
+	if got := nextDue(); !got.Equal(until) {
+		t.Fatalf("app snooze: next due %v, want %v", got, until)
+	}
+}
+
+func TestSnoozeWinterPlanByLink(t *testing.T) {
+	env := testenv.New(t)
+	anna := env.User(t, "Anna")
+	ntfy := newFakeNtfy(t)
+	ctx := context.Background()
+	zone := middayZone()
+	loc, _ := time.LoadLocation(zone)
+	today := time.Now().In(loc)
+	day := func(offset int) string { return today.AddDate(0, 0, offset).Format(time.DateOnly) }
+	colony := anna.CreateColony(t, map[string]any{"name": "Lasius"})
+	rest := testenv.NewID()
+	anna.Push(t, testenv.Op{OpID: testenv.NewID(), Entity: "winter_rests", EntityID: rest, Op: "create",
+		Payload: testenv.Payload(map[string]any{"colony_id": colony, "planned_start_on": day(-2), "planned_end_on": day(0)})})
+	anna.Do("PATCH", "/api/v1/me/settings", map[string]any{"timezone": zone, "digest_time": "00:00"}).Must(t, 200)
+	anna.Do("PUT", "/api/v1/me/notifications", map[string]any{"ntfy_url": ntfy.URL + "/ants", "winter_ntfy": true,
+		"overdue_repeat_hours": 24, "sensor_repeat_hours": 6, "winter_repeat_hours": 24}).Must(t, 200)
+	if _, err := env.Svc.SendNotifications(ctx); err != nil {
+		t.Fatal(err)
+	}
+	msgs := ntfy.take()
+	if len(msgs) != 1 {
+		t.Fatalf("winter: %v", msgs)
+	}
+	link := msgs[0]["actions"].([]any)[0].(map[string]any)["url"].(string)
+	path := strings.TrimPrefix(link, strings.TrimRight(env.Cfg.PublicURL.String(), "/"))
+	env.Anon().Do("POST", path, nil).Must(t, 200)
+	var start, end string
+	if err := env.Pool.QueryRow(ctx, `SELECT planned_start_on::text, planned_end_on::text FROM winter_rests WHERE id = $1`, rest).
+		Scan(&start, &end); err != nil {
+		t.Fatal(err)
+	}
+	// start was overdue → tomorrow; the end stays after the start
+	if start != day(1) || end != day(2) {
+		t.Fatalf("plan after snooze: %s – %s", start, end)
+	}
+}

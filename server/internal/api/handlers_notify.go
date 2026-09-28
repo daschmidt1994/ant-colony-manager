@@ -32,6 +32,20 @@ func (s *Server) setNotifyPrefs(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusOK, p)
 }
 
+// snooze: „Morgen“ button of an ntfy notification (signed link, no login).
+func (s *Server) snooze(w http.ResponseWriter, r *http.Request) {
+	if ok, retry := s.limAnon.Allow(clientIP(r).String()); !ok {
+		s.problem(w, r, service.RateLimited(retry))
+		return
+	}
+	msg, err := s.svc.SnoozeByLink(r.Context(), r.URL.Query())
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, map[string]any{"message": msg})
+}
+
 func (s *Server) testNotify(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.TestNotify(r.Context(), actorOf(r)); err != nil {
 		s.problem(w, r, err)

@@ -54,6 +54,7 @@ class Schedule {
     this.title,
     this.active = true,
     this.winterMode,
+    this.snoozedUntil,
   });
 
   factory Schedule.fromJson(Map<String, dynamic> j) => Schedule(
@@ -65,6 +66,7 @@ class Schedule {
     title: j['title'] as String?,
     active: j['active'] as bool? ?? true,
     winterMode: j['winter_mode'] as String?,
+    snoozedUntil: DateTime.tryParse(j['snoozed_until'] as String? ?? ''),
   );
 
   final String id;
@@ -75,6 +77,9 @@ class Schedule {
   final String? title;
   final bool active;
   final String? winterMode; // pause | scale | keep | null (= winter rest setting)
+
+  /// „Morgen“: not due before this instant (even if the interval says so).
+  final DateTime? snoozedUntil;
 }
 
 /// Open winter rest of a colony.
@@ -126,7 +131,15 @@ DateTime? nextDue(Schedule s, DateTime? last, WinterRestInfo? winter) {
   if (winter != null && mode == 'pause') return null;
   final factor = (winter != null && mode == 'scale') ? winter.factor : 1.0;
   final base = last ?? s.startsAt;
-  return base.add(Duration(milliseconds: (s.intervalDays * factor * Duration.millisecondsPerDay).round()));
+  final next = base.add(Duration(milliseconds: (s.intervalDays * factor * Duration.millisecondsPerDay).round()));
+  final snooze = s.snoozedUntil;
+  return snooze != null && snooze.isAfter(next) ? snooze : next;
+}
+
+/// Start of the next local day – the target of „Morgen“.
+DateTime startOfTomorrow(DateTime now) {
+  final l = now.toLocal();
+  return DateTime(l.year, l.month, l.day + 1);
 }
 
 List<DueTask> computeDue({

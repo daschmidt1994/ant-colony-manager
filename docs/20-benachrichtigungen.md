@@ -1,9 +1,22 @@
-# Benachrichtigungen per ntfy und E-Mail
+# Benachrichtigungen: App, ntfy, E-Mail
 
-Unter **Mehr → Erinnerungen → Benachrichtigungen per ntfy und E-Mail** wählst
-du pro Thema den Kanal, wie oft erinnert wird und wann Ruhe ist. Die
-Nachrichten kommen vom Server – auch wenn das Handy aus ist. Die
-Android-App erinnert zusätzlich selbst (unverändert).
+Unter **Mehr → Erinnerungen → Benachrichtigungen** wählst du pro Thema die
+Kanäle, wie oft erinnert wird und wann Ruhe ist:
+
+- **App** – Android-Benachrichtigung, direkt vom Handy berechnet (funktioniert
+  offline, die Einstellung gilt auf allen deinen Geräten)
+- **ntfy** und **E-Mail** – vom Server, auch wenn das Handy aus ist
+
+## „Morgen“ – heute keine Zeit
+
+Überfällige Pflege, einzelne Aufgaben und die Winterruhe-Erinnerung haben
+einen Knopf **„Morgen“** (in der App-Benachrichtigung und in ntfy; in der App
+auch durch langes Drücken auf die Aufgabe auf der Kolonie-Seite):
+
+- Pflege gilt bis morgen als nicht fällig – morgen „heute fällig“, übermorgen
+  wieder überfällig. Wird inzwischen gefüttert, läuft das Intervall normal weiter.
+- Winterruhe: der geplante Beginn bzw. das geplante Ende rückt um einen Tag.
+- In ntfy funktioniert der Knopf ohne Anmeldung (signierter Link, 7 Tage gültig).
 
 | Thema | Wann | Wiederholen, solange es besteht |
 |---|---|---|

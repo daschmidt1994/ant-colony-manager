@@ -171,6 +171,7 @@ type notice struct {
 	Title, Body, Click string
 	Priority           int // ntfy: 1 min … 5 max
 	Tags               []string
+	SnoozeURL          string // ntfy button „Morgen“ (http POST, no login)
 }
 
 // sendNtfy publishes as JSON to the server root, so titles may contain
@@ -186,9 +187,13 @@ func (s *Service) sendNtfy(ctx context.Context, topicURL, token string, n notice
 		base, topic = path[:i], path[i+1:]
 	}
 	u.Path = "/" + base
-	body, _ := json.Marshal(map[string]any{
+	msg := map[string]any{
 		"topic": topic, "title": n.Title, "message": n.Body, "priority": n.Priority, "tags": n.Tags, "click": n.Click,
-	})
+	}
+	if n.SnoozeURL != "" {
+		msg["actions"] = []map[string]any{{"action": "http", "label": "Morgen", "url": n.SnoozeURL, "method": "POST", "clear": true}}
+	}
+	body, _ := json.Marshal(msg)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(body))
 	if err != nil {
 		return err
@@ -374,11 +379,14 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 		p.lines = append(p.lines, line)
 	}
 	sent := 0
-	send := func(m map[uuid.UUID]*pending, emailOn, ntfyOn bool, title string, prio int, tags []string) error {
+	send := func(m map[uuid.UUID]*pending, emailOn, ntfyOn bool, title string, prio int, tags []string, snoozeKind string) error {
 		for _, p := range m {
 			c := byID[p.colony]
 			n := notice{Title: c.label() + ": " + title, Body: strings.Join(p.lines, "\n"),
 				Click: s.publicURL() + "/colonies/" + c.id.String(), Priority: prio, Tags: tags}
+			if snoozeKind != "" {
+				n.SnoozeURL = s.snoozeURL(r.id, snoozeKind, c.id)
+			}
 			if !s.deliver(ctx, r, emailOn, ntfyOn, n) {
 				continue // retried next minute
 			}
@@ -412,7 +420,7 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 				}
 			}
 		}
-		if err := send(out, p.OverdueEmail, p.OverdueNtfy, "Pflege überfällig", 3, []string{"ant"}); err != nil {
+		if err := send(out, p.OverdueEmail, p.OverdueNtfy, "Pflege überfällig", 3, []string{"ant"}, "care"); err != nil {
 			return sent, err
 		}
 	}
@@ -446,7 +454,7 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 		if err != nil {
 			return sent, err
 		}
-		if err := send(out, p.SensorEmail, p.SensorNtfy, "Sensor-Alarm", 4, []string{"warning"}); err != nil {
+		if err := send(out, p.SensorEmail, p.SensorNtfy, "Sensor-Alarm", 4, []string{"warning"}, ""); err != nil {
 			return sent, err
 		}
 	}
@@ -466,7 +474,7 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 					collect(out, colony, key, text)
 				}
 			}
-			if err := send(out, p.WinterEmail, p.WinterNtfy, "Winterruhe", 3, []string{"snowflake"}); err != nil {
+			if err := send(out, p.WinterEmail, p.WinterNtfy, "Winterruhe", 3, []string{"snowflake"}, "winter"); err != nil {
 				return sent, err
 			}
 		} else {

@@ -364,6 +364,12 @@ paths:
       tags: [admin]
       summary: "Send a test e-mail to the administrator"
       responses: { "204": { description: "sent" }, "502": { description: "SMTP failed (title explains)" } }
+  /api/v1/snooze:
+    post:
+      tags: [colonies]
+      security: []
+      summary: "„Morgen“ button of an ntfy notification: signed link (7 days). k=care → care of the colony due by today counts as due tomorrow; k=winter → planned winter start/end +1 day"
+      responses: { "200": { description: "{message}" }, "401": { description: "link invalid or expired" } }
   /api/v1/me/notifications/test:
     post:
       tags: [auth]

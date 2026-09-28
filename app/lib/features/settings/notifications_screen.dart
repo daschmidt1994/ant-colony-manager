@@ -206,9 +206,16 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
     final digestTime = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
     final quietOn = (_p['quiet_start'] as String? ?? '').isNotEmpty;
 
-    Widget channels(String prefix, {bool? emailValue, ValueChanged<bool>? onEmail}) => Wrap(
+    // App (Android) is a synced user setting – saved right away, works offline.
+    Widget channels(String prefix, {required String appSetting, bool? emailValue, ValueChanged<bool>? onEmail}) => Wrap(
       spacing: 8,
       children: [
+        FilterChip(
+          avatar: const Icon(Icons.phone_android, size: 18),
+          label: const Text('App'),
+          selected: settings?.json[appSetting] as bool? ?? true,
+          onSelected: repo == null ? null : (v) => repo.updateSettings({appSetting: v}),
+        ),
         FilterChip(
           avatar: const Icon(Icons.mail_outline, size: 18),
           label: const Text('E-Mail'),
@@ -387,6 +394,7 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                     [
                       channels(
                         'digest',
+                        appSetting: 'notify_digest_app',
                         emailValue: settings?.emailDigest ?? false,
                         onEmail: repo == null ? null : (v) => repo.updateSettings({'email_digest': v}),
                       ),
@@ -395,20 +403,22 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                   topic(
                     Icons.warning_amber_rounded,
                     'Pflege überfällig',
-                    'Sobald eine Aufgabe (Fütterung, Wasser, Reinigung …) überfällig ist – eine Nachricht je Kolonie.',
-                    [channels('overdue'), repeat('overdue_repeat_hours', overdueRepeats)],
+                    'Sobald eine Aufgabe (Fütterung, Wasser, Reinigung …) überfällig ist. '
+                        'Mit „Erledigt“ und „Morgen“ (heute keine Zeit → um einen Tag verschieben).',
+                    [channels('overdue', appSetting: 'notify_overdue'), repeat('overdue_repeat_hours', overdueRepeats)],
                   ),
                   topic(
                     Icons.thermostat,
                     'Sensor-Alarm',
                     'Temperatur oder Luftfeuchte außerhalb der Grenzwerte eines Sensors (Mehr → Sensoren).',
-                    [channels('sensor'), repeat('sensor_repeat_hours', sensorRepeats)],
+                    [channels('sensor', appSetting: 'notify_sensor_app'), repeat('sensor_repeat_hours', sensorRepeats)],
                   ),
                   topic(
                     Icons.ac_unit,
                     'Winterruhe',
-                    'Am geplanten Tag ab $digestTime: „Winterruhe beginnen?“ bzw. „aufwecken?“.',
-                    [channels('winter'), repeat('winter_repeat_hours', winterRepeats)],
+                    'Am geplanten Tag ab $digestTime: „Winterruhe beginnen?“ bzw. „aufwecken?“ – '
+                        'mit „Morgen“ um einen Tag verschieben.',
+                    [channels('winter', appSetting: 'notify_winter_app'), repeat('winter_repeat_hours', winterRepeats)],
                   ),
                   const SectionHeader('Ruhezeiten'),
                   Card(
