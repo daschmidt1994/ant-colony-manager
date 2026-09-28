@@ -1,8 +1,13 @@
 name: App
 
+# Releases come only from version tags (v1.2.3, created by scripts/release.sh):
+# GitHub release "v1.2.3" with the APKs + F-Droid update. Pushes to branches
+# only test and build (APK as workflow artifact).
 on:
   push:
+    branches: ["**"]
     paths: ["app/**", "test-vectors/**", "fdroid/**", ".github/workflows/app.yml"]
+    tags: ["v*"]
   pull_request:
     paths: ["app/**", "test-vectors/**"]
   workflow_dispatch:
@@ -33,6 +38,11 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Tag matches pubspec version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          V=$(sed -nE 's/^version: *([^+ ]+).*/\1/p' pubspec.yaml)
+          [ "v$V" = "$GITHUB_REF_NAME" ] || { echo "::error::Tag $GITHUB_REF_NAME passt nicht zu pubspec.yaml ($V) – scripts/release.sh benutzen"; exit 1; }
       - name: Format
         run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze
@@ -68,10 +78,10 @@ jobs:
     runs-on: ubuntu-latest
     # one publisher at a time: releases and the F-Droid repo on gh-pages
     concurrency:
-      group: app-publish-${{ github.ref }}
+      group: app-publish-${{ startsWith(github.ref, 'refs/tags/v') && 'release' || github.ref }}
       cancel-in-progress: false
     permissions:
-      contents: write # GitHub release with the APKs (main only)
+      contents: write # GitHub release with the APKs (version tags only)
     defaults:
       run:
         working-directory: app
@@ -116,25 +126,22 @@ jobs:
           retention-days: 30
       # Public download without a GitHub account; a stable link always points to the newest:
       # https://github.com/<owner>/<repo>/releases/latest/download/app-arm64-v8a-release.apk
-      - name: Publish release (main)
-        # push to main, or a manual run without a custom App-Link domain
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.app_link_host == ''))
+      - name: Publish release (version tag)
+        if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN: ${{ github.run_number }}
         run: |
-          gh release create "app-$RUN" build/app/outputs/flutter-apk/app-*-release.apk ../deploy/docker-compose.yml \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
-            --title "Android-App (Build $RUN)" \
-            --notes "Für fast alle Handys: **app-arm64-v8a-release.apk**. Ältere Geräte: app-armeabi-v7a-release.apk. Über eine vorhandene Installation installieren – die Daten bleiben erhalten. Server: docker-compose.yml zum Einfügen in Dockhand/Portainer (docs/17-unraid-dockhand.md). Anleitung: docs/16-anleitung-installieren-testen.md"
-          # keep the newest 10 builds
-          gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName' \
-            | grep '^app-' | sort -t- -k2 -n -r | tail -n +11 \
-            | xargs -r -I{} gh release delete {} --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+          V=${GITHUB_REF_NAME#v}
+          gh release create "$GITHUB_REF_NAME" build/app/outputs/flutter-apk/app-*-release.apk ../deploy/docker-compose.yml \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --latest --generate-notes \
+            --title "Ant Colony Manager $V" \
+            --notes "**Android-App:** app-arm64-v8a-release.apk (fast alle Handys), ältere Geräte: app-armeabi-v7a-release.apk. Über eine vorhandene Installation installieren – die Daten bleiben erhalten. Updates automatisch über F-Droid: docs/18-fdroid.md
+
+          **Server:** Docker-Images \`ghcr.io/${GITHUB_REPOSITORY_OWNER}/ant-colony-manager:$V\` (und \`:latest\`), fest mit \`ACM_VERSION=$V\`. docker-compose.yml zum Einfügen in Dockhand/Portainer: docs/17-unraid-dockhand.md"
       # Own F-Droid repo on GitHub Pages – add in F-Droid for updates on the phone:
       # https://<owner>.github.io/<repo>/fdroid/repo (see docs/18-fdroid.md)
-      - name: Update F-Droid repo (main)
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.app_link_host == ''))
+      - name: Update F-Droid repo (version tag)
+        if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}

@@ -1,10 +1,10 @@
 Categories:
   - Science & Education
-License: Proprietary
+License: AGPL-3.0-only
 AuthorName: daschmidt1994
 SourceCode: https://github.com/daschmidt1994/ant-colony-manager
 IssueTracker: https://github.com/daschmidt1994/ant-colony-manager/issues
-Changelog: https://github.com/daschmidt1994/ant-colony-manager/commits/main
+Changelog: https://github.com/daschmidt1994/ant-colony-manager/releases
 
 Name: Ant Colony Manager
 Summary: Ameisenkolonien pflegen – NFC/QR scannen, dokumentieren, erinnern

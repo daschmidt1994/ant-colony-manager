@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Adds the freshly built APKs to the F-Droid repo on the gh-pages branch
 # (GitHub Pages: https://<owner>.github.io/<repo>/fdroid/repo). Run by the App
-# workflow after a main build. Needs FDROID_KEYSTORE_BASE64/_PASS, GH_TOKEN,
+# workflow for a version tag (v1.2.3). Needs FDROID_KEYSTORE_BASE64/_PASS, GH_TOKEN,
 # RUN (build number) and fdroidserver on PATH.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)

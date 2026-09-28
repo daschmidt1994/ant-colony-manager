@@ -25,9 +25,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 | 8 | Pflege-Rundgang: Scan-Workflow für viele Kolonien, offline, mit Zusammenfassung | ✅ [docs/](docs/README.md#phase-8--pflege-rundgang-umgesetzt) |
 | 9 | Fotos, Erinnerungen (Android + E-Mail), Statistiken & Diagramme, Sensoren mit Grenzwert-Alarm, PDF-Koloniebericht, Export (JSON/CSV/Fotos) | ✅ [docs/](docs/README.md#phase-9--fotos-erinnerungen-statistiken-sensoren-berichte-export-umgesetzt) |
 
-Die Web-App ist im Server-Image enthalten. Die Android-App (APK) entsteht in der CI ([App-Workflow](.github/workflows/app.yml), Artefakt am jeweiligen Lauf). 
-
-<!-- Screenshots folgen mit der App (Phase 5). -->
+Die Web-App ist im Server-Image enthalten. Die Android-App gibt es als APK in den [Releases](https://github.com/daschmidt1994/ant-colony-manager/releases) und über [F-Droid](docs/18-fdroid.md).
 
 ## Architektur
 
@@ -63,7 +61,7 @@ docker compose up -d
 docker compose ps              # nach ~1 Minute: alle Dienste "healthy"
 ```
 
-Solange es keine veröffentlichten Images gibt, baut Compose sie beim ersten Start selbst (einige Minuten; Meldungen `denied` beim Pull sind dann normal). Der Web-App-Build braucht dabei deutlich mehr als 1 GB RAM (mit 900 MB scheitert er) – auf kleineren Rechnern (Raspberry Pi, NAS) besser fertige Images verwenden oder `ACM_WEB_BUILD=placeholder` setzen (Server ohne Weboberfläche).
+Compose lädt die fertigen Images von GHCR. Sind sie nicht erreichbar, baut Compose sie beim ersten Start selbst (einige Minuten; Meldungen `denied` beim Pull sind dann normal). Der Web-App-Build braucht dabei deutlich mehr als 1 GB RAM (mit 900 MB scheitert er) – auf kleineren Rechnern (Raspberry Pi, NAS) besser fertige Images verwenden oder `ACM_WEB_BUILD=placeholder` setzen (Server ohne Weboberfläche).
 
 Danach:
 
@@ -149,13 +147,13 @@ Der vollständige Ablauf Installation → Backup → Zerstören → Restore → 
 ./scripts/update.sh
 ```
 
-= Backup `…-pre-update` → `git pull` → neue Images holen/bauen → Neustart → warten bis *healthy*. Datenbank-Migrationen laufen beim Start automatisch (eine Transaktion pro Migration). Eine ältere App-Version startet nicht gegen ein neueres Schema (Schutz vor Downgrade). Feste Version: `ACM_VERSION=1.0.0` in `.env`.
+= Backup `…-pre-update` → `git pull` → neue Images holen/bauen → Neustart → warten bis *healthy*. Datenbank-Migrationen laufen beim Start automatisch (eine Transaktion pro Migration). Eine ältere App-Version startet nicht gegen ein neueres Schema (Schutz vor Downgrade). Feste Version: `ACM_VERSION=1.1.0` in `.env`.
 
 ## Android-App
 
 Schritt für Schritt mit Test auf dem Handy: [docs/16-anleitung-installieren-testen.md](docs/16-anleitung-installieren-testen.md).
 
-**Download:** [neueste APK (arm64, fast alle Handys)](https://github.com/daschmidt1994/ant-colony-manager/releases/latest/download/app-arm64-v8a-release.apk) · [alle Versionen](https://github.com/daschmidt1994/ant-colony-manager/releases). Die APK wird von der CI gebaut und signiert. Installieren, dann entweder die Server-Adresse eingeben oder in der Web-App „Mehr → Android-App verbinden“ öffnen und den QR-Code mit der App scannen. Die App funktioniert offline und synchronisiert automatisch.
+**Download:** [neueste APK (arm64, fast alle Handys)](https://github.com/daschmidt1994/ant-colony-manager/releases/latest/download/app-arm64-v8a-release.apk) · [alle Versionen](https://github.com/daschmidt1994/ant-colony-manager/releases). Die APK wird von der CI gebaut und signiert, automatische Updates über [F-Droid](docs/18-fdroid.md). Installieren, dann entweder die Server-Adresse eingeben oder in der Web-App „Mehr → Android-App verbinden“ öffnen und den QR-Code mit der App scannen. Die App funktioniert offline und synchronisiert automatisch.
 
 **NFC & QR:** Kolonie öffnen → ⋮ → „NFC-Tag zuweisen“ → Tag ans Handy halten. Danach genügt Antippen, auch wenn die App geschlossen ist. QR-Etiketten: „Mehr → Etiketten drucken“ (Einzeletiketten, Brother 62 mm, A4-Bögen). Verifizierte App Links für die Kamera-App: siehe [app/README.md](app/README.md#signatur-und-app-links). NFC-Tags und der In-App-Scanner funktionieren mit jeder Domain und auch im Heimnetz per `http://`; für das direkte Öffnen per Kamera-App kann eine APK mit eigener Domain gebaut werden ([Details](docs/06-nfc-qr-deeplinks.md#5-deep-links--app-links--die-ehrliche-einschränkung)).
 
@@ -188,6 +186,24 @@ docker compose -f compose.yml -f compose.dev.yml up   # Hot Reload, Mailpit (htt
 
 Go ist lokal nicht nötig (`./scripts/go.sh go …` nutzt einen Container). Mehr in [server/README.md](server/README.md). Die CI (GitHub Actions) führt Backend-Tests mit Race-Detector, ShellCheck und den End-to-End-Test aus und baut Multi-Arch-Images (`linux/amd64`, `linux/arm64`) nach GHCR.
 
+## Versionen und Releases
+
+Server, Web-App und Android-App haben **eine gemeinsame Version** nach [SemVer](https://semver.org/lang/de/); sie steht in [`app/pubspec.yaml`](app/pubspec.yaml).
+
+| Änderung | Beispiel |
+|---|---|
+| Fehlerbehebung | `1.1.0` → `1.1.1` |
+| neue Funktion, kompatibel | `1.1.1` → `1.2.0` |
+| alte App und neuer Server (oder umgekehrt) passen nicht mehr zusammen | `1.2.0` → `2.0.0` |
+
+```bash
+./scripts/release.sh 1.2.0     # Version setzen → Commit → Tag v1.2.0 → pushen (fragt vorher nach)
+```
+
+Der Tag `v1.2.0` baut in der CI die Server-Images (`1.2.0`, `1.2`, `latest`), das GitHub-Release **v1.2.0** mit den APKs und der Compose-Datei und aktualisiert das F-Droid-Repo. Pushes auf `main` werden nur getestet: APK als Artefakt am Workflow-Lauf, Images als `edge`. Die Buildnummer der APK (Android `versionCode`) ist die fortlaufende CI-Laufnummer.
+
 ## Lizenz
 
-Noch nicht festgelegt.
+[GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only). Du darfst den Code nutzen, ändern und weitergeben; wer eine geänderte Version weitergibt oder als Dienst im Netz anbietet, muss den Quellcode unter derselben Lizenz offenlegen. Ohne Gewähr.
+
+Ein Hobbyprojekt, entwickelt mit [Claude Code](https://claude.com/claude-code).

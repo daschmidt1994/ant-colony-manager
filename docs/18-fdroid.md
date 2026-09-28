@@ -1,7 +1,9 @@
 # Android-App über F-Droid aktualisieren
 
-Jeder Build auf `main` landet automatisch in einem eigenen F-Droid-Repo
-(GitHub Pages). F-Droid zeigt neue Versionen dann wie jedes andere Update an.
+Jede veröffentlichte Version (Tag `v1.2.3`, siehe README → Versionen) landet
+automatisch in einem eigenen F-Droid-Repo (GitHub Pages). F-Droid zeigt neue
+Versionen dann wie jedes andere Update an. Stände von `main` ohne Release
+kommen nicht ins Repo.
 
 ## Einrichten (einmal)
 
@@ -26,8 +28,8 @@ https://daschmidt1994.github.io/ant-colony-manager/fdroid/repo/index.html
 
 ## Wie es funktioniert
 
-- `.github/workflows/app.yml` baut die APKs (eine je CPU-Architektur, F-Droid
-  wählt die passende), veröffentlicht das GitHub-Release und ruft
+- `.github/workflows/app.yml` baut beim Versions-Tag die APKs (eine je
+  CPU-Architektur, F-Droid wählt die passende), veröffentlicht das GitHub-Release und ruft
   [`fdroid/publish.sh`](../fdroid/publish.sh) auf.
 - Das Skript legt die APKs ins Repo auf dem Branch `gh-pages`, signiert den
   Index mit `fdroidserver` und behält die letzten 3 Builds.
