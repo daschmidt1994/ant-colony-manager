@@ -87,16 +87,16 @@ class _ReminderSettings extends ConsumerWidget {
                 value: s.notifyOverdue,
                 onChanged: (v) => repo.updateSettings({'notify_overdue': v}),
               ),
-              if (mail || s.emailDigest)
-                SwitchListTile(
-                  secondary: const Icon(Icons.mail_outline),
-                  title: const Text('Tages-Überblick per E-Mail'),
-                  subtitle: Text(
-                    mail ? 'praktisch ohne Android-App' : 'Der Server hat keinen E-Mail-Versand eingerichtet',
-                  ),
-                  value: s.emailDigest,
-                  onChanged: (v) => repo.updateSettings({'email_digest': v}),
+              ListTile(
+                leading: const Icon(Icons.campaign_outlined),
+                title: const Text('Benachrichtigungen per ntfy und E-Mail'),
+                subtitle: Text(
+                  'Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe – '
+                  '${mail ? 'E-Mail und ntfy' : 'ntfy'}, Häufigkeit, Ruhezeiten',
                 ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/notifications'),
+              ),
             ],
           ),
         ),

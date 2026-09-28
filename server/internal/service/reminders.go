@@ -22,32 +22,34 @@ var taskNames = map[string]string{
 	"water": "Wasser", "cleaning": "Reinigung", "check": "Kontrolle",
 }
 
-// SendDigests e-mails the daily overview („7 Kolonien brauchen heute
-// Aufmerksamkeit“) to users who enabled it, once per local day at their
-// digest time. Mainly for web-only users – the Android app notifies locally.
-// Returns the number of e-mails sent.
+// SendDigests sends the daily overview („7 Kolonien brauchen heute
+// Aufmerksamkeit“) by e-mail and/or ntfy to users who enabled it, once per
+// local day at their digest time. Returns the number of users reached.
 func (s *Service) SendDigests(ctx context.Context) (int, error) {
-	if !s.Mail.Enabled() {
-		return 0, nil
-	}
 	type candidate struct {
 		id              uuid.UUID
 		email, name, tz string
 		digestAt        string
 		soonDays        int
 		lastSent        *time.Time
+		byMail          bool
+		ntfyURL, token  string
 	}
 	rows, err := s.Pool.Query(ctx, `
-		SELECT u.id, u.email, u.display_name, us.timezone, us.digest_time::text, us.due_soon_days, d.sent_on
+		SELECT u.id, u.email, u.display_name, us.timezone, us.digest_time::text, us.due_soon_days, d.sent_on,
+			us.email_digest AND $1, CASE WHEN np.digest_ntfy THEN COALESCE(np.ntfy_url, '') ELSE '' END,
+			COALESCE(np.ntfy_token, '')
 		FROM users u JOIN user_settings us ON us.id = u.id
 		LEFT JOIN digest_log d ON d.user_id = u.id
-		WHERE us.email_digest AND u.disabled_at IS NULL`)
+		LEFT JOIN notification_prefs np ON np.user_id = u.id
+		WHERE u.disabled_at IS NULL AND ((us.email_digest AND $1) OR (np.digest_ntfy AND np.ntfy_url IS NOT NULL))`,
+		s.Mail.Enabled())
 	if err != nil {
 		return 0, err
 	}
 	list, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (candidate, error) {
 		var c candidate
-		err := r.Scan(&c.id, &c.email, &c.name, &c.tz, &c.digestAt, &c.soonDays, &c.lastSent)
+		err := r.Scan(&c.id, &c.email, &c.name, &c.tz, &c.digestAt, &c.soonDays, &c.lastSent, &c.byMail, &c.ntfyURL, &c.token)
 		return c, err
 	})
 	if err != nil {
@@ -69,14 +71,28 @@ func (s *Service) SendDigests(ctx context.Context) (int, error) {
 		if now.Before(due) || now.Sub(due) > digestLateLimit || (c.lastSent != nil && !c.lastSent.Before(today)) {
 			continue
 		}
-		msg, err := s.digestFor(ctx, c.id, UserPrefs{Location: loc, SoonDays: c.soonDays})
+		d, err := s.digestFor(ctx, c.id, UserPrefs{Location: loc, SoonDays: c.soonDays})
 		if err != nil {
 			return sent, err
 		}
-		if msg != nil {
-			msg.To = c.email
-			if err := s.Mail.Send(ctx, *msg); err != nil {
-				s.Log.Warn("digest mail failed", "user", c.id, "err", err)
+		if d != nil {
+			ok := false
+			if c.ntfyURL != "" {
+				n := notice{Title: d.head, Body: strings.Join(d.lines, "\n"), Click: s.publicURL() + "/", Priority: 2, Tags: []string{"ant"}}
+				if err := s.sendNtfy(ctx, c.ntfyURL, c.token, n); err != nil {
+					s.Log.Warn("digest ntfy failed", "user", c.id, "err", err)
+				} else {
+					ok = true
+				}
+			}
+			if c.byMail {
+				if err := s.Mail.Send(ctx, d.mail(c.email, s.publicURL())); err != nil {
+					s.Log.Warn("digest mail failed", "user", c.id, "err", err)
+				} else {
+					ok = true
+				}
+			}
+			if !ok {
 				continue // retried at the next tick
 			}
 			sent++
@@ -89,26 +105,24 @@ func (s *Service) SendDigests(ctx context.Context) (int, error) {
 	return sent, nil
 }
 
+type digest struct {
+	head  string
+	lines []string
+}
+
+func (d *digest) mail(to, publicURL string) mail.Message {
+	var b strings.Builder
+	b.WriteString(d.head + "\n\n")
+	for _, l := range d.lines {
+		b.WriteString(l + "\n")
+	}
+	fmt.Fprintf(&b, "\nÖffnen: %s/\n\nDiese E-Mail kommt einmal täglich. Abbestellen: Mehr → Benachrichtigungen → Tages-Überblick.\n", publicURL)
+	return mail.Message{To: to, Subject: "Ameisen: " + d.head, Body: b.String()}
+}
+
 // digestFor builds the overview for one user; nil if nothing needs attention.
-func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs) (*mail.Message, error) {
-	rows, err := s.Pool.Query(ctx, `
-		SELECT c.id, c.name, COALESCE(sp.scientific_name, c.species_text, '')
-		FROM colonies c
-		JOIN colony_members m ON m.colony_id = c.id AND m.user_id = $1 AND m.deleted_at IS NULL AND m.role <> 'viewer'
-		LEFT JOIN species sp ON sp.id = c.species_id
-		WHERE c.deleted_at IS NULL AND c.archived_at IS NULL AND c.status IN ('founding', 'active', 'hibernating')`, user)
-	if err != nil {
-		return nil, err
-	}
-	type col struct {
-		id            uuid.UUID
-		name, species string
-	}
-	cols, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (col, error) {
-		var c col
-		err := r.Scan(&c.id, &c.name, &c.species)
-		return c, err
-	})
+func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs) (*digest, error) {
+	cols, err := s.careColonies(ctx, user)
 	if err != nil || len(cols) == 0 {
 		return nil, err
 	}
@@ -137,11 +151,7 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 			if t.Status == DuePaused || t.Days > 0 {
 				continue
 			}
-			name := taskNames[t.TaskType]
-			if t.Title != nil && *t.Title != "" {
-				name = *t.Title
-			}
-			parts = append(parts, name+" "+dueText(t.Days))
+			parts = append(parts, taskLabel(t)+" "+dueText(t.Days))
 			worstDays = min(worstDays, t.Days)
 		}
 		if w := winter[c.id]; w != "" {
@@ -154,11 +164,7 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 		if worstDays < 0 {
 			overdue++
 		}
-		label := c.name
-		if c.species != "" && c.species != c.name {
-			label += " (" + c.species + ")"
-		}
-		lines = append(lines, line{worstDays, "• " + label + ": " + strings.Join(parts, ", ")})
+		lines = append(lines, line{worstDays, "• " + c.label() + ": " + strings.Join(parts, ", ")})
 	}
 	if len(lines) == 0 {
 		return nil, nil
@@ -171,14 +177,11 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 	if overdue > 0 {
 		head += fmt.Sprintf(" (%d überfällig)", overdue)
 	}
-	var b strings.Builder
-	b.WriteString(head + "\n\n")
+	d := &digest{head: head}
 	for _, l := range lines {
-		b.WriteString(l.text + "\n")
+		d.lines = append(d.lines, l.text)
 	}
-	fmt.Fprintf(&b, "\nÖffnen: %s/\n\nDiese E-Mail kommt einmal täglich. Abbestellen: Mehr → Erinnerungen → „Tages-Überblick per E-Mail“.\n",
-		strings.TrimRight(s.Cfg.PublicURL.String(), "/"))
-	return &mail.Message{Subject: "Ameisen: " + head, Body: b.String()}, nil
+	return d, nil
 }
 
 // winterDueFor: colonies whose planned winter rest should start or end by

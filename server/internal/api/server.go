@@ -116,6 +116,9 @@ func (s *Server) Handler() *chi.Mux {
 			r.Patch("/me", s.updateMe)
 			r.Get("/me/settings", s.getSettings)
 			r.Patch("/me/settings", s.updateSettings)
+			r.Get("/me/notifications", s.getNotifyPrefs)
+			r.Put("/me/notifications", s.setNotifyPrefs)
+			r.With(s.rateLimitUser(s.limScan)).Post("/me/notifications/test", s.testNotify)
 			r.Put("/me/password", s.changePassword)
 			r.Delete("/me", s.deleteMe)
 

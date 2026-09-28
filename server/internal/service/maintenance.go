@@ -29,6 +29,8 @@ func (s *Service) Maintenance(ctx context.Context) error {
 		`DELETE FROM invitations WHERE accepted_at IS NULL AND expires_at < now() - interval '30 days'`,
 		`DELETE FROM audit_log WHERE at < now() - interval '180 days'`,
 		`DELETE FROM sync_conflicts WHERE created_at < now() - interval '90 days'`,
+		// users without active topics are not cleaned up by the notifier
+		`DELETE FROM notification_log WHERE sent_at < now() - interval '60 days'`,
 	}
 	for _, q := range stmts {
 		if _, err := s.Pool.Exec(ctx, q); err != nil {
