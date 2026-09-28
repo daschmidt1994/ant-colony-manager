@@ -127,6 +127,23 @@ class ColonyRepository {
       db.records('food_items', orderBy: 'id').map((r) => FoodItem(r.json)).where((f) => !f.archived).toList()
         ..sort((a, b) => a.sortOrder != b.sortOrder ? a.sortOrder.compareTo(b.sortOrder) : a.name.compareTo(b.name));
 
+  /// Catalog and own species, sorted by name.
+  List<Species> species() => _species().values.toList()..sort((a, b) => a.scientificName.compareTo(b.scientificName));
+
+  Species? speciesById(String id) => _species()[id];
+
+  /// Own species; the catalog is read-only (the server rejects changes).
+  String createSpecies(Map<String, dynamic> fields) => _write(() {
+    final data = _create('species', fields);
+    // owner_id is set by the server; mark it as own right away (not catalog)
+    db.putRecord('species', {...data, 'owner_id': userId}, pending: true);
+    return data['id'] as String;
+  });
+
+  void updateSpecies(String id, Map<String, dynamic> patch) => _write(() => _update('species', id, patch));
+
+  void deleteSpecies(String id) => _write(() => _delete('species', id));
+
   List<Location> locations() => _locations().values.toList()..sort((a, b) => a.path.compareTo(b.path));
 
   List<ScanLink> scanLinks(String colonyId) =>
@@ -581,6 +598,50 @@ class ColonyRepository {
     _update('tasks', taskId, {'done_at': now().toUtc().toIso8601String()});
   });
 
+  // ---------------------------------------------------------------------------
+  // „Morgen“ – no time today: postpone by one day (offline, synced).
+
+  /// Care task: not due before tomorrow (the interval continues from the last care).
+  /// Returns the previous value (for „Rückgängig“).
+  String? snoozeSchedule(String scheduleId) =>
+      setScheduleSnooze(scheduleId, startOfTomorrow(now()).toUtc().toIso8601String());
+
+  String? setScheduleSnooze(String scheduleId, String? until) => _write(() {
+    final rec = db.record('care_schedules', scheduleId);
+    if (rec == null) return null;
+    final previous = rec.json['snoozed_until'] as String?;
+    _update('care_schedules', scheduleId, {'snoozed_until': until});
+    return previous;
+  });
+
+  /// One-off task: due tomorrow at the start of the day.
+  void snoozeTask(String taskId) => _write(() {
+    if (db.record('tasks', taskId) == null) return;
+    _update('tasks', taskId, {'due_at': startOfTomorrow(now()).toUtc().toIso8601String()});
+  });
+
+  /// Winter rest plan: the pending step (start or end) moves by one day;
+  /// a planned end stays after the start.
+  void snoozeWinter(String colonyId) => _write(() {
+    final w = winterRest(colonyId);
+    if (w == null) return;
+    DateTime day(DateTime t) => DateTime(t.year, t.month, t.day);
+    final today = day(now().toLocal());
+    DateTime later(DateTime? a) => a == null || day(a).isBefore(today) ? today : day(a);
+    if (w.started) {
+      _update('winter_rests', w.id, {
+        'planned_end_on': _dateString(later(w.plannedEndOn).add(const Duration(days: 1))),
+      });
+      return;
+    }
+    final start = later(w.plannedStartOn).add(const Duration(days: 1));
+    final end = w.plannedEndOn;
+    _update('winter_rests', w.id, {
+      'planned_start_on': _dateString(start),
+      if (end != null && !end.isAfter(start)) 'planned_end_on': _dateString(start.add(const Duration(days: 1))),
+    });
+  });
+
   /// Colonies I may only look at (no reminders, no „Erledigt“).
   Set<String> readOnlyColonies() => {
     for (final r in db.select(
@@ -601,6 +662,8 @@ class ColonyRepository {
       tasks: openTasks(),
       now: now(),
       notifyOverdue: settings().notifyOverdue,
+      notifyWinter: settings().notifyWinterApp,
+      notifySensor: settings().notifySensorApp,
       sensorProblems: [
         for (final r in db.select(
           '''SELECT data FROM records WHERE entity = 'colony_events' AND ts > ?

@@ -8,6 +8,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Android-App** (offline-fähig) und **Web-App** mit denselben Daten
 - **NFC-Tags und QR-Etiketten** pro Kolonie, Pflege-Rundgang für viele Kolonien
 - **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos, Messwerte, Sensor-Schnittstelle
+- **Benachrichtigungen per ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit und Ruhezeiten einstellbar
 - **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie
 - **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien
 
@@ -93,7 +94,7 @@ Alles steht kommentiert in [`.env.example`](.env.example) (Heimnetz) bzw. [`.env
 | `DATA_DIR` | Ort aller Daten (Standard `./data`) |
 | `PUID` / `PGID` | Besitzer der Dateien (Synology meist `1026`/`100`) |
 | `REGISTRATION_MODE` | `invite` (Standard) · `open` · `closed` |
-| `SMTP_*` | optional, für Passwort-Reset per Mail |
+| `SMTP_*` | optional – einfacher in der App: Mehr → Server-Verwaltung → E-Mail-Versand (hat Vorrang) |
 | `BACKUP_*` | Zeitplan und Aufbewahrung |
 | `COMPOSE_PROFILES=proxy`, `ACM_DOMAIN` | eingebauter HTTPS-Proxy |
 
@@ -188,7 +189,7 @@ Go ist lokal nicht nötig (`./scripts/go.sh go …` nutzt einen Container). Mehr
 
 ## Versionen und Releases
 
-Server, Web-App und Android-App haben **eine gemeinsame Version** nach [SemVer](https://semver.org/lang/de/); sie steht in [`app/pubspec.yaml`](app/pubspec.yaml).
+Server, Web-App und Android-App haben **eine gemeinsame Version** nach [SemVer](https://semver.org/lang/de/); sie steht in [`app/pubspec.yaml`](app/pubspec.yaml). Nur dort ändern (macht `scripts/release.sh`) – die CI gibt sie an Server, Web-App und APK weiter. Teststände aus `dev` heißen überall gleich `1.2.0-dev.<commit>` (ACM Test und `edge`-Server). In der App unter **Mehr → Server** stehen beide Versionen; passen sie nicht zusammen, erscheint ein Hinweis.
 
 | Änderung | Beispiel |
 |---|---|
@@ -200,7 +201,7 @@ Server, Web-App und Android-App haben **eine gemeinsame Version** nach [SemVer](
 ./scripts/release.sh 1.2.0     # Version setzen → Commit → Tag v1.2.0 → pushen (fragt vorher nach)
 ```
 
-Der Tag `v1.2.0` baut in der CI die Server-Images (`1.2.0`, `1.2`, `latest`), das GitHub-Release **v1.2.0** mit den APKs und der Compose-Datei und aktualisiert das F-Droid-Repo. Pushes auf `main` werden nur getestet: APK als Artefakt am Workflow-Lauf, Images als `edge`. Die Buildnummer der APK (Android `versionCode`) ist die fortlaufende CI-Laufnummer.
+Der Tag `v1.2.0` baut in der CI die Server-Images (`1.2.0`, `1.2`, `latest`), das GitHub-Release **v1.2.0** mit den APKs und der Compose-Datei und aktualisiert das F-Droid-Repo. Branches: **`main`** ist der fertige Stand für den Betrieb, **`dev`** der Teststand. Pushes auf `dev` bauen Images als `edge` und die Test-App **ACM Test** (eigene App-ID, läuft neben der echten App) im selben F-Droid-Repo – zum Ausprobieren auf einer [Testinstanz](docs/19-testinstanz.md). Getestet → `dev` nach `main` mergen → Release per Tag. Die Buildnummer der APK (Android `versionCode`) ist die fortlaufende CI-Laufnummer.
 
 ## Lizenz
 

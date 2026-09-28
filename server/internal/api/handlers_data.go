@@ -384,12 +384,32 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request) {
 
 // exportZip streams JSON + CSV tables (+ photos unless ?photos=0) as one ZIP.
 func (s *Server) exportZip(w http.ResponseWriter, r *http.Request) {
-	photos := r.URL.Query().Get("photos") != "0"
+	s.writeExportZip(w, r, actorOf(r), r.URL.Query().Get("photos") != "0")
+}
+
+func (s *Server) exportLink(w http.ResponseWriter, r *http.Request) {
+	s.writeJSON(w, http.StatusOK, s.svc.ExportLink(actorOf(r), r.URL.Query().Get("photos") != "0"))
+}
+
+func (s *Server) exportDownload(w http.ResponseWriter, r *http.Request) {
+	if ok, retry := s.limAnon.Allow(clientIP(r).String()); !ok {
+		s.problem(w, r, service.RateLimited(retry))
+		return
+	}
+	actor, photos, err := s.svc.ExportLinkActor(r.Context(), r.URL.Query())
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeExportZip(w, r, actor, photos)
+}
+
+func (s *Server) writeExportZip(w http.ResponseWriter, r *http.Request, actor service.Actor, photos bool) {
 	// Many photos take longer than the server's normal write timeout.
 	_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(30 * time.Minute))
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", `attachment; filename="ant-colony-manager-export-`+time.Now().Format("2006-01-02")+`.zip"`)
-	if err := s.svc.ExportZip(r.Context(), actorOf(r), w, photos); err != nil {
+	if err := s.svc.ExportZip(r.Context(), actor, w, photos); err != nil {
 		// Headers are gone already; the truncated ZIP is detected by any unzip tool.
 		s.log.Error("zip export failed", "err", err)
 	}

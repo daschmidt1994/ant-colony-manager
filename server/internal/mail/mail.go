@@ -126,3 +126,28 @@ func (r *Recorder) Messages() []Message {
 	defer r.mu.Unlock()
 	return append([]Message(nil), r.messages...)
 }
+
+// Switch is a Sender whose configuration can change at runtime (SMTP settings
+// edited in the app). Sends always use the configuration current at call time.
+type Switch struct {
+	mu  sync.RWMutex
+	cur Sender
+}
+
+func NewSwitch(initial Sender) *Switch { return &Switch{cur: initial} }
+
+// Set replaces the active sender.
+func (w *Switch) Set(s Sender) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.cur = s
+}
+
+func (w *Switch) get() Sender {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	return w.cur
+}
+
+func (w *Switch) Enabled() bool                             { return w.get().Enabled() }
+func (w *Switch) Send(ctx context.Context, m Message) error { return w.get().Send(ctx, m) }

@@ -15,8 +15,11 @@ import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
 import '../features/sensors/sensors_screen.dart';
 import '../features/settings/devices_screen.dart';
+import '../features/settings/notifications_screen.dart';
+import '../features/settings/smtp_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/shell.dart';
+import '../features/species/species_screens.dart';
 import '../features/stats/stats_screens.dart';
 import '../features/timeline/timeline_screen.dart';
 
@@ -81,7 +84,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/colonies',
                 builder: (_, _) => const ColonyListScreen(),
                 routes: [
-                  GoRoute(path: 'new', builder: (_, _) => const ColonyFormScreen()),
+                  GoRoute(
+                    path: 'new',
+                    builder: (_, s) => ColonyFormScreen(speciesId: s.uri.queryParameters['species']),
+                  ),
                   GoRoute(
                     path: ':id',
                     builder: (_, s) => ColonyDetailScreen(colonyId: s.pathParameters['id']!),
@@ -105,6 +111,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'nfc',
                         builder: (_, s) => NfcAssignScreen(colonyId: s.pathParameters['id']!),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: '/species',
+                builder: (_, _) => const SpeciesListScreen(),
+                routes: [
+                  GoRoute(path: 'new', builder: (_, _) => const SpeciesFormScreen()),
+                  GoRoute(path: 'food', builder: (_, _) => const FoodGuideScreen()),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, s) => SpeciesDetailScreen(speciesId: s.pathParameters['id']!),
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (_, s) => SpeciesFormScreen(speciesId: s.pathParameters['id']),
                       ),
                     ],
                   ),
@@ -139,6 +163,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen()),
                   GoRoute(path: 'stats', builder: (_, _) => const CollectionStatsScreen()),
                   GoRoute(path: 'sensors', builder: (_, _) => const SensorsScreen()),
+                  GoRoute(path: 'notifications', builder: (_, _) => const NotificationsScreen()),
+                  GoRoute(path: 'smtp', builder: (_, _) => const SmtpScreen()),
                   GoRoute(path: 'devices', builder: (_, _) => const DevicesScreen()),
                   GoRoute(
                     path: 'labels',

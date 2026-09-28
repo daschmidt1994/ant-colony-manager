@@ -341,6 +341,55 @@ paths:
       parameters:
         - { name: photos, in: query, schema: { type: string, enum: ["0", "1"] }, description: "0 = without photos" }
       responses: { "200": { description: "file download (application/zip)" } }
+  /api/v1/me/notifications:
+    get:
+      tags: [auth]
+      summary: "Notification settings: ntfy address, channels per topic (digest, overdue, sensor, winter), repeat, quiet hours. The ntfy token is never returned (ntfy_token_set)"
+      responses: { "200": { description: "settings" } }
+    put:
+      tags: [auth]
+      summary: "Replace notification settings; ntfy_token omitted = keep, \"\" = remove. Repeat hours: overdue 0/6/12/24, sensor 0/1/6/12/24, winter 0/24 (0 = only once)"
+      responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/smtp:
+    get:
+      tags: [admin]
+      summary: "E-mail server settings (admin). source: app | env | none; the password is never returned (password_set)"
+      responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save SMTP settings (take effect immediately, precedence over SMTP_*); host \"\" removes them; password omitted = keep, \"\" = remove"
+      responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/smtp/test:
+    post:
+      tags: [admin]
+      summary: "Send a test e-mail to the administrator"
+      responses: { "204": { description: "sent" }, "502": { description: "SMTP failed (title explains)" } }
+  /api/v1/snooze:
+    post:
+      tags: [colonies]
+      security: []
+      summary: "„Morgen“ button of an ntfy notification: signed link (7 days). k=care → care of the colony due by today counts as due tomorrow; k=winter → planned winter start/end +1 day"
+      responses: { "200": { description: "{message}" }, "401": { description: "link invalid or expired" } }
+  /api/v1/me/notifications/test:
+    post:
+      tags: [auth]
+      summary: "Send a test message via the saved ntfy address"
+      responses: { "204": { description: "sent" }, "502": { description: "ntfy refused or unreachable (title explains)" } }
+  /api/v1/export/link:
+    post:
+      tags: [colonies]
+      summary: "Signed ZIP download link (5 min, bound to the session) for opening in a browser without login"
+      parameters:
+        - { name: photos, in: query, schema: { type: string, enum: ["0", "1"] }, description: "0 = without photos" }
+      responses: { "200": { description: "{url, expires_at}; url is relative to the server" } }
+  /api/v1/export/download:
+    get:
+      tags: [colonies]
+      summary: "ZIP export via a link from /export/link; no Authorization header"
+      security: []
+      responses:
+        "200": { description: "file download (application/zip)" }
+        "401": { description: "link invalid, expired or session signed out" }
   /api/v1/colonies:
     get:
       tags: [colonies]

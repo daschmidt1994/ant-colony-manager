@@ -14,6 +14,10 @@ val keystoreProperties = Properties().apply {
     if (f.exists()) FileInputStream(f).use { load(it) }
 }
 
+// Test app (-PdevBuild=true or ORG_GRADLE_PROJECT_devBuild=true): own app ID
+// and name, so it installs next to the real app and talks to the test server.
+val devBuild = (project.findProperty("devBuild") as String?) == "true"
+
 android {
     namespace = "at.antcolony.manager"
     compileSdk = flutter.compileSdkVersion
@@ -27,7 +31,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "at.antcolony.manager"
+        applicationId = if (devBuild) "at.antcolony.manager.dev" else "at.antcolony.manager"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -38,6 +42,7 @@ android {
         // Set with -PappLinkHost=ants.example.com or ORG_GRADLE_PROJECT_appLinkHost.
         manifestPlaceholders["appLinkHost"] = (project.findProperty("appLinkHost") as String?)
             ?.takeIf { it.isNotBlank() } ?: "applinks.invalid"
+        manifestPlaceholders["appLabel"] = if (devBuild) "ACM Test" else "Ant Colony"
     }
 
     signingConfigs {

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../app/app.dart';
@@ -79,23 +80,16 @@ class _ReminderSettings extends ConsumerWidget {
                   });
                 },
               ),
-              SwitchListTile(
-                secondary: const Icon(Icons.notifications_active_outlined),
-                title: const Text('Überfällige einzeln melden'),
-                subtitle: const Text('Android: je Aufgabe eine Benachrichtigung mit „Erledigt“'),
-                value: s.notifyOverdue,
-                onChanged: (v) => repo.updateSettings({'notify_overdue': v}),
-              ),
-              if (mail || s.emailDigest)
-                SwitchListTile(
-                  secondary: const Icon(Icons.mail_outline),
-                  title: const Text('Tages-Überblick per E-Mail'),
-                  subtitle: Text(
-                    mail ? 'praktisch ohne Android-App' : 'Der Server hat keinen E-Mail-Versand eingerichtet',
-                  ),
-                  value: s.emailDigest,
-                  onChanged: (v) => repo.updateSettings({'email_digest': v}),
+              ListTile(
+                leading: const Icon(Icons.campaign_outlined),
+                title: const Text('Benachrichtigungen'),
+                subtitle: Text(
+                  'Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe – '
+                  'App, ntfy${mail ? ', E-Mail' : ''}; Häufigkeit, Ruhezeiten',
                 ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/notifications'),
+              ),
             ],
           ),
         ),
@@ -215,6 +209,18 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
             const _ReminderSettings(),
+            if (auth.user.isAdmin) ...[
+              const SectionHeader('Server-Verwaltung'),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.outgoing_mail),
+                  title: const Text('E-Mail-Versand'),
+                  subtitle: const Text('Postausgangsserver für Passwort vergessen, Überblick und Benachrichtigungen'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/smtp'),
+                ),
+              ),
+            ],
             const SectionHeader('Etiketten'),
             Card(
               child: ListTile(
@@ -257,10 +263,20 @@ class SettingsScreen extends ConsumerWidget {
             Card(
               child: Column(
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.dns_outlined),
-                    title: Text(auth.serverUrl),
-                    subtitle: const Text('App-Version $appVersion'),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final server = ref.watch(instanceInfoProvider).value?['version'] as String?;
+                      final ok = versionsMatch(appVersion, server);
+                      return ListTile(
+                        leading: const Icon(Icons.dns_outlined),
+                        title: Text(auth.serverUrl),
+                        subtitle: Text(
+                          'App $appVersion · Server ${server ?? '–'}'
+                          '${ok ? '' : '\nVersionen passen nicht zusammen – App oder Server aktualisieren'}',
+                          style: ok ? null : TextStyle(color: context.colors.overdue),
+                        ),
+                      );
+                    },
                   ),
                   if (!kIsWeb)
                     ListTile(
@@ -284,22 +300,22 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _export(BuildContext context, WidgetRef ref, {required bool photos}) async {
+    final m = ScaffoldMessenger.of(context);
     if (!kIsWeb) {
-      // Android has no convenient place for a large ZIP; the web app downloads it directly.
-      await showDialog<void>(
-        context: context,
-        builder: (d) => AlertDialog(
-          title: const Text('Export in der Web-App'),
-          content: const Text(
-            'Öffne die Web-App im Browser (gleiche Adresse wie der Server) und wähle dort '
-            '„Mehr → Alles exportieren“. Die ZIP-Datei landet im Download-Ordner.',
-          ),
-          actions: [FilledButton(onPressed: () => Navigator.pop(d), child: const Text('OK'))],
-        ),
-      );
+      // Android has no convenient place for a large ZIP: the browser downloads
+      // it via a signed 5-minute link – no login needed there.
+      try {
+        final api = ref.read(authProvider.notifier).api;
+        final res = await api.post('/api/v1/export/link?photos=${photos ? 1 : 0}') as Map<String, dynamic>;
+        final url = Uri.parse('${api.baseUrl}${res['url']}');
+        if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+          m.showSnackBar(const SnackBar(content: Text('Kein Browser gefunden')));
+        }
+      } catch (e) {
+        m.showSnackBar(SnackBar(content: Text(errorText(e))));
+      }
       return;
     }
-    final m = ScaffoldMessenger.of(context);
     m.showSnackBar(const SnackBar(content: Text('Export wird erstellt …')));
     try {
       final bytes = await ref

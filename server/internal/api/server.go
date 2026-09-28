@@ -103,6 +103,11 @@ func (s *Server) Handler() *chi.Mux {
 			})
 		})
 
+		// Signed, short-lived export link (opened in the browser from the app).
+		r.Get("/export/download", s.exportDownload)
+		// „Morgen“ button in ntfy notifications (signed link).
+		r.Post("/snooze", s.snooze)
+
 		// Sensor ingest authenticates with the sensor key, not a user session.
 		r.Post("/sensors/{id}/measurements", s.ingestSensor)
 
@@ -113,6 +118,9 @@ func (s *Server) Handler() *chi.Mux {
 			r.Patch("/me", s.updateMe)
 			r.Get("/me/settings", s.getSettings)
 			r.Patch("/me/settings", s.updateSettings)
+			r.Get("/me/notifications", s.getNotifyPrefs)
+			r.Put("/me/notifications", s.setNotifyPrefs)
+			r.With(s.rateLimitUser(s.limScan)).Post("/me/notifications/test", s.testNotify)
 			r.Put("/me/password", s.changePassword)
 			r.Delete("/me", s.deleteMe)
 
@@ -128,6 +136,7 @@ func (s *Server) Handler() *chi.Mux {
 			r.Get("/dashboard", s.dashboard)
 			r.Get("/export.json", s.export)
 			r.Get("/export.zip", s.exportZip)
+			r.Post("/export/link", s.exportLink)
 
 			r.Get("/colonies", s.listColonies)
 			r.Post("/colonies", s.createEntity("colonies"))
@@ -164,6 +173,9 @@ func (s *Server) Handler() *chi.Mux {
 				r.Patch("/users/{id}", s.adminUpdateUser)
 				r.Post("/users/{id}/password-reset-link", s.adminResetLink)
 				r.Get("/system", s.adminSystem)
+				r.Get("/smtp", s.getSMTP)
+				r.Put("/smtp", s.setSMTP)
+				r.With(s.rateLimitUser(s.limScan)).Post("/smtp/test", s.testSMTP)
 			})
 
 			// Generic collections (locations, food-items, species, habitats, …)

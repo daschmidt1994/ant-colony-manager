@@ -32,7 +32,23 @@ const _dueDetails = NotificationDetails(
     groupKey: _groupKey,
     actions: [
       AndroidNotificationAction('done', 'Erledigt'),
-      AndroidNotificationAction('open', 'Kolonie öffnen', showsUserInterface: true),
+      AndroidNotificationAction('snooze', 'Morgen'),
+      AndroidNotificationAction('open', 'Öffnen', showsUserInterface: true),
+    ],
+  ),
+);
+
+/// Winter rest plan: no „Erledigt“ (the switch is in the app), but „Morgen“.
+const _snoozeDetails = NotificationDetails(
+  android: AndroidNotificationDetails(
+    'due',
+    'Überfällige Pflege',
+    channelDescription: 'Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“',
+    category: AndroidNotificationCategory.reminder,
+    groupKey: _groupKey,
+    actions: [
+      AndroidNotificationAction('snooze', 'Morgen'),
+      AndroidNotificationAction('open', 'Öffnen', showsUserInterface: true),
     ],
   ),
 );
@@ -115,7 +131,11 @@ Future<void> syncReminders(ColonyRepository repo) async {
       id: notificationId(r.slot),
       title: r.title,
       body: r.body,
-      notificationDetails: r.canComplete ? _dueDetails : _infoDetails,
+      notificationDetails: r.canComplete
+          ? _dueDetails
+          : r.canSnooze
+          ? _snoozeDetails
+          : _infoDetails,
       payload: r.payloadJson,
     );
     shown[r.slot] = r.key;
@@ -144,6 +164,10 @@ Future<void> _scheduleDigest(ColonyRepository repo) async {
     loc = tz.UTC;
   }
   final now = tz.TZDateTime.now(loc);
+  if (!settings.notifyDigestApp) {
+    await _plugin.cancel(id: _digestId);
+    return;
+  }
   final (h, m) = settings.digestTime;
   var at = tz.TZDateTime(loc, now.year, now.month, now.day, h, m);
   if (!at.isAfter(now)) at = at.add(const Duration(days: 1));

@@ -17,6 +17,7 @@ import '../../shared/widgets.dart';
 import '../actions/actions.dart';
 import '../photos/photos.dart';
 import '../reports/report_action.dart';
+import '../species/species_screens.dart';
 import '../timeline/timeline_screen.dart';
 
 class ColonyDetailScreen extends ConsumerWidget {
@@ -109,11 +110,10 @@ class _ColonyPage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _Header(colony: colony),
+                _SpeciesCard(colony: colony, canEdit: canEdit),
                 if (colony.archived)
                   _Banner(icon: Icons.archive_outlined, text: 'Archiviert', color: context.colors.muted),
-                if (canEdit && colony.isCareActive)
-                  _WinterCard(colony: colony)
-                else if (colony.status == 'hibernating')
+                if (!(canEdit && colony.isCareActive) && colony.status == 'hibernating')
                   _Banner(
                     icon: Icons.ac_unit,
                     text: 'Winterruhe – Erinnerungen angepasst',
@@ -131,7 +131,21 @@ class _ColonyPage extends ConsumerWidget {
                 if (due.isEmpty)
                   Text('Keine Pflegeintervalle festgelegt.', style: TextStyle(color: context.colors.muted))
                 else
-                  for (final t in due) DueRow(t),
+                  for (final t in due)
+                    DueRow(
+                      t,
+                      onSnooze: canEdit
+                          ? () {
+                              final repo = ref.read(repositoryProvider)!;
+                              final previous = repo.snoozeSchedule(t.schedule.id);
+                              showUndoSnack(
+                                context,
+                                'Auf morgen verschoben',
+                                onUndo: () => repo.setScheduleSnooze(t.schedule.id, previous),
+                              );
+                            }
+                          : null,
+                    ),
                 if (canEdit) ...[
                   if (lastFeeding != null) ...[
                     const SizedBox(height: 16),
@@ -207,6 +221,7 @@ class _ColonyPage extends ConsumerWidget {
                     'Vergessen einzutragen? Menü oben rechts → Nachtragen, oder im Dialog auf „Jetzt“ tippen.',
                     style: TextStyle(color: context.colors.muted, fontSize: 12),
                   ),
+                  if (colony.isCareActive) _WinterCard(colony: colony),
                 ],
                 if (askAcceptance) ...[
                   const SizedBox(height: 16),
@@ -392,40 +407,44 @@ class _WinterCard extends ConsumerWidget {
     final running = w?.started ?? false;
     final end = w?.plannedEndOn == null ? '' : ' · aufwecken am ${S.date(w!.plannedEndOn!)}';
     final text = switch (w) {
-      null => 'Aus – plane Beginn und Aufwecken, dann wirst du erinnert.',
-      _ when running => 'Seit ${S.date(w.startedOn!)}$end. Erinnerungen angepasst.',
-      _ => 'Geplant ab ${S.date(w.plannedStartOn!)}$end. Du wirst erinnert.',
+      null => 'Aus · planen, um erinnert zu werden',
+      _ when running => 'Seit ${S.date(w.startedOn!)}$end',
+      _ => 'Geplant ab ${S.date(w.plannedStartOn!)}$end',
     };
     final color = context.colors.winter;
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Card(
         color: running ? color.withValues(alpha: .12) : null,
-        child: Column(
-          children: [
-            SwitchListTile(
-              secondary: Icon(Icons.ac_unit, color: color),
-              title: const Text('Winterruhe'),
-              subtitle: Text(text),
-              value: running,
-              onChanged: (on) {
-                final repo = ref.read(repositoryProvider)!;
-                on ? repo.startWinter(colony.id) : repo.endWinter(colony.id);
-                showUndoSnack(context, on ? 'Winterruhe begonnen' : 'Winterruhe beendet – normale Intervalle ab jetzt');
-              },
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
-                child: TextButton.icon(
-                  icon: const Icon(Icons.edit_calendar),
-                  label: Text(w == null ? 'Planen' : 'Plan ändern'),
-                  onPressed: () => _plan(context, ref, w),
-                ),
+        child: ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          contentPadding: const EdgeInsets.only(left: 12, right: 4),
+          leading: Icon(Icons.ac_unit, color: color, size: 20),
+          title: const Text('Winterruhe'),
+          subtitle: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: w == null ? 'Planen' : 'Plan ändern',
+                icon: const Icon(Icons.edit_calendar, size: 20),
+                onPressed: () => _plan(context, ref, w),
               ),
-            ),
-          ],
+              Switch(
+                value: running,
+                onChanged: (on) {
+                  final repo = ref.read(repositoryProvider)!;
+                  on ? repo.startWinter(colony.id) : repo.endWinter(colony.id);
+                  showUndoSnack(
+                    context,
+                    on ? 'Winterruhe begonnen' : 'Winterruhe beendet – normale Intervalle ab jetzt',
+                  );
+                },
+              ),
+            ],
+          ),
+          onTap: () => _plan(context, ref, w),
         ),
       ),
     );
@@ -512,6 +531,43 @@ class _WinterCard extends ConsumerWidget {
     } else {
       repo.planWinter(colony.id, start: start, end: end);
     }
+  }
+}
+
+/// Care sheet of the linked species – or a hint to link one.
+class _SpeciesCard extends ConsumerWidget {
+  const _SpeciesCard({required this.colony, required this.canEdit});
+  final Colony colony;
+  final bool canEdit;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final id = colony.speciesId;
+    final species = id == null ? null : ref.watch(speciesProvider(id)).value;
+    if (species == null) {
+      if (!canEdit) return const SizedBox.shrink();
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          icon: const Icon(Icons.menu_book_outlined, size: 18),
+          label: const Text('Steckbrief aus dem Artenkatalog verknüpfen'),
+          onPressed: () => context.go('/colonies/${colony.id}/edit'),
+        ),
+      );
+    }
+    final summary = speciesSummary(species);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Card(
+        child: ListTile(
+          leading: const Icon(Icons.menu_book_outlined),
+          title: const Text('Steckbrief'),
+          subtitle: Text(summary.isEmpty ? species.scientificName : summary),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.go('/species/${species.id}'),
+        ),
+      ),
+    );
   }
 }
 
