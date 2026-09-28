@@ -20,7 +20,7 @@ Die lokale Datenbank hat drei Tabellen: `records` (jede Server-Zeile als JSON + 
 
 ## Bauen und testen
 
-Die CI (`.github/workflows/app.yml`) führt bei jedem Push aus: Formatierung, `flutter analyze`, alle Tests, Web-Build (WASM), APK-Build und einen **Vertragstest gegen den echten Go-Server**. Die fertige APK liegt als Artefakt am Workflow-Lauf.
+Die CI (`.github/workflows/app.yml`) führt bei jedem Push aus: Formatierung, `flutter analyze`, alle Tests, Web-Build (WASM), APK-Build und einen **Vertragstest gegen den echten Go-Server**. Die fertige APK liegt als Artefakt am Workflow-Lauf; veröffentlicht (GitHub-Release, F-Droid) wird nur beim Versions-Tag, siehe [README → Versionen](../README.md#versionen-und-releases).
 
 Lokal (Flutter 3.44):
 

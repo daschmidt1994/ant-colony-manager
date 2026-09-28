@@ -6,7 +6,7 @@ Monorepo – ein `git clone` enthält alles, was für Installation und Entwicklu
 ant-colony-manager/
 ├── README.md                      Installation, Quick Start, Troubleshooting
 ├── CHANGELOG.md
-├── LICENSE                        (Vorschlag: AGPL-3.0 – schützt Self-Hosting-Charakter; alternativ MIT)
+├── LICENSE                        AGPL-3.0 – schützt den Self-Hosting-Charakter
 ├── compose.yml                    Produktion
 ├── compose.dev.yml                Entwicklung (Hot Reload, Mailpit, DB-Port)
 ├── .env.example                   LAN-/Einsteiger-Defaults

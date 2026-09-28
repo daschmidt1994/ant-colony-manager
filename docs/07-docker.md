@@ -154,4 +154,4 @@ Update:
 #    docker compose up -d --build
 #    warten bis healthy, sonst Hinweis auf Restore des pre-update-Backups
 ```
-Versionen folgen SemVer; Breaking Changes am Deployment stehen im `CHANGELOG.md`. `ACM_VERSION` in `.env` erlaubt, auf eine Version festzunageln.
+Versionen folgen SemVer und entstehen mit `./scripts/release.sh x.y.z` (Tag `vx.y.z`). Änderungen stehen in den [GitHub-Releases](https://github.com/daschmidt1994/ant-colony-manager/releases). `latest` ist das neueste Release, `edge` der getestete Stand von `main`; `ACM_VERSION` in `.env` erlaubt, auf eine Version festzunageln.
