@@ -58,6 +58,10 @@ final schedulesProvider = StreamProvider.family<List<Schedule>, String>(
   (ref, id) => _watch(ref, (r) => r.schedules(colonyId: id)),
 );
 
+final speciesListProvider = StreamProvider<List<Species>>((ref) => _watch(ref, (r) => r.species()));
+
+final speciesProvider = StreamProvider.family<Species?, String>((ref, id) => _watch(ref, (r) => r.speciesById(id)));
+
 /// Species names already used – suggestions for the colony form.
 final speciesSuggestionsProvider = StreamProvider<List<String>>(
   (ref) => _watch(ref, (r) {

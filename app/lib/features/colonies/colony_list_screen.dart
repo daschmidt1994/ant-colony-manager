@@ -71,7 +71,17 @@ class _ColonyListScreenState extends ConsumerState<ColonyListScreen> {
     final list = filterColonies(colonies, due, _search.text, _filters);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Kolonien (${colonies.length})'), actions: const [SyncBadge()]),
+      appBar: AppBar(
+        title: Text('Kolonien (${colonies.length})'),
+        actions: [
+          IconButton(
+            tooltip: 'Artenkatalog',
+            icon: const Icon(Icons.menu_book_outlined),
+            onPressed: () => context.go('/species'),
+          ),
+          const SyncBadge(),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/colonies/new'),
         icon: const Icon(Icons.add),

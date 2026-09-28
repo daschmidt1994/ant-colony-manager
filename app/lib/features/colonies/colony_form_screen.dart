@@ -6,15 +6,20 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
+import '../../data/repositories/colony_repository.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
+import '../species/species_screens.dart';
 
 /// Default care intervals for new colonies (days).
 const defaultIntervals = {'protein': 3.0, 'carbohydrate': 5.0, 'water': 2.0, 'cleaning': 7.0};
 
 class ColonyFormScreen extends ConsumerStatefulWidget {
-  const ColonyFormScreen({super.key, this.colonyId});
+  const ColonyFormScreen({super.key, this.colonyId, this.speciesId});
   final String? colonyId;
+
+  /// Preselected catalog species (from the species care sheet).
+  final String? speciesId;
   @override
   ConsumerState<ColonyFormScreen> createState() => _ColonyFormScreenState();
 }
@@ -32,6 +37,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
   String _gyne = 'unknown';
   String? _origin;
   String? _locationId;
+  String? _speciesId;
   (int, int?)? _workers;
   DateTime? _founded;
   bool _loaded = false;
@@ -42,11 +48,20 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
   void initState() {
     super.initState();
     _species.addListener(_suggestName);
+    _species.addListener(_dropStaleLink);
+  }
+
+  /// Typing a different name unlinks the care sheet.
+  void _dropStaleLink() {
+    if (_speciesId == null) return;
+    final linked = ref.read(repositoryProvider)!.speciesById(_speciesId!);
+    if (linked?.scientificName != _species.text.trim()) setState(() => _speciesId = null);
   }
 
   @override
   void dispose() {
     _species.removeListener(_suggestName);
+    _species.removeListener(_dropStaleLink);
     _speciesFocus.dispose();
     super.dispose();
   }
@@ -59,11 +74,17 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
     final repo = ref.read(repositoryProvider)!;
     if (_isNew) {
       defaultIntervals.forEach((t, d) => _intervals[t]!.text = d.toInt().toString());
+      final preset = widget.speciesId == null ? null : repo.speciesById(widget.speciesId!);
+      if (preset != null) {
+        _species.text = preset.scientificName;
+        _speciesId = preset.id;
+      }
       return;
     }
     final c = repo.colony(widget.colonyId!);
     if (c == null) return;
     _species.text = c.species;
+    _speciesId = c.speciesId;
     _name.text = c.name;
     _nameTouched = true;
     _code.text = c.internalCode ?? '';
@@ -101,7 +122,10 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
   Widget build(BuildContext context) {
     _load();
     final locations = ref.watch(locationsProvider).value ?? const <Location>[];
-    final suggestions = ref.watch(speciesSuggestionsProvider).value ?? const <String>[];
+    final used = ref.watch(speciesSuggestionsProvider).value ?? const <String>[];
+    final catalog = ref.watch(speciesListProvider).value ?? const <Species>[];
+    final catalogNames = {for (final sp in catalog) sp.scientificName};
+    final linked = catalog.where((sp) => sp.id == _speciesId).firstOrNull;
     return Scaffold(
       appBar: AppBar(
         title: Text(_isNew ? 'Neue Kolonie' : 'Kolonie bearbeiten'),
@@ -117,12 +141,22 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  RawAutocomplete<String>(
+                  RawAutocomplete<(String, Species?)>(
                     textEditingController: _species,
                     focusNode: _speciesFocus,
+                    displayStringForOption: (o) => o.$1,
+                    onSelected: (o) => setState(() => _speciesId = o.$2?.id),
                     optionsBuilder: (v) => v.text.isEmpty
                         ? const Iterable.empty()
-                        : suggestions.where((s) => s.toLowerCase().contains(v.text.toLowerCase()) && s != v.text),
+                        : [
+                            for (final sp in catalog)
+                              if (sp.matches(v.text) && sp.id != _speciesId) (sp.scientificName, sp),
+                            for (final name in used)
+                              if (!catalogNames.contains(name) &&
+                                  name.toLowerCase().contains(v.text.toLowerCase()) &&
+                                  name != v.text)
+                                (name, null),
+                          ].take(12),
                     fieldViewBuilder: (context, ctl, focus, onSubmit) => TextFormField(
                       controller: ctl,
                       focusNode: focus,
@@ -144,13 +178,36 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                             children: [
                               for (final o in options)
                                 ListTile(
-                                  title: Text(o, style: const TextStyle(fontStyle: FontStyle.italic)),
+                                  leading: Icon(o.$2 == null ? Icons.history : Icons.menu_book_outlined, size: 20),
+                                  title: Text(o.$1, style: const TextStyle(fontStyle: FontStyle.italic)),
+                                  subtitle: o.$2?.germanName == null ? null : Text(o.$2!.germanName!),
                                   onTap: () => onSelected(o),
                                 ),
                             ],
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          linked != null ? Icons.check_circle_outline : Icons.info_outline,
+                          size: 16,
+                          color: linked != null ? context.colors.ok : context.colors.muted,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            linked != null
+                                ? 'Steckbrief verknüpft${speciesSummary(linked).isEmpty ? '' : ': ${speciesSummary(linked)}'}'
+                                : 'Art aus der Liste wählen, um den Steckbrief zu verknüpfen.',
+                            style: TextStyle(fontSize: 12, color: context.colors.muted),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -356,6 +413,15 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
     return ref.read(repositoryProvider)!.createLocation(name.text, parentId: parent);
   }
 
+  /// A typed name that exactly matches a species links it, too.
+  static String? _catalogMatch(ColonyRepository repo, String name) {
+    final n = name.trim().toLowerCase();
+    final hits = repo.species().where((sp) => sp.scientificName.toLowerCase() == n).toList();
+    // Prefer own species over the catalog entry of the same name.
+    hits.sort((a, b) => (a.isCatalog ? 1 : 0).compareTo(b.isCatalog ? 1 : 0));
+    return hits.firstOrNull?.id;
+  }
+
   double _interval(String t) => double.tryParse(_intervals[t]!.text.trim().replaceAll(',', '.')) ?? 0;
 
   void _save() {
@@ -364,6 +430,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
     String? v(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
     final fields = <String, dynamic>{
       'name': _name.text.trim(),
+      'species_id': _speciesId ?? _catalogMatch(repo, _species.text),
       'species_text': _species.text.trim(),
       'internal_code': v(_code),
       'location_id': _locationId,

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -469,6 +470,39 @@ func speciesBeforeWrite(ctx context.Context, s *Service, q db.Querier, w *write)
 	}
 	if _, ok := w.data["genus"]; !ok && name != "" {
 		w.set("genus", strings.Fields(name)[0])
+	}
+	if v, ok := w.data["sources"]; ok {
+		if err := validateSources(v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateSources accepts up to 20 entries {"title": "…", "url": "https://…"};
+// url is optional (books), but only http(s) links are allowed since clients open them.
+func validateSources(raw json.RawMessage) error {
+	var list []struct {
+		Title string `json:"title"`
+		URL   string `json:"url"`
+	}
+	if err := json.Unmarshal(raw, &list); err != nil {
+		return Invalid("sources", "sources must be a list of {title, url}")
+	}
+	if len(list) > 20 {
+		return Invalid("sources", "at most 20 sources")
+	}
+	for _, src := range list {
+		if strings.TrimSpace(src.Title) == "" || len(src.Title) > 300 {
+			return Invalid("sources", "every source needs a title (max. 300 characters)")
+		}
+		if src.URL == "" {
+			continue
+		}
+		u, err := url.Parse(src.URL)
+		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || len(src.URL) > 2000 {
+			return Invalid("sources", "source url must be an http(s) link")
+		}
 	}
 	return nil
 }

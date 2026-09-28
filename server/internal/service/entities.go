@@ -159,7 +159,14 @@ var entities = map[string]*entity{
 	},
 	"species": {
 		Scope: scopeOwner, Collection: "species",
-		Fields:      []string{"scientific_name", "genus", "subfamily", "german_name", "notes"},
+		Fields: []string{"scientific_name", "genus", "subfamily", "german_name", "notes",
+			"tribe", "distribution", "habitat", "queen_size", "worker_size", "male_size", "coloration", "polymorphic",
+			"temp_arena_min", "temp_arena_max", "temp_nest_min", "temp_nest_max",
+			"humidity_arena_min", "humidity_arena_max", "humidity_nest_min", "humidity_nest_max",
+			"hibernation", "hibernation_period", "hibernation_temp_min", "hibernation_temp_max",
+			"gyne_type", "founding", "colony_size", "queen_lifespan", "development", "nuptial_flight",
+			"difficulty", "activity", "diet_protein", "diet_carbohydrate", "diet_notes",
+			"nesting", "formicarium", "formicarium_size", "substrate", "legal_note", "sources"},
 		beforeWrite: speciesBeforeWrite,
 	},
 	"user_settings": {

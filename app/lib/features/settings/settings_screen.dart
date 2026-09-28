@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../app/app.dart';
@@ -284,22 +285,22 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _export(BuildContext context, WidgetRef ref, {required bool photos}) async {
+    final m = ScaffoldMessenger.of(context);
     if (!kIsWeb) {
-      // Android has no convenient place for a large ZIP; the web app downloads it directly.
-      await showDialog<void>(
-        context: context,
-        builder: (d) => AlertDialog(
-          title: const Text('Export in der Web-App'),
-          content: const Text(
-            'Öffne die Web-App im Browser (gleiche Adresse wie der Server) und wähle dort '
-            '„Mehr → Alles exportieren“. Die ZIP-Datei landet im Download-Ordner.',
-          ),
-          actions: [FilledButton(onPressed: () => Navigator.pop(d), child: const Text('OK'))],
-        ),
-      );
+      // Android has no convenient place for a large ZIP: the browser downloads
+      // it via a signed 5-minute link – no login needed there.
+      try {
+        final api = ref.read(authProvider.notifier).api;
+        final res = await api.post('/api/v1/export/link?photos=${photos ? 1 : 0}') as Map<String, dynamic>;
+        final url = Uri.parse('${api.baseUrl}${res['url']}');
+        if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+          m.showSnackBar(const SnackBar(content: Text('Kein Browser gefunden')));
+        }
+      } catch (e) {
+        m.showSnackBar(SnackBar(content: Text(errorText(e))));
+      }
       return;
     }
-    final m = ScaffoldMessenger.of(context);
     m.showSnackBar(const SnackBar(content: Text('Export wird erstellt …')));
     try {
       final bytes = await ref

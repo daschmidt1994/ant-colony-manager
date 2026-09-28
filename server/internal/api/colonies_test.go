@@ -68,6 +68,7 @@ func TestTenantIsolation(t *testing.T) {
 	photo := testenv.NewID()
 	alice.Do("POST", "/api/v1/photos", map[string]any{"id": photo, "colony_id": colony}).Must(t, 201)
 	loc := alice.Do("POST", "/api/v1/locations", map[string]any{"name": "Regal A"}).Must(t, 201).JSON()["data"].(map[string]any)["id"].(string)
+	sp := alice.Do("POST", "/api/v1/species", map[string]any{"scientific_name": "Camponotus sp. privat"}).Must(t, 201).JSON()["data"].(map[string]any)["id"].(string)
 
 	c := colony.String()
 	cases := []struct{ method, path string }{
@@ -93,6 +94,9 @@ func TestTenantIsolation(t *testing.T) {
 		{"GET", "/api/v1/queens?colony_id=" + c},
 		{"GET", "/api/v1/locations/" + loc},
 		{"PATCH", "/api/v1/locations/" + loc},
+		{"GET", "/api/v1/species/" + sp},
+		{"PATCH", "/api/v1/species/" + sp},
+		{"DELETE", "/api/v1/species/" + sp},
 	}
 	for _, tc := range cases {
 		var body any
@@ -115,6 +119,14 @@ func TestTenantIsolation(t *testing.T) {
 		t.Fatalf("referencing a foreign location must fail: %+v", r.Results[0])
 	}
 	for _, ch := range mallory.Pull(t, 0).Changes {
+		if ch.Entity == "species" { // the shared catalog, never somebody's own species
+			var m map[string]any
+			_ = jsonUnmarshal(ch.Data, &m)
+			if m["owner_id"] != nil {
+				t.Errorf("mallory sees a private species: %v", m["scientific_name"])
+			}
+			continue
+		}
 		if ch.Entity != "user_settings" && ch.Entity != "food_items" && ch.Entity != "colony_members" && ch.Entity != "colonies" {
 			t.Errorf("mallory sees %s", ch.Entity)
 		}

@@ -110,6 +110,17 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 | Export | `GET /api/v1/export.zip`: `export.json`, CSV-Tabellen (Semikolon, UTF-8 für Excel), alle Fotos; in der Web-App unter „Mehr → Daten“ |
 | Tests | App: Foto-Warteschlange inkl. Chaos, Erinnerungen, Statistiken, Bericht (PDF-Vorschau in der CI); Vertragstests gegen den echten Server (Foto-Upload, Sensor); Server: E-Mail-Digest, ZIP-Export, Sensor-Alarm |
 
+## Artenkatalog, Futter-Ratgeber, Export-Link
+
+| Bereich | Stand |
+|---|---|
+| Artenkatalog | „Kolonien → Buch-Symbol“: Suche nach Art, Gattung oder deutschem Namen, Filter nach Schwierigkeit und „ohne Winterruhe“. 22 Arten mitgeliefert (Migration `0005_species_care.sql`), Taxonomie nach AntCat/AntWiki, Haltungswerte als Richtwerte gekennzeichnet, Quellen pro Art |
+| Steckbrief | Herkunft, Größen, Klima Nest/Arena, Winterruhe, Gründung, Kolonie, Futter, Haltung, Rechtliches, Quellen. Katalogarten sind schreibgeschützt; „Als eigene Art kopieren“ oder eigene Art anlegen |
+| Kolonien | Artfeld schlägt Katalogarten vor und verknüpft `species_id`; Kolonie-Seite zeigt eine Steckbrief-Zeile (Nestklima, Winterruhe, Schwierigkeit). Freitext-Arten funktionieren weiter |
+| Futter-Ratgeber | Protein/Kohlenhydrate, Futterinsekten aus Zucht statt Wildfang, Samen für Körnersammler, keine Süßstoffe – mit Studien (DOI) und verlässlichen Quellen (AntWiki, AntCat, AntWeb, Seifert 2018) |
+| Export aus der App | `POST /api/v1/export/link` liefert einen signierten Link (5 min, an die Sitzung gebunden); die App öffnet ihn im Browser, der Download startet ohne Login |
+| Timeline | Einträge nach links wischen oder lange drücken → löschen (mit Rückfrage) |
+
 ## Anleitungen
 
 - [17-unraid-dockhand.md](17-unraid-dockhand.md) – Installation auf Unraid mit Dockhand/Portainer (fertige Compose-Datei)
