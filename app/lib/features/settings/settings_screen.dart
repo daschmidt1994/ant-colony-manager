@@ -263,10 +263,20 @@ class SettingsScreen extends ConsumerWidget {
             Card(
               child: Column(
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.dns_outlined),
-                    title: Text(auth.serverUrl),
-                    subtitle: const Text('App-Version $appVersion'),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final server = ref.watch(instanceInfoProvider).value?['version'] as String?;
+                      final ok = versionsMatch(appVersion, server);
+                      return ListTile(
+                        leading: const Icon(Icons.dns_outlined),
+                        title: Text(auth.serverUrl),
+                        subtitle: Text(
+                          'App $appVersion · Server ${server ?? '–'}'
+                          '${ok ? '' : '\nVersionen passen nicht zusammen – App oder Server aktualisieren'}',
+                          style: ok ? null : TextStyle(color: context.colors.overdue),
+                        ),
+                      );
+                    },
                   ),
                   if (!kIsWeb)
                     ListTile(

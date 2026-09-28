@@ -32,6 +32,13 @@ jobs:
         run: |
           V=$(sed -nE 's/^version: *([^+ ]+).*/\1/p' app/pubspec.yaml)
           [ "v$V" = "$GITHUB_REF_NAME" ] || { echo "::error::Tag $GITHUB_REF_NAME passt nicht zu app/pubspec.yaml ($V) – scripts/release.sh benutzen"; exit 1; }
+      # Same version everywhere: tag → 1.2.3, dev → 1.2.3-dev.<commit> (like ACM Test)
+      - name: Version
+        id: ver
+        run: |
+          V=$(sed -nE 's/^version: *([^+ ]+).*/\1/p' app/pubspec.yaml)
+          if [ "$GITHUB_REF_TYPE" = tag ]; then echo "version=$V" >> "$GITHUB_OUTPUT"
+          else echo "version=$V-dev.${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"; fi
       - name: Build web app (server image only)
         if: matrix.image == 'ant-colony-manager'
         uses: subosito/flutter-action@v2
@@ -44,7 +51,7 @@ jobs:
         run: |
           flutter pub get
           ./tool/fetch_web_assets.sh
-          flutter build web --release --wasm --no-web-resources-cdn --no-source-maps
+          flutter build web --release --wasm --no-web-resources-cdn --no-source-maps --dart-define=ACM_VERSION=${{ steps.ver.outputs.version }}
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -69,7 +76,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
+            VERSION=${{ steps.ver.outputs.version }}
             WEB_BUILD=prebuilt
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}

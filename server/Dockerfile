@@ -13,12 +13,13 @@ ARG WEB_BUILD=flutter
 ARG FLUTTER_IMAGE=ghcr.io/cirruslabs/flutter:3.44.0
 
 FROM --platform=$BUILDPLATFORM ${FLUTTER_IMAGE} AS web-flutter
+ARG VERSION=dev
 WORKDIR /src/app
 COPY app/pubspec.yaml app/pubspec.lock ./
 RUN flutter config --no-analytics >/dev/null && flutter pub get
 COPY app/ ./
 RUN ./tool/fetch_web_assets.sh \
- && flutter build web --release --wasm --no-web-resources-cdn --no-source-maps \
+ && flutter build web --release --wasm --no-web-resources-cdn --no-source-maps --dart-define=ACM_VERSION=${VERSION} \
  && mv build/web /web
 
 FROM scratch AS web-prebuilt
