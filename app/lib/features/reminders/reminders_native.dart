@@ -29,6 +29,7 @@ const _digestAtKey = 'reminders_digest_at';
 const _groupKey = 'at.antcolony.manager.due';
 final _digestId = notificationId('digest');
 final _summaryId = notificationId('summary');
+const _green = Color(0xFF7DB36F); // app primary – tints the icon
 
 NotificationDetails get _dueDetails => NotificationDetails(
   android: AndroidNotificationDetails(
@@ -36,6 +37,7 @@ NotificationDetails get _dueDetails => NotificationDetails(
     tr('Überfällige Pflege'),
     channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
+    color: _green,
     groupKey: _groupKey,
     actions: [
       AndroidNotificationAction('done', tr('Erledigt')),
@@ -52,6 +54,7 @@ NotificationDetails get _snoozeDetails => NotificationDetails(
     tr('Überfällige Pflege'),
     channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
+    color: _green,
     groupKey: _groupKey,
     actions: [
       AndroidNotificationAction('snooze', tr('Morgen')),
@@ -66,12 +69,19 @@ NotificationDetails get _infoDetails => NotificationDetails(
     tr('Überfällige Pflege'),
     channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
+    color: _green,
     groupKey: _groupKey,
   ),
 );
 
 NotificationDetails get _summaryDetails => NotificationDetails(
-  android: AndroidNotificationDetails('due', tr('Überfällige Pflege'), groupKey: _groupKey, setAsGroupSummary: true),
+  android: AndroidNotificationDetails(
+    'due',
+    tr('Überfällige Pflege'),
+    groupKey: _groupKey,
+    setAsGroupSummary: true,
+    color: _green,
+  ),
 );
 
 NotificationDetails get _digestDetails => NotificationDetails(
@@ -80,6 +90,7 @@ NotificationDetails get _digestDetails => NotificationDetails(
     tr('Tages-Überblick'),
     channelDescription: tr('Einmal täglich: was heute ansteht'),
     category: AndroidNotificationCategory.reminder,
+    color: _green,
   ),
 );
 
@@ -90,7 +101,7 @@ Future<void> _init({ReminderTap? onTap}) async {
   if (_ready || !_android) return;
   tzdata.initializeTimeZones();
   await _plugin.initialize(
-    settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+    settings: const InitializationSettings(android: AndroidInitializationSettings('ic_stat_ant')),
     onDidReceiveNotificationResponse: (r) => _onTap?.call(r.actionId, r.payload),
     onDidReceiveBackgroundNotificationResponse: reminderActionInBackground,
   );
