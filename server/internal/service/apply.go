@@ -658,6 +658,8 @@ func (s *Service) checkRef(ctx context.Context, q db.Querier, w *write, r ref, i
 		sql, args = `SELECT EXISTS (SELECT 1 FROM locations WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL)`, []any{id, w.dataOwner}
 	case refSpecies:
 		sql, args = `SELECT EXISTS (SELECT 1 FROM species WHERE id = $1 AND (owner_id IS NULL OR owner_id = $2) AND deleted_at IS NULL)`, []any{id, w.dataOwner}
+	case refFoodItem:
+		sql, args = `SELECT EXISTS (SELECT 1 FROM food_items WHERE id = $1 AND (owner_id IS NULL OR owner_id = $2) AND deleted_at IS NULL)`, []any{id, w.dataOwner}
 	case refHabitat:
 		sql, args = `SELECT EXISTS (SELECT 1 FROM habitats WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL)`, []any{id, w.dataOwner}
 	case refCareRound:

@@ -34,6 +34,7 @@ const (
 	refSameColonySchedule                // schedule of the same colony
 	refSameColonyWinter                  // winter rest of the same colony
 	refSameColonyScanLink                // scan link of the same colony
+	refFoodItem                          // system food catalog or data owner's food items
 )
 
 type ref struct {
@@ -152,6 +153,12 @@ var entities = map[string]*entity{
 		Scope: scopeOwner, Collection: "locations",
 		Fields: []string{"parent_id", "name", "sort_order", "notes"},
 		Refs:   []ref{{"parent_id", refLocation}},
+	},
+	"food_stocks": {
+		Scope: scopeOwner, Collection: "food-stocks",
+		Fields: []string{"food_item_id", "name", "kind", "quantity", "unit", "reorder_below", "opened_on",
+			"use_within_days", "best_before", "care_interval_days", "last_cared_at", "notes", "archived_at"},
+		Refs: []ref{{"food_item_id", refFoodItem}},
 	},
 	"food_items": {
 		Scope: scopeOwner, Collection: "food-items",

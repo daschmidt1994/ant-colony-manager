@@ -4,6 +4,7 @@ import '../core/session.dart';
 import 'i18n.dart';
 import '../data/repositories/colony_repository.dart';
 import '../domain/due.dart';
+import '../domain/food_stock.dart';
 import '../domain/models.dart';
 
 /// Repository of the signed-in user. Writes trigger a background sync.
@@ -44,6 +45,8 @@ final colonyWinterProvider = StreamProvider.family<WinterRest?, String>(
 final dueAllProvider = StreamProvider<Map<String, List<DueTask>>>((ref) => _watch(ref, (r) => r.dueAll()));
 
 final dashboardProvider = StreamProvider<DashboardData>((ref) => _watch(ref, (r) => r.dashboard()));
+
+final foodStocksProvider = StreamProvider<List<FoodStock>>((ref) => _watch(ref, (r) => r.foodStocks()));
 
 final foodItemsProvider = StreamProvider<List<FoodItem>>((ref) => _watch(ref, (r) => r.foodItems()));
 

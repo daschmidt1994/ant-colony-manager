@@ -15,7 +15,7 @@ import (
 // deleting a parent cascades.
 var tombstoneTables = []string{"colony_events", "photos", "scan_links", "nfc_tags", "queens", "winter_rests",
 	"care_schedules", "tasks", "care_round_colonies", "care_rounds", "habitats", "sensors", "colony_members",
-	"colonies", "food_items", "species", "locations"}
+	"colonies", "food_stocks", "food_items", "species", "locations"}
 
 // Maintenance runs periodic cleanup. It is safe to run concurrently with
 // normal traffic and idempotent.

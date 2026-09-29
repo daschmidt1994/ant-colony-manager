@@ -19,6 +19,15 @@ abstract final class S {
     'custom': tr('Aufgabe'),
   };
 
+  /// Units of the food stock.
+  static Map<String, String> get unitNames => {
+    'piece': tr('Stück'),
+    'box': tr('Dosen'),
+    'portion': tr('Portionen'),
+    'g': 'g',
+    'ml': 'ml',
+  };
+
   static Map<String, String> get statusNames => {
     'founding': tr('Gründung'),
     'active': tr('aktiv'),

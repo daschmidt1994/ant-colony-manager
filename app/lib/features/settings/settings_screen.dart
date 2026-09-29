@@ -193,6 +193,15 @@ class SettingsScreen extends ConsumerWidget {
             ),
             Card(
               child: ListTile(
+                leading: const Icon(Icons.inventory_2_outlined),
+                title: Text(tr('Futtervorrat')),
+                subtitle: Text(tr('Futtertiere, Zuckerwasser, Zuchten – mit Haltbarkeit und Nachbestell-Hinweis')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/food-stock'),
+              ),
+            ),
+            Card(
+              child: ListTile(
                 leading: const Icon(Icons.event_available),
                 title: Text(tr('Kalender & Home Assistant')),
                 subtitle: Text(tr('Fälligkeiten als Kalender-Abo, Status für Home Assistant')),
