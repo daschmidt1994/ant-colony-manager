@@ -28,6 +28,8 @@ const table = <String, String>{
   'Absender': 'Sender',
   'Adresse': 'Address',
   'Ahornsirup': 'Maple syrup',
+  'Akku: keine Einschränkung': 'Battery: unrestricted',
+  'Akku: optimiert': 'Battery: optimised',
   'Aktiv': 'Active',
   'Aktiv – aus der Docker-Konfiguration (SMTP_*). Hier gespeichert hat Vorrang.':
       'Active – from the Docker configuration (SMTP_*). Settings saved here take precedence.',
@@ -61,6 +63,7 @@ const table = <String, String>{
   'Anderen Server verwenden': 'Use another server',
   'Anderen Tag verwenden': 'Use another tag',
   'Android': 'Android',
+  'Android zeigt nichts an, bis sie erlaubt sind.': 'Android shows nothing until they are allowed.',
   'Android-App verbinden': 'Connect Android app',
   'Anlegen': 'Create',
   'Anmelden': 'Sign in',
@@ -78,7 +81,10 @@ const table = <String, String>{
   'AntWiki (antwiki.org): Biologie, Verbreitung und Literatur zu jeder Art – wissenschaftlich gepflegt.':
       'AntWiki (antwiki.org): biology, distribution and literature for every species – scientifically maintained.',
   'App': 'App',
+  'App auf diesem Gerät': 'App on this device',
   'App verbinden': 'Connect app',
+  'App-Benachrichtigungen funktionieren auf diesem Gerät.': 'App notifications work on this device.',
+  'App-Infos': 'App info',
   'Arbeiterin': 'Worker',
   'Arbeiterinnen': 'Workers',
   'Arbeiterinnen (Schätzung oder Zählung)': 'Workers (estimate or count)',
@@ -114,6 +120,7 @@ const table = <String, String>{
   'Aus · planen, um erinnert zu werden': 'Off · plan it to get reminders',
   'Aus – einschalten, um eine Art aus dem Katalog zu wählen': 'Off – switch on to choose a species from the catalogue',
   'Aus – keine Benachrichtigung': 'Off – no notifications',
+  'Aus, oder zu diesem Zeitpunkt ist nichts fällig.': 'Off, or nothing is due at that time.',
   'Ausblenden': 'Hide',
   'Aussehen': 'Appearance',
   'Ausstehende Änderungen': 'Pending changes',
@@ -127,6 +134,8 @@ const table = <String, String>{
   'Beginnen bei Feld (angebrochener Bogen)': 'Start at field (partly used sheet)',
   'Begonnen': 'Started',
   'Benachrichtigungen': 'Notifications',
+  'Benachrichtigungen blockiert': 'Notifications blocked',
+  'Benachrichtigungen erlaubt': 'Notifications allowed',
   'Benutzer': 'User',
   'Bereits geöffnet – Ant Colony Manager': 'Already open – Ant Colony Manager',
   'Bericht als PDF': 'Report as PDF',
@@ -186,8 +195,12 @@ const table = <String, String>{
   'Die Android-App erinnert zusätzlich selbst (Mehr → Erinnerungen). ntfy und E-Mail kommen vom Server – auch wenn das Handy aus ist.':
       'The Android app also reminds you itself (More → Reminders). ntfy and e-mail come from the server – even when the phone is off.',
   'Die App ist bereits in einem anderen Tab geöffnet.': 'The app is already open in another tab.',
+  'Die App meldet Pflege, sobald sie überfällig ist (bei der nächsten Prüfung). „Heute fällig“ steht nur im Tages-Überblick.':
+      'The app reports care as soon as it is overdue (at the next check). “Due today” only appears in the daily overview.',
   'Die App „ntfy“ (F-Droid oder Play Store) installieren, dort denselben Server und dasselbe Topic abonnieren. Eigener ntfy-Server: seine Adresse als Server eintragen, dazu ein Token. Auf dem öffentlichen ntfy.sh kann jeder mitlesen, der den Topic-Namen kennt – dort einen schwer zu erratenden Namen wählen (Würfel).':
       'Install the “ntfy” app (F-Droid or Play Store) and subscribe to the same server and topic there. Own ntfy server: enter its address as server, plus a token. On the public ntfy.sh anyone who knows the topic name can read along – choose a name that is hard to guess there (dice).',
+  'Die Hintergrund-Prüfung kann sich verzögern. In den App-Infos bei „Akku“ „Nicht eingeschränkt“ wählen.':
+      'The background check may be delayed. In App info, set “Battery” to “Unrestricted”.',
   'Die Kolonie und ihre Timeline verschwinden auf allen Geräten. Archivieren behält die Daten.':
       'The colony and its timeline disappear on all devices. Archiving keeps the data.',
   'Die eigene Art verschwindet auf allen Geräten.': 'The own species disappears on all devices.',
@@ -253,6 +266,7 @@ const table = <String, String>{
   'Entwicklung': 'Development',
   'Entwicklung Ei → Arbeiterin': 'Development egg → worker',
   'Erinnerungen': 'Reminders',
+  'Erlauben': 'Allow',
   'Erledigt': 'Done',
   'Erledigt · {0}': 'Done · {0}',
   'Erledigt – gespeichert': 'Done – saved',
@@ -386,6 +400,7 @@ const table = <String, String>{
   'Jelly': 'Jelly',
   'Jetzt': 'Now',
   'Jetzt ein Foto aufnehmen': 'Take a photo now',
+  'Jetzt prüfen': 'Check now',
   'Jetzt synchronisieren': 'Sync now',
   'Kamera': 'Camera',
   'Kamera nicht verfügbar.': 'Camera not available.',
@@ -398,6 +413,7 @@ const table = <String, String>{
       'No camera access. Allow the camera in the app settings.',
   'Kein Kolonie-Code von dir – oder die Kolonie ist nicht mit dir geteilt.':
       'Not a colony code of yours – or the colony is not shared with you.',
+  'Kein Tages-Überblick geplant': 'No daily overview scheduled',
   'Kein aktiver QR-Code.': 'No active QR code.',
   'Keine': 'None',
   'Keine Art gefunden': 'No species found',
@@ -464,6 +480,7 @@ const table = <String, String>{
   'Letzte Aktivitäten': 'Recent activity',
   'Letzte Fütterung wiederholen': 'Repeat last feeding',
   'Letzte Messung': 'Last measurement',
+  'Letzte Prüfung: {0}': 'Last check: {0}',
   'Letzte Rundgänge': 'Recent rounds',
   'Letzte Synchronisierung': 'Last sync',
   'Liegt ein Messwert außerhalb, entsteht automatisch ein „Problem“-Eintrag bei der Kolonie und eine Benachrichtigung (höchstens alle 6 Stunden).':
@@ -544,6 +561,7 @@ const table = <String, String>{
   'Noch keine Koloniegröße erfasst – Kolonie-Seite → Menü ⋮ → „Größe & Brut erfassen“.':
       'No colony size recorded yet – colony page → menu ⋮ → “Record size & brood”.',
   'Noch keine Kolonien': 'No colonies yet',
+  'Noch keine Prüfung': 'Not checked yet',
   'Noch keine Sensoren': 'No sensors yet',
   'Noch nie synchronisiert': 'Never synced',
   'Nochmal versuchen': 'Try again',
@@ -558,6 +576,7 @@ const table = <String, String>{
   'NÄCHSTE KOLONIE': 'NEXT COLONY',
   'Nächste Aufgaben': 'Next tasks',
   'Nächste Kolonie scannen': 'Scan next colony',
+  'Nächster Tages-Überblick: {0}': 'Next daily overview: {0}',
   'Offen · {0}': 'Open · {0}',
   'Offline · {0} ausstehend': 'Offline · {0} pending',
   'Offline · {0} Änderung(en) warten': 'Offline · {0} change(s) waiting',
@@ -598,6 +617,8 @@ const table = <String, String>{
   'Protein {0} · KH {1}': 'Protein {0} · carbs {1}',
   'Protein: Futterinsekten': 'Protein: feeder insects',
   'Proteinfütterung': 'Protein feeding',
+  'Prüft stündlich im Hintergrund und bei jedem Öffnen der App.':
+      'Checks hourly in the background and every time you open the app.',
   'Prüfung nach dem Schreiben fehlgeschlagen – bitte nochmal halten.':
       'Check after writing failed – please hold it again.',
   'Puppen': 'Pupae',
@@ -734,6 +755,8 @@ const table = <String, String>{
       'Record temperature and humidity automatically (ESP32 …)',
   'Temperatur und Luftfeuchtigkeit': 'Temperature and humidity',
   'Test mit curl': 'Test with curl',
+  'Test-Benachrichtigung': 'Test notification',
+  'Test-Benachrichtigung gesendet': 'Test notification sent',
   'Test-E-Mail gesendet': 'Test e-mail sent',
   'Test-E-Mail gesendet an {0}': 'Test e-mail sent to {0}',
   'Testnachricht gesendet – schau in die ntfy-App': 'Test message sent – check the ntfy app',
@@ -830,6 +853,8 @@ const table = <String, String>{
   'Wissenschaftlicher Name *': 'Scientific name *',
   'Wo du angemeldet bist – verlorenes Handy abmelden': 'Where you are signed in – sign out a lost phone',
   'Wähle unten eine Kolonie aus der Liste.': 'Choose a colony from the list below.',
+  'Xiaomi: in den App-Infos „Autostart“ einschalten und bei „Akku“ „Keine Einschränkungen“ wählen – sonst beendet das System die Hintergrund-Prüfung.':
+      'Xiaomi: in App info, turn on “Autostart” and set “Battery saver” to “No restrictions” – otherwise the system stops the background check.',
   'Zeitpunkt': 'Time',
   'Zeitraum': 'Period',
   'Zu viele Versuche – bitte kurz warten.': 'Too many attempts – please wait a moment.',
