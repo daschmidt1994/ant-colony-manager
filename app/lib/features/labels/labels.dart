@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
+import '../../app/i18n.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 /// A label format: either one label per page (label printers) or a sheet.
@@ -51,7 +52,7 @@ class LabelTemplate {
     final rows = ((pageH - 2 * border + gap) / (labelHeight + gap)).floor();
     return LabelTemplate(
       id: '$id-a4',
-      name: '$name auf A4',
+      name: tr('{0} auf A4', [name]),
       labelWidth: labelWidth,
       labelHeight: labelHeight,
       pageWidth: pageW,
@@ -67,20 +68,25 @@ class LabelTemplate {
   }
 }
 
-const labelTemplates = <LabelTemplate>[
-  LabelTemplate(id: 'single-50x30', name: 'Einzeletikett 50 × 30 mm', labelWidth: 50, labelHeight: 30),
-  LabelTemplate(id: 'single-38x25', name: 'Einzeletikett 38 × 25 mm', labelWidth: 38, labelHeight: 25),
-  LabelTemplate(id: 'single-25x25', name: 'Einzeletikett 25 × 25 mm (nur QR + Nr.)', labelWidth: 25, labelHeight: 25),
+List<LabelTemplate> get labelTemplates => [
+  LabelTemplate(id: 'single-50x30', name: tr('Einzeletikett 50 × 30 mm'), labelWidth: 50, labelHeight: 30),
+  LabelTemplate(id: 'single-38x25', name: tr('Einzeletikett 38 × 25 mm'), labelWidth: 38, labelHeight: 25),
+  LabelTemplate(
+    id: 'single-25x25',
+    name: tr('Einzeletikett 25 × 25 mm (nur QR + Nr.)'),
+    labelWidth: 25,
+    labelHeight: 25,
+  ),
   LabelTemplate(
     id: 'brother-62',
-    name: 'Brother 62 mm Endlos (62 × 40 mm)',
+    name: tr('Brother 62 mm Endlos (62 × 40 mm)'),
     labelWidth: 62,
     labelHeight: 40,
     labelPrinter: true,
   ),
   LabelTemplate(
     id: 'a4-38x21',
-    name: 'A4-Bogen 38,1 × 21,2 mm (5 × 13, z. B. Avery L7651)',
+    name: tr('A4-Bogen 38,1 × 21,2 mm (5 × 13, z. B. Avery L7651)'),
     labelWidth: 38.1,
     labelHeight: 21.2,
     pageWidth: 210,
@@ -93,7 +99,7 @@ const labelTemplates = <LabelTemplate>[
   ),
   LabelTemplate(
     id: 'a4-70x37',
-    name: 'A4-Bogen 70 × 37 mm (3 × 8)',
+    name: tr('A4-Bogen 70 × 37 mm (3 × 8)'),
     labelWidth: 70,
     labelHeight: 37,
     pageWidth: 210,
@@ -104,7 +110,7 @@ const labelTemplates = <LabelTemplate>[
   ),
   LabelTemplate(
     id: 'a4-99x38',
-    name: 'A4-Bogen 99,1 × 38,1 mm (2 × 7, z. B. Avery L7163)',
+    name: tr('A4-Bogen 99,1 × 38,1 mm (2 × 7, z. B. Avery L7163)'),
     labelWidth: 99.1,
     labelHeight: 38.1,
     pageWidth: 210,
@@ -190,7 +196,7 @@ Future<Uint8List> buildLabelsPdf(
   LabelFonts? fonts,
 }) async {
   final f = fonts ?? await LabelFonts.load();
-  final doc = pw.Document(title: 'Kolonie-Etiketten', creator: 'Ant Colony Manager');
+  final doc = pw.Document(title: tr('Kolonie-Etiketten'), creator: tr('Ant Colony Manager'));
   final slots = layoutLabels(t, labels.length, startAt: startAt);
   final pages = slots.isEmpty ? 0 : slots.last.page + 1;
   final format = PdfPageFormat(t.pageW * PdfPageFormat.mm, t.pageH * PdfPageFormat.mm, marginAll: 0);
@@ -250,7 +256,7 @@ pw.Widget _label(LabelTemplate t, LabelData d, LabelOptions o, LabelFonts f) {
     if (o.species && (d.species ?? '').isNotEmpty) text(d.species!, font: f.italic, scale: 1.05, lines: 2),
     if (o.name)
       text(
-        d.name == '' ? 'Kolonie #${d.number}' : '${d.name}${d.name.contains('#') ? '' : ' · #${d.number}'}',
+        d.name == '' ? tr('Kolonie #{0}', [d.number]) : '${d.name}${d.name.contains('#') ? '' : ' · #${d.number}'}',
         font: f.bold,
         scale: 1.15,
       ),

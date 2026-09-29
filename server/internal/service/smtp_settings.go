@@ -195,10 +195,11 @@ func (s *Service) SendTestMail(ctx context.Context, actor Actor) error {
 	if err := s.Pool.QueryRow(ctx, `SELECT email FROM users WHERE id = $1`, actor.UserID).Scan(&email); err != nil {
 		return err
 	}
-	err := s.Mail.Send(ctx, mail.Message{To: email, Subject: "Ant Colony Manager: Test-E-Mail",
-		Body: "Der E-Mail-Versand funktioniert. 🐜\n\n" + s.publicURL() + "/\n"})
+	lang := s.userLang(ctx, actor.UserID)
+	err := s.Mail.Send(ctx, mail.Message{To: email, Subject: tl(lang, "Ant Colony Manager: Test-E-Mail"),
+		Body: tl(lang, "Der E-Mail-Versand funktioniert. 🐜") + "\n\n" + s.publicURL() + "/\n"})
 	if err != nil {
-		return &Problem{Status: 502, Code: "smtp.failed", Title: "E-Mail-Versand fehlgeschlagen: " + err.Error()}
+		return &Problem{Status: 502, Code: "smtp.failed", Title: tl(lang, "E-Mail-Versand fehlgeschlagen: %v", err)}
 	}
 	return nil
 }

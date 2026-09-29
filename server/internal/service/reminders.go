@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -34,11 +33,12 @@ func (s *Service) SendDigests(ctx context.Context) (int, error) {
 		lastSent        *time.Time
 		byMail          bool
 		ntfyURL, token  string
+		locale, hint    *string
 	}
 	rows, err := s.Pool.Query(ctx, `
 		SELECT u.id, u.email, u.display_name, us.timezone, us.digest_time::text, us.due_soon_days, d.sent_on,
 			us.email_digest AND $1, CASE WHEN np.digest_ntfy THEN COALESCE(np.ntfy_url, '') ELSE '' END,
-			COALESCE(np.ntfy_token, '')
+			COALESCE(np.ntfy_token, ''), us.locale, u.lang_hint
 		FROM users u JOIN user_settings us ON us.id = u.id
 		LEFT JOIN digest_log d ON d.user_id = u.id
 		LEFT JOIN notification_prefs np ON np.user_id = u.id
@@ -49,7 +49,8 @@ func (s *Service) SendDigests(ctx context.Context) (int, error) {
 	}
 	list, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (candidate, error) {
 		var c candidate
-		err := r.Scan(&c.id, &c.email, &c.name, &c.tz, &c.digestAt, &c.soonDays, &c.lastSent, &c.byMail, &c.ntfyURL, &c.token)
+		err := r.Scan(&c.id, &c.email, &c.name, &c.tz, &c.digestAt, &c.soonDays, &c.lastSent, &c.byMail, &c.ntfyURL, &c.token,
+			&c.locale, &c.hint)
 		return c, err
 	})
 	if err != nil {
@@ -71,7 +72,8 @@ func (s *Service) SendDigests(ctx context.Context) (int, error) {
 		if now.Before(due) || now.Sub(due) > digestLateLimit || (c.lastSent != nil && !c.lastSent.Before(today)) {
 			continue
 		}
-		d, err := s.digestFor(ctx, c.id, UserPrefs{Location: loc, SoonDays: c.soonDays})
+		lang := resolveLang(c.locale, c.hint)
+		d, err := s.digestFor(ctx, c.id, UserPrefs{Location: loc, SoonDays: c.soonDays}, lang)
 		if err != nil {
 			return sent, err
 		}
@@ -79,14 +81,14 @@ func (s *Service) SendDigests(ctx context.Context) (int, error) {
 			ok := false
 			if c.ntfyURL != "" {
 				n := notice{Title: d.head, Body: strings.Join(d.lines, "\n"), Click: s.publicURL() + "/", Priority: 2, Tags: []string{"ant"}}
-				if err := s.sendNtfy(ctx, c.ntfyURL, c.token, n); err != nil {
+				if err := s.sendNtfy(ctx, lang, c.ntfyURL, c.token, n); err != nil {
 					s.Log.Warn("digest ntfy failed", "user", c.id, "err", err)
 				} else {
 					ok = true
 				}
 			}
 			if c.byMail {
-				if err := s.Mail.Send(ctx, d.mail(c.email, s.publicURL())); err != nil {
+				if err := s.Mail.Send(ctx, d.mail(c.email, s.publicURL(), lang)); err != nil {
 					s.Log.Warn("digest mail failed", "user", c.id, "err", err)
 				} else {
 					ok = true
@@ -110,18 +112,19 @@ type digest struct {
 	lines []string
 }
 
-func (d *digest) mail(to, publicURL string) mail.Message {
+func (d *digest) mail(to, publicURL, lang string) mail.Message {
 	var b strings.Builder
 	b.WriteString(d.head + "\n\n")
 	for _, l := range d.lines {
 		b.WriteString(l + "\n")
 	}
-	fmt.Fprintf(&b, "\nÖffnen: %s/\n\nDiese E-Mail kommt einmal täglich. Abbestellen: Mehr → Benachrichtigungen → Tages-Überblick.\n", publicURL)
-	return mail.Message{To: to, Subject: "Ameisen: " + d.head, Body: b.String()}
+	b.WriteString("\n" + tl(lang, "Öffnen: %s", publicURL+"/") + "\n\n" +
+		tl(lang, "Diese E-Mail kommt einmal täglich. Abbestellen: Mehr → Benachrichtigungen → Tages-Überblick.") + "\n")
+	return mail.Message{To: to, Subject: tl(lang, "Ameisen: %s", d.head), Body: b.String()}
 }
 
 // digestFor builds the overview for one user; nil if nothing needs attention.
-func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs) (*digest, error) {
+func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs, lang string) (*digest, error) {
 	cols, err := s.careColonies(ctx, user)
 	if err != nil || len(cols) == 0 {
 		return nil, err
@@ -151,11 +154,11 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 			if t.Status == DuePaused || t.Days > 0 {
 				continue
 			}
-			parts = append(parts, taskLabel(t)+" "+dueText(t.Days))
+			parts = append(parts, taskLabel(lang, t)+" "+dueText(lang, t.Days))
 			worstDays = min(worstDays, t.Days)
 		}
 		if w := winter[c.id]; w != "" {
-			parts = append(parts, w)
+			parts = append(parts, winterText(lang, w))
 			worstDays = min(worstDays, 0)
 		}
 		if len(parts) == 0 {
@@ -170,12 +173,12 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 		return nil, nil
 	}
 	sort.SliceStable(lines, func(i, j int) bool { return lines[i].days < lines[j].days })
-	head := fmt.Sprintf("%d Kolonien brauchen heute Aufmerksamkeit", len(lines))
+	head := tl(lang, "%d Kolonien brauchen heute Aufmerksamkeit", len(lines))
 	if len(lines) == 1 {
-		head = "1 Kolonie braucht heute Aufmerksamkeit"
+		head = tl(lang, "1 Kolonie braucht heute Aufmerksamkeit")
 	}
 	if overdue > 0 {
-		head += fmt.Sprintf(" (%d überfällig)", overdue)
+		head += tl(lang, " (%d überfällig)", overdue)
 	}
 	d := &digest{head: head}
 	for _, l := range lines {
@@ -186,6 +189,7 @@ func (s *Service) digestFor(ctx context.Context, user uuid.UUID, prefs UserPrefs
 
 // winterDueFor: colonies whose planned winter rest should start or end by
 // today (the user's local date) – the switch in the app is still pending.
+// Values are "start" or "end" (text: winterText).
 func (s *Service) winterDueFor(ctx context.Context, ids []uuid.UUID, today string) (map[uuid.UUID]string, error) {
 	rows, err := s.Pool.Query(ctx, `
 		SELECT colony_id, started_on IS NULL FROM winter_rests
@@ -199,22 +203,29 @@ func (s *Service) winterDueFor(ctx context.Context, ids []uuid.UUID, today strin
 	var id uuid.UUID
 	var planned bool
 	_, err = pgx.ForEachRow(rows, []any{&id, &planned}, func() error {
-		out[id] = "Winterruhe beenden?"
+		out[id] = "end"
 		if planned {
-			out[id] = "Winterruhe beginnen?"
+			out[id] = "start"
 		}
 		return nil
 	})
 	return out, err
 }
 
-func dueText(days int) string {
+func winterText(lang, code string) string {
+	if code == "start" {
+		return tl(lang, "Winterruhe beginnen?")
+	}
+	return tl(lang, "Winterruhe beenden?")
+}
+
+func dueText(lang string, days int) string {
 	switch {
 	case days == 0:
-		return "heute fällig"
+		return tl(lang, "heute fällig")
 	case days == -1:
-		return "seit 1 Tag überfällig"
+		return tl(lang, "seit 1 Tag überfällig")
 	default:
-		return fmt.Sprintf("seit %d Tagen überfällig", -days)
+		return tl(lang, "seit %d Tagen überfällig", -days)
 	}
 }

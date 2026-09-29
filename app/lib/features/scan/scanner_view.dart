@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../app/theme.dart';
+import '../../app/i18n.dart';
 
 /// Camera scanning is offered on Android only: on the web, mobile_scanner
 /// would load its decoder from a CDN (blocked by our CSP, privacy leak).
@@ -84,8 +85,8 @@ class _ScannerViewState extends State<ScannerView> {
               alignment: Alignment.center,
               child: Text(
                 error.errorCode == MobileScannerErrorCode.permissionDenied
-                    ? 'Kein Kamerazugriff. Erlaube die Kamera in den App-Einstellungen.'
-                    : 'Kamera nicht verfügbar.',
+                    ? tr('Kein Kamerazugriff. Erlaube die Kamera in den App-Einstellungen.')
+                    : tr('Kamera nicht verfügbar.'),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -107,7 +108,7 @@ class _ScannerViewState extends State<ScannerView> {
             child: ValueListenableBuilder<MobileScannerState>(
               valueListenable: _controller,
               builder: (context, s, _) => IconButton.filledTonal(
-                tooltip: 'Taschenlampe',
+                tooltip: tr('Taschenlampe'),
                 onPressed: _controller.toggleTorch,
                 icon: Icon(s.torchState == TorchState.on ? Icons.flashlight_off : Icons.flashlight_on),
               ),

@@ -7,18 +7,19 @@ import '../../app/theme.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../photos/photos.dart';
+import '../../app/i18n.dart';
 
-const _filterTypes = [
-  ('photo', 'Fotos'),
-  ('feeding', 'Fütterung'),
-  ('water', 'Wasser'),
-  ('cleaning', 'Reinigung'),
-  ('measurement', 'Messung'),
-  ('check', 'Kontrolle'),
-  ('note', 'Notizen'),
-  ('problem', 'Probleme'),
-  ('census', 'Größe'),
-  ('brood', 'Brut'),
+List<(String, String)> get _filterTypes => [
+  ('photo', tr('Fotos')),
+  ('feeding', tr('Fütterung')),
+  ('water', tr('Wasser')),
+  ('cleaning', tr('Reinigung')),
+  ('measurement', tr('Messung')),
+  ('check', tr('Kontrolle')),
+  ('note', tr('Notizen')),
+  ('problem', tr('Probleme')),
+  ('census', tr('Größe')),
+  ('brood', tr('Brut')),
 ];
 
 class TimelineScreen extends ConsumerStatefulWidget {
@@ -60,7 +61,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(colony == null ? 'Timeline' : 'Timeline · ${colony.name}')),
+      appBar: AppBar(title: Text(colony == null ? tr('Timeline') : tr('Timeline · {0}', [colony.name]))),
       body: ContentWidth(
         child: Column(
           children: [
@@ -85,7 +86,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             ),
             Expanded(
               child: events.isEmpty
-                  ? const EmptyState(icon: Icons.timeline, title: 'Keine Einträge')
+                  ? EmptyState(icon: Icons.timeline, title: tr('Keine Einträge'))
                   : ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 32), children: rows),
             ),
           ],
@@ -124,7 +125,7 @@ class EventTile extends ConsumerWidget {
       ),
       trailing: pending
           ? Tooltip(
-              message: 'noch nicht synchronisiert',
+              message: tr('noch nicht synchronisiert'),
               child: Icon(Icons.cloud_upload_outlined, size: 18, color: context.colors.muted),
             )
           : null,
@@ -152,11 +153,11 @@ class EventTile extends ConsumerWidget {
         color: context.colors.overdue,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Löschen',
+              tr('Löschen'),
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
             SizedBox(width: 8),
@@ -174,17 +175,17 @@ class EventTile extends ConsumerWidget {
       await showDialog<bool>(
         context: context,
         builder: (d) => AlertDialog(
-          title: const Text('Eintrag löschen?'),
+          title: Text(tr('Eintrag löschen?')),
           content: Text(
             '${S.eventTypes[event.type] ?? event.type} vom ${S.dateTime(event.occurredAt)}'
             '${event.type == 'photo' ? ' – die Fotos werden mitgelöscht.' : ''}',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
+            TextButton(onPressed: () => Navigator.pop(d, false), child: Text(tr('Abbrechen'))),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: d.colors.overdue),
               onPressed: () => Navigator.pop(d, true),
-              child: const Text('Löschen'),
+              child: Text(tr('Löschen')),
             ),
           ],
         ),
@@ -193,7 +194,7 @@ class EventTile extends ConsumerWidget {
 
   void _delete(BuildContext context, WidgetRef ref) {
     ref.read(repositoryProvider)!.deleteEvent(event.id);
-    showUndoSnack(context, 'Eintrag gelöscht');
+    showUndoSnack(context, tr('Eintrag gelöscht'));
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
@@ -221,7 +222,7 @@ class EventTile extends ConsumerWidget {
             Text(S.eventSummary(event), style: const TextStyle(fontSize: 16)),
             if (event.note != null && event.type == 'feeding') ...[const SizedBox(height: 8), Text(event.note!)],
             if (canEdit && event.type == 'feeding') ...[
-              const SectionHeader('Annahme'),
+              SectionHeader(tr('Annahme')),
               Wrap(
                 spacing: 8,
                 children: [
@@ -242,7 +243,7 @@ class EventTile extends ConsumerWidget {
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(foregroundColor: c.colors.overdue),
                 icon: const Icon(Icons.delete_outline),
-                label: const Text('Eintrag löschen'),
+                label: Text(tr('Eintrag löschen')),
                 onPressed: () async {
                   if (await _askDelete(c) && c.mounted) {
                     Navigator.pop(c);

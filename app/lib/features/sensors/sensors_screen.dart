@@ -8,14 +8,15 @@ import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
+import '../../app/i18n.dart';
 
 final sensorsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) => watchRepo(ref, (r) => r.sensors()));
 
-const _kinds = {
+Map<String, String> get _kinds => {
   'esp32': 'ESP32',
   'wifi': 'WLAN-Sensor',
-  'bluetooth': 'Bluetooth (über Gateway)',
-  'generic': 'Sonstiges',
+  'bluetooth': tr('Bluetooth (über Gateway)'),
+  'generic': tr('Sonstiges'),
 };
 
 /// Sensors (spec §23): temperature/humidity from an ESP32 or similar, sent
@@ -28,19 +29,20 @@ class SensorsScreen extends ConsumerWidget {
     final sensors = ref.watch(sensorsProvider).value ?? const [];
     final colonies = {for (final c in ref.watch(coloniesProvider).value ?? const <Colony>[]) c.id: c};
     return Scaffold(
-      appBar: AppBar(title: const Text('Sensoren')),
+      appBar: AppBar(title: Text(tr('Sensoren'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _add(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Sensor'),
+        label: Text(tr('Sensor')),
       ),
       body: sensors.isEmpty
-          ? const EmptyState(
+          ? EmptyState(
               icon: Icons.sensors,
-              title: 'Noch keine Sensoren',
-              text:
-                  'Ein ESP32 oder ein anderer WLAN-Sensor kann Temperatur und Luftfeuchtigkeit direkt an deinen '
-                  'Server senden. Die Werte erscheinen in der Statistik der Kolonie.',
+              title: tr('Noch keine Sensoren'),
+              text: tr(
+                'Ein ESP32 oder ein anderer WLAN-Sensor kann Temperatur und Luftfeuchtigkeit direkt an deinen '
+                'Server senden. Die Werte erscheinen in der Statistik der Kolonie.',
+              ),
             )
           : ContentWidth(
               child: ListView(
@@ -53,11 +55,11 @@ class SensorsScreen extends ConsumerWidget {
                           Icons.sensors,
                           color: s['active'] == false ? context.colors.muted : Theme.of(context).colorScheme.primary,
                         ),
-                        title: Text(s['name'] as String? ?? 'Sensor'),
+                        title: Text(s['name'] as String? ?? tr('Sensor')),
                         subtitle: Text(
                           [
-                            _kinds[s['kind']] ?? 'Sonstiges',
-                            colonies[s['colony_id']]?.name ?? 'keiner Kolonie zugeordnet',
+                            _kinds[s['kind']] ?? tr('Sonstiges'),
+                            colonies[s['colony_id']]?.name ?? tr('keiner Kolonie zugeordnet'),
                             _seen(s['last_seen_at'] as String?),
                             if (s['active'] == false) 'deaktiviert',
                           ].join(' · '),
@@ -74,8 +76,8 @@ class SensorsScreen extends ConsumerWidget {
 
   static String _seen(String? at) {
     final t = at == null ? null : DateTime.tryParse(at);
-    if (t == null) return 'noch keine Daten';
-    return 'zuletzt ${S.relativeDay(t, DateTime.now()).toLowerCase()} ${S.time(t)}';
+    if (t == null) return tr('noch keine Daten');
+    return tr('zuletzt {0} {1}', [S.relativeDayInline(t, DateTime.now()), S.time(t)]);
   }
 
   Future<void> _add(BuildContext context, WidgetRef ref) async {
@@ -89,19 +91,19 @@ class SensorsScreen extends ConsumerWidget {
       context: context,
       builder: (d) => StatefulBuilder(
         builder: (d, set) => AlertDialog(
-          title: const Text('Sensor hinzufügen'),
+          title: Text(tr('Sensor hinzufügen')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: name,
                 autofocus: true,
-                decoration: const InputDecoration(labelText: 'Name', hintText: 'z. B. Regal A oben'),
+                decoration: InputDecoration(labelText: tr('Name'), hintText: tr('z. B. Regal A oben')),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: kind,
-                decoration: const InputDecoration(labelText: 'Art'),
+                decoration: InputDecoration(labelText: tr('Art')),
                 items: [for (final e in _kinds.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
                 onChanged: (v) => set(() => kind = v!),
               ),
@@ -109,9 +111,9 @@ class SensorsScreen extends ConsumerWidget {
               DropdownButtonFormField<String?>(
                 initialValue: colony,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Kolonie'),
+                decoration: InputDecoration(labelText: tr('Kolonie')),
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('– keine –')),
+                  DropdownMenuItem(value: null, child: Text(tr('– keine –'))),
                   for (final c in owned) DropdownMenuItem(value: c.id, child: Text(c.name)),
                 ],
                 onChanged: (v) => set(() => colony = v),
@@ -119,8 +121,8 @@ class SensorsScreen extends ConsumerWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
-            FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Anlegen')),
+            TextButton(onPressed: () => Navigator.pop(d, false), child: Text(tr('Abbrechen'))),
+            FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(tr('Anlegen'))),
           ],
         ),
       ),
@@ -174,7 +176,7 @@ Future<void> _showKey(BuildContext context, WidgetRef ref, String id, String key
           ),
         ),
         IconButton(
-          tooltip: 'Kopieren',
+          tooltip: tr('Kopieren'),
           icon: const Icon(Icons.copy, size: 18),
           onPressed: () => Clipboard.setData(ClipboardData(text: value)),
         ),
@@ -185,30 +187,34 @@ Future<void> _showKey(BuildContext context, WidgetRef ref, String id, String key
     context: context,
     barrierDismissible: false,
     builder: (d) => AlertDialog(
-      title: const Text('API-Schlüssel des Sensors'),
+      title: Text(tr('API-Schlüssel des Sensors')),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Der Schlüssel wird nur jetzt angezeigt. Trage ihn im Sensor ein – geht er verloren, '
-              'erzeugst du einfach einen neuen.',
+              tr(
+                'Der Schlüssel wird nur jetzt angezeigt. Trage ihn im Sensor ein – geht er verloren, '
+                'erzeugst du einfach einen neuen.',
+              ),
               style: TextStyle(color: d.colors.soon),
             ),
             const SizedBox(height: 12),
-            copyable('Adresse', url),
-            copyable('Schlüssel (Header „Authorization: Bearer …“)', key),
-            copyable('Test mit curl', curl),
+            copyable(tr('Adresse'), url),
+            copyable(tr('Schlüssel (Header „Authorization: Bearer …“)'), key),
+            copyable(tr('Test mit curl'), curl),
             Text(
-              'Werte: metric „temperature“ (°C) oder „humidity“ (%), optional measured_at (ISO 8601). '
-              'Bis zu 500 Werte pro Anfrage, doppelte Sendungen werden ignoriert.',
+              tr(
+                'Werte: metric „temperature“ (°C) oder „humidity“ (%), optional measured_at (ISO 8601). '
+                'Bis zu 500 Werte pro Anfrage, doppelte Sendungen werden ignoriert.',
+              ),
               style: TextStyle(color: d.colors.muted, fontSize: 12),
             ),
           ],
         ),
       ),
-      actions: [FilledButton(onPressed: () => Navigator.pop(d), child: const Text('Gespeichert'))],
+      actions: [FilledButton(onPressed: () => Navigator.pop(d), child: Text(tr('Gespeichert')))],
     ),
   );
 }
@@ -231,55 +237,57 @@ class _SensorSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(s['name'] as String? ?? 'Sensor', style: Theme.of(context).textTheme.titleLarge),
+          Text(s['name'] as String? ?? tr('Sensor'), style: Theme.of(context).textTheme.titleLarge),
           Text(
-            'Kennung ${s['api_key_prefix'] ?? ''} · ${SensorsScreen._seen(s['last_seen_at'] as String?)}',
+            tr('Kennung {0} · {1}', [s['api_key_prefix'] ?? '', SensorsScreen._seen(s['last_seen_at'] as String?)]),
             style: TextStyle(color: context.colors.muted),
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String?>(
             initialValue: owned.any((c) => c.id == s['colony_id']) ? s['colony_id'] as String? : null,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Kolonie'),
+            decoration: InputDecoration(labelText: tr('Kolonie')),
             items: [
-              const DropdownMenuItem(value: null, child: Text('– keine –')),
+              DropdownMenuItem(value: null, child: Text(tr('– keine –'))),
               for (final c in owned) DropdownMenuItem(value: c.id, child: Text(c.name)),
             ],
             onChanged: (v) => repo.updateSensor(id, {'colony_id': v}),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Aktiv'),
-            subtitle: const Text('Deaktivierte Sensoren werden abgewiesen'),
+            title: Text(tr('Aktiv')),
+            subtitle: Text(tr('Deaktivierte Sensoren werden abgewiesen')),
             value: s['active'] != false,
             onChanged: (v) => repo.updateSensor(id, {'active': v}),
           ),
-          const SectionHeader('Grenzwerte'),
+          SectionHeader(tr('Grenzwerte')),
           Text(
-            'Liegt ein Messwert außerhalb, entsteht automatisch ein „Problem“-Eintrag bei der Kolonie '
-            'und eine Benachrichtigung (höchstens alle 6 Stunden).',
+            tr(
+              'Liegt ein Messwert außerhalb, entsteht automatisch ein „Problem“-Eintrag bei der Kolonie '
+              'und eine Benachrichtigung (höchstens alle 6 Stunden).',
+            ),
             style: TextStyle(color: context.colors.muted, fontSize: 12),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              _LimitField(sensor: s, field: 'temp_min', label: 'Temp. min', suffix: '°C'),
+              _LimitField(sensor: s, field: 'temp_min', label: tr('Temp. min'), suffix: '°C'),
               const SizedBox(width: 8),
-              _LimitField(sensor: s, field: 'temp_max', label: 'Temp. max', suffix: '°C'),
+              _LimitField(sensor: s, field: 'temp_max', label: tr('Temp. max'), suffix: '°C'),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              _LimitField(sensor: s, field: 'humidity_min', label: 'Feuchte min', suffix: '%'),
+              _LimitField(sensor: s, field: 'humidity_min', label: tr('Feuchte min'), suffix: '%'),
               const SizedBox(width: 8),
-              _LimitField(sensor: s, field: 'humidity_max', label: 'Feuchte max', suffix: '%'),
+              _LimitField(sensor: s, field: 'humidity_max', label: tr('Feuchte max'), suffix: '%'),
             ],
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             icon: const Icon(Icons.key),
-            label: const Text('Neuen Schlüssel erzeugen'),
+            label: Text(tr('Neuen Schlüssel erzeugen')),
             onPressed: () async {
               try {
                 final res =
@@ -295,7 +303,7 @@ class _SensorSheet extends ConsumerWidget {
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(foregroundColor: context.colors.overdue),
             icon: const Icon(Icons.delete_outline),
-            label: const Text('Sensor löschen'),
+            label: Text(tr('Sensor löschen')),
             onPressed: () {
               repo.deleteSensor(id);
               Navigator.pop(context);

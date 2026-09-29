@@ -5,6 +5,7 @@ import 'package:nfc_manager/nfc_manager_android.dart';
 import 'package:nfc_manager_ndef/nfc_manager_ndef.dart';
 
 import 'ndef_uri.dart';
+import '../app/i18n.dart';
 
 enum NfcState { unsupported, disabled, ready }
 
@@ -96,9 +97,9 @@ class _PluginTag implements NfcTagHandle {
   @override
   Future<void> writeUri(String uri) async {
     final ndef = _ndef;
-    if (ndef == null) throw const NfcWriteException('Dieser Tag unterstützt kein NDEF.');
-    if (!ndef.isWritable) throw const NfcWriteException('Der Tag ist schreibgeschützt.');
-    if (ndefMessageSize(uri) > ndef.maxSize) throw const NfcWriteException('Der Tag ist zu klein.');
+    if (ndef == null) throw NfcWriteException(tr('Dieser Tag unterstützt kein NDEF.'));
+    if (!ndef.isWritable) throw NfcWriteException(tr('Der Tag ist schreibgeschützt.'));
+    if (ndefMessageSize(uri) > ndef.maxSize) throw NfcWriteException(tr('Der Tag ist zu klein.'));
     await ndef.write(
       message: NdefMessage(
         records: [

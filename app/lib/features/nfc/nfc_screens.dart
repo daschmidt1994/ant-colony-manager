@@ -12,6 +12,7 @@ import '../../nfc/nfc_controller.dart';
 import '../../nfc/nfc_driver.dart';
 import '../../shared/widgets.dart';
 import '../scan/scan_screens.dart';
+import '../../app/i18n.dart';
 
 /// Keeps the NFC reader running while the app is in the foreground and opens
 /// the colony of any tag that is held to the phone – from every screen.
@@ -65,11 +66,11 @@ class _NfcScopeState extends ConsumerState<NfcScope> with WidgetsBindingObserver
       case ScanFound(:final colonyId):
         router.go(scanTarget(repo, colonyId));
       case ScanRevoked():
-        msg('Dieser Tag wurde deaktiviert. Weise ihn in der Kolonie neu zu.');
+        msg(tr('Dieser Tag wurde deaktiviert. Weise ihn in der Kolonie neu zu.'));
       case ScanUnknown():
         final token = uris.map(parseScanInput).whereType<String>().firstOrNull;
         if (token == null) {
-          msg('Unbekannter Tag – Kolonie öffnen und „NFC-Tag zuweisen“ wählen.');
+          msg(tr('Unbekannter Tag – Kolonie öffnen und „NFC-Tag zuweisen“ wählen.'));
           return;
         }
         final r = await resolveScan(ref, token);
@@ -155,16 +156,18 @@ class _NfcAssignScreenState extends ConsumerState<NfcAssignScreen> {
         case AlreadyAssigned():
           _step = _Step.done;
           _result = null;
-          _text = 'Dieser Tag gehört bereits zu dieser Kolonie.';
+          _text = tr('Dieser Tag gehört bereits zu dieser Kolonie.');
         case BelongsToOther(:final colonyName):
           _step = _Step.confirm;
-          _text = 'Dieser Tag gehört zu „$colonyName“.';
+          _text = tr('Dieser Tag gehört zu „{0}“.', [colonyName]);
         case ReadOnlyTag(:final canUseSerial):
           _step = _Step.readOnly;
           _text = canUseSerial
-              ? 'Der Tag lässt sich nicht beschreiben. Du kannst ihn per Seriennummer registrieren – '
-                    'das funktioniert, solange die App geöffnet ist.'
-              : 'Der Tag lässt sich nicht beschreiben.';
+              ? tr(
+                  'Der Tag lässt sich nicht beschreiben. Du kannst ihn per Seriennummer registrieren – '
+                  'das funktioniert, solange die App geöffnet ist.',
+                )
+              : tr('Der Tag lässt sich nicht beschreiben.');
         case AssignFailed(:final message):
           _step = _Step.failed;
           _text = message;
@@ -177,7 +180,7 @@ class _NfcAssignScreenState extends ConsumerState<NfcAssignScreen> {
     final colony = ref.watch(colonyProvider(widget.colonyId)).value;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text('NFC-Tag zuweisen${colony == null ? '' : ' · ${colony.name}'}')),
+      appBar: AppBar(title: Text(tr('NFC-Tag zuweisen') + (colony == null ? '' : ' · ${colony.name}'))),
       body: ContentWidth(
         maxWidth: 520,
         child: ListView(
@@ -213,37 +216,37 @@ class _NfcAssignScreenState extends ConsumerState<NfcAssignScreen> {
     final muted = TextStyle(color: context.colors.muted);
     switch (_step) {
       case _Step.unsupported:
-        return [Text('Dieses Gerät hat kein NFC.', style: title, textAlign: TextAlign.center)];
+        return [Text(tr('Dieses Gerät hat kein NFC.'), style: title, textAlign: TextAlign.center)];
       case _Step.nfcOff:
         return [
-          Text('NFC ist ausgeschaltet', style: title, textAlign: TextAlign.center),
+          Text(tr('NFC ist ausgeschaltet'), style: title, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text(
-            'Schalte NFC in den Android-Einstellungen ein und komm dann zurück.',
+            tr('Schalte NFC in den Android-Einstellungen ein und komm dann zurück.'),
             style: muted,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          OutlinedButton(onPressed: _checkState, child: const Text('Erneut prüfen')),
+          OutlinedButton(onPressed: _checkState, child: Text(tr('Erneut prüfen'))),
         ];
       case _Step.waiting:
         return [
-          Text('Halte das Handy an den Tag', style: title, textAlign: TextAlign.center),
+          Text(tr('Halte das Handy an den Tag'), style: title, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text(
-            'Rückseite, meist oben in der Mitte. Ruhig halten, bis es vibriert.',
+            tr('Rückseite, meist oben in der Mitte. Ruhig halten, bis es vibriert.'),
             style: muted,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           TextField(
             controller: _label,
-            decoration: const InputDecoration(labelText: 'Bezeichnung (optional)', hintText: 'Nest vorne'),
+            decoration: InputDecoration(labelText: tr('Bezeichnung (optional)'), hintText: tr('Nest vorne')),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Tag danach schreibschützen'),
-            subtitle: const Text('Endgültig – der Tag kann dann nie mehr geändert werden.'),
+            title: Text(tr('Tag danach schreibschützen')),
+            subtitle: Text(tr('Endgültig – der Tag kann dann nie mehr geändert werden.')),
             value: _assigner.lockAfterWrite,
             onChanged: (v) => setState(() => _assigner.lockAfterWrite = v),
           ),
@@ -252,36 +255,37 @@ class _NfcAssignScreenState extends ConsumerState<NfcAssignScreen> {
         return [
           const Center(child: CircularProgressIndicator()),
           const SizedBox(height: 16),
-          Text('Schreibe … Tag nicht entfernen', style: title, textAlign: TextAlign.center),
+          Text(tr('Schreibe … Tag nicht entfernen'), style: title, textAlign: TextAlign.center),
         ];
       case _Step.done:
         final r = _result;
         return [
-          Text(r == null ? _text : 'Tag zugewiesen', style: title, textAlign: TextAlign.center),
+          Text(r == null ? _text : tr('Tag zugewiesen'), style: title, textAlign: TextAlign.center),
           if (r != null) ...[
             const SizedBox(height: 8),
             Text(
-              '${r.tagType ?? 'NFC-Tag'} · ${r.bytes} von ${r.capacity} Byte${r.locked ? ' · schreibgeschützt' : ''}',
+              tr('{0} · {1} von {2} Byte', [r.tagType ?? tr('NFC-Tag'), r.bytes, r.capacity]) +
+                  (r.locked ? ' · ${tr('schreibgeschützt')}' : ''),
               style: muted,
               textAlign: TextAlign.center,
             ),
           ],
           const SizedBox(height: 24),
-          FilledButton(onPressed: () => context.pop(), child: const Text('Fertig')),
+          FilledButton(onPressed: () => context.pop(), child: Text(tr('Fertig'))),
           const SizedBox(height: 8),
           OutlinedButton(
             onPressed: () => setState(() {
               _step = _Step.waiting;
               _label.clear();
             }),
-            child: const Text('Weiteren Tag zuweisen'),
+            child: Text(tr('Weiteren Tag zuweisen')),
           ),
         ];
       case _Step.confirm:
         return [
           Text(_text, style: title, textAlign: TextAlign.center),
           const SizedBox(height: 8),
-          Text('Umhängen deaktiviert die alte Zuordnung.', style: muted, textAlign: TextAlign.center),
+          Text(tr('Umhängen deaktiviert die alte Zuordnung.'), style: muted, textAlign: TextAlign.center),
           const SizedBox(height: 24),
           FilledButton(
             onPressed: () => setState(() {
@@ -289,41 +293,38 @@ class _NfcAssignScreenState extends ConsumerState<NfcAssignScreen> {
               _step = _Step.waiting;
               _text = '';
             }),
-            child: const Text('Umhängen – Tag erneut anhalten'),
+            child: Text(tr('Umhängen – Tag erneut anhalten')),
           ),
-          TextButton(onPressed: () => context.pop(), child: const Text('Abbrechen')),
+          TextButton(onPressed: () => context.pop(), child: Text(tr('Abbrechen'))),
         ];
       case _Step.readOnly:
         return [
-          Text('Schreibgeschützter Tag', style: title, textAlign: TextAlign.center),
+          Text(tr('Schreibgeschützter Tag'), style: title, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text(_text, style: muted, textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          if (_lastTag != null && _text.contains('Seriennummer'))
+          if (_lastTag != null && _text.contains(tr('Seriennummer')))
             FilledButton(
               onPressed: () {
                 if (_assigner.registerSerial(_lastTag!)) {
                   setState(() {
                     _step = _Step.done;
                     _result = null;
-                    _text = 'Per Seriennummer registriert.';
+                    _text = tr('Per Seriennummer registriert.');
                   });
                 }
               },
-              child: const Text('Per Seriennummer registrieren'),
+              child: Text(tr('Per Seriennummer registrieren')),
             ),
-          TextButton(
-            onPressed: () => setState(() => _step = _Step.waiting),
-            child: const Text('Anderen Tag verwenden'),
-          ),
+          TextButton(onPressed: () => setState(() => _step = _Step.waiting), child: Text(tr('Anderen Tag verwenden'))),
         ];
       case _Step.failed:
         return [
-          Text('Hat nicht geklappt', style: title, textAlign: TextAlign.center),
+          Text(tr('Hat nicht geklappt'), style: title, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text(_text, style: muted, textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          FilledButton(onPressed: () => setState(() => _step = _Step.waiting), child: const Text('Nochmal versuchen')),
+          FilledButton(onPressed: () => setState(() => _step = _Step.waiting), child: Text(tr('Nochmal versuchen'))),
         ];
     }
   }

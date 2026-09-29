@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/api_client.dart';
 import '../local/database.dart';
+import '../../app/i18n.dart';
 
 enum SyncPhase { idle, syncing, offline, error, loginRequired, deviceRevoked }
 
@@ -118,13 +119,13 @@ class SyncEngine {
           db.setMeta(_lastSyncKey, now.toIso8601String());
           _set(_current.copyWith(phase: SyncPhase.idle, lastSync: now));
         } on NetworkException {
-          _set(_current.copyWith(phase: SyncPhase.offline, message: 'Keine Verbindung zum Server'));
+          _set(_current.copyWith(phase: SyncPhase.offline, message: tr('Keine Verbindung zum Server')));
           return;
         } on DeviceRevokedException {
-          _set(_current.copyWith(phase: SyncPhase.deviceRevoked, message: 'Dieses Gerät wurde abgemeldet'));
+          _set(_current.copyWith(phase: SyncPhase.deviceRevoked, message: tr('Dieses Gerät wurde abgemeldet')));
           return;
         } on SessionExpiredException {
-          _set(_current.copyWith(phase: SyncPhase.loginRequired, message: 'Bitte erneut anmelden'));
+          _set(_current.copyWith(phase: SyncPhase.loginRequired, message: tr('Bitte erneut anmelden')));
           return;
         } on ApiException catch (e) {
           _set(_current.copyWith(phase: SyncPhase.error, message: e.title));
@@ -184,7 +185,7 @@ class SyncEngine {
               // merged fields arrive with the following pull (the record is no longer pending)
               _confirm(op, (r['version'] as num?)?.toInt() ?? 0);
             default:
-              final err = (r['error'] as Map?)?['title'] as String? ?? 'abgelehnt';
+              final err = (r['error'] as Map?)?['title'] as String? ?? tr('abgelehnt');
               db.failOp(op.seq, err);
               if (op.op == 'create') db.removeRecord(op.entity, op.entityId);
               needSnapshot = true; // local state may differ from the server now

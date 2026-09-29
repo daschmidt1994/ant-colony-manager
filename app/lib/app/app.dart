@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/session.dart';
 import 'router.dart';
 import 'strings.dart';
+import 'i18n.dart';
+import 'providers.dart';
 import 'theme.dart';
 
 /// Global messenger for notices from outside a screen (e.g. an NFC tag was read).
@@ -34,25 +36,32 @@ class App extends ConsumerWidget {
   const App({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
-    title: S.appName,
-    debugShowCheckedModeBanner: false,
-    // Test app (CI build from dev): a corner banner so it is never mistaken for the real one.
-    builder: isTestBuild
-        ? (context, child) =>
-              Banner(message: 'TEST', location: BannerLocation.topEnd, color: Colors.deepOrange, child: child!)
-        : null,
-    scaffoldMessengerKey: rootMessengerKey,
-    theme: buildTheme(Brightness.light),
-    darkTheme: buildTheme(Brightness.dark),
-    themeMode: ref.watch(themeModeProvider),
-    routerConfig: ref.watch(routerProvider),
-    locale: const Locale('de'),
-    supportedLocales: const [Locale('de')],
-    localizationsDelegates: const [
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(languageProvider);
+    setLanguage(lang);
+    return MaterialApp.router(
+      title: S.appName,
+      debugShowCheckedModeBanner: false,
+      // A language switch rebuilds everything (texts come from tr(), not from
+      // an inherited widget). Test app (CI build from dev): a corner banner.
+      builder: (context, child) => KeyedSubtree(
+        key: ValueKey(lang),
+        child: isTestBuild
+            ? Banner(message: 'TEST', location: BannerLocation.topEnd, color: Colors.deepOrange, child: child!)
+            : child!,
+      ),
+      scaffoldMessengerKey: rootMessengerKey,
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
+      themeMode: ref.watch(themeModeProvider),
+      routerConfig: ref.watch(routerProvider),
+      locale: Locale(lang),
+      supportedLocales: [for (final code in languages.keys) Locale(code)],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+    );
+  }
 }

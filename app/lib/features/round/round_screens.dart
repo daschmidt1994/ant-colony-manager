@@ -17,17 +17,18 @@ import '../actions/actions.dart';
 import '../photos/photos.dart';
 import '../scan/scan_screens.dart';
 import '../scan/scanner_view.dart';
+import '../../app/i18n.dart';
 
 /// Wording of the summary per event type („24 gefüttert“).
-const _doneWords = {
-  'feeding': 'gefüttert',
-  'water': 'Wasser',
-  'cleaning': 'gereinigt',
-  'check': 'kontrolliert',
-  'problem': 'Problem',
-  'note': 'Notiz',
-  'measurement': 'Messung',
-  'photo': 'Fotos',
+Map<String, String> get _doneWords => {
+  'feeding': tr('gefüttert'),
+  'water': tr('Wasser'),
+  'cleaning': tr('gereinigt'),
+  'check': tr('kontrolliert'),
+  'problem': tr('Problem'),
+  'note': tr('Notiz'),
+  'measurement': tr('Messung'),
+  'photo': tr('Fotos'),
 };
 
 /// S18 – Pflege-Rundgang. Without a running round: choose colonies and start.
@@ -90,13 +91,15 @@ class _RoundScreenState extends ConsumerState<RoundScreen> {
       final open = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text(repo.colony(colonyId)?.name ?? 'Kolonie'),
+          title: Text(repo.colony(colonyId)?.name ?? tr('Kolonie')),
           content: Text(
-            done.isEmpty ? 'Schon kontrolliert – trotzdem öffnen?' : 'Schon erledigt ($done) – trotzdem öffnen?',
+            done.isEmpty
+                ? tr('Schon kontrolliert – trotzdem öffnen?')
+                : tr('Schon erledigt ({0}) – trotzdem öffnen?', [done]),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Nein')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Öffnen')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Nein'))),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Öffnen'))),
           ],
         ),
       );
@@ -108,7 +111,7 @@ class _RoundScreenState extends ConsumerState<RoundScreen> {
     if (!mounted) return;
     _current = colonyId;
     if (r == VisitResult.added) {
-      showUndoSnack(context, '${repo.colony(colonyId)?.name ?? 'Kolonie'} zum Rundgang hinzugefügt');
+      showUndoSnack(context, tr('{0} zum Rundgang hinzugefügt', [repo.colony(colonyId)?.name ?? tr('Kolonie')]));
     }
   }
 
@@ -124,7 +127,7 @@ class _RoundScreenState extends ConsumerState<RoundScreen> {
     return progress.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
-        body: EmptyState(icon: Icons.error_outline, title: 'Fehler', text: '$e'),
+        body: EmptyState(icon: Icons.error_outline, title: tr('Fehler'), text: '$e'),
       ),
       data: (p) => p == null
           ? const _RoundStart()
@@ -162,18 +165,20 @@ class _RoundStartState extends ConsumerState<_RoundStart> {
     final recent = ref.watch(recentRoundsProvider).value ?? const [];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pflege-Rundgang'), actions: const [SyncBadge()]),
+      appBar: AppBar(title: Text(tr('Pflege-Rundgang')), actions: const [SyncBadge()]),
       body: ContentWidth(
         maxWidth: 560,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-              'Scanne die Kolonien nacheinander und dokumentiere mit 1–2 Taps. '
-              'Am Ende siehst du, was erledigt ist und welche Kolonien fehlen.',
+              tr(
+                'Scanne die Kolonien nacheinander und dokumentiere mit 1–2 Taps. '
+                'Am Ende siehst du, was erledigt ist und welche Kolonien fehlen.',
+              ),
               style: TextStyle(color: context.colors.muted),
             ),
-            const SectionHeader('Welche Kolonien?'),
+            SectionHeader(tr('Welche Kolonien?')),
             RadioGroup<RoundScope>(
               groupValue: _scope,
               onChanged: (v) => setState(() => _scope = v!),
@@ -182,13 +187,13 @@ class _RoundStartState extends ConsumerState<_RoundStart> {
                   children: [
                     RadioListTile(
                       value: RoundScope.withTasks,
-                      title: const Text('Alle mit Aufgaben'),
-                      subtitle: const Text('heute fällig oder überfällig'),
+                      title: Text(tr('Alle mit Aufgaben')),
+                      subtitle: Text(tr('heute fällig oder überfällig')),
                       secondary: Text('${count(RoundScope.withTasks)}'),
                     ),
                     RadioListTile(
                       value: RoundScope.allActive,
-                      title: const Text('Alle aktiven'),
+                      title: Text(tr('Alle aktiven')),
                       secondary: Text('${count(RoundScope.allActive)}'),
                     ),
                     if (locations.isNotEmpty)
@@ -196,7 +201,7 @@ class _RoundStartState extends ConsumerState<_RoundStart> {
                         value: RoundScope.location,
                         title: Row(
                           children: [
-                            const Text('Standort: '),
+                            Text(tr('Standort: ')),
                             Flexible(
                               child: DropdownButton<String>(
                                 value: location,
@@ -235,18 +240,20 @@ class _RoundStartState extends ConsumerState<_RoundStart> {
                       HapticFeedback.mediumImpact();
                     },
               icon: const Icon(Icons.play_arrow),
-              label: Text(chosen.isEmpty ? 'Keine Kolonien ausgewählt' : 'Rundgang starten (${chosen.length})'),
+              label: Text(
+                chosen.isEmpty ? tr('Keine Kolonien ausgewählt') : tr('Rundgang starten ({0})', [chosen.length]),
+              ),
             ),
             if (_scope == RoundScope.withTasks && chosen.isEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                'Heute ist nichts fällig. Wähle „Alle aktiven“ für eine Kontrollrunde.',
+                tr('Heute ist nichts fällig. Wähle „Alle aktiven“ für eine Kontrollrunde.'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.colors.muted),
               ),
             ],
             if (recent.isNotEmpty) ...[
-              const SectionHeader('Letzte Rundgänge'),
+              SectionHeader(tr('Letzte Rundgänge')),
               Card(
                 child: Column(
                   children: [
@@ -306,11 +313,15 @@ class _ActiveRoundState extends ConsumerState<_ActiveRound> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Rundgang beenden?'),
-        content: Text('$open ${open == 1 ? 'Kolonie wurde' : 'Kolonien wurden'} noch nicht gescannt.'),
+        title: Text(tr('Rundgang beenden?')),
+        content: Text(
+          open == 1
+              ? tr('1 Kolonie wurde noch nicht gescannt.')
+              : tr('{0} Kolonien wurden noch nicht gescannt.', [open]),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Weiter')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Beenden')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Weiter'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Beenden'))),
         ],
       ),
     );
@@ -328,7 +339,7 @@ class _ActiveRoundState extends ConsumerState<_ActiveRound> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Nächste Kolonie scannen', style: Theme.of(c).textTheme.titleLarge),
+            Text(tr('Nächste Kolonie scannen'), style: Theme.of(c).textTheme.titleLarge),
             const SizedBox(height: 12),
             ScannerView(
               onCode: (raw) async {
@@ -357,14 +368,14 @@ class _ActiveRoundState extends ConsumerState<_ActiveRound> {
     final done = c == null ? const <String>{} : (p.done[c.id] ?? const <String>{});
     return Scaffold(
       appBar: AppBar(
-        title: Text('Rundgang  ${p.visited} / ${p.total}'),
+        title: Text(tr('Rundgang  {0} / {1}', [p.visited, p.total])),
         actions: [
           IconButton(
-            tooltip: 'Pause – der Rundgang bleibt aktiv',
+            tooltip: tr('Pause – der Rundgang bleibt aktiv'),
             onPressed: () => context.go('/'),
             icon: const Icon(Icons.pause),
           ),
-          TextButton(onPressed: _confirmFinish, child: const Text('Beenden')),
+          TextButton(onPressed: _confirmFinish, child: Text(tr('Beenden'))),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
@@ -380,10 +391,10 @@ class _ActiveRoundState extends ConsumerState<_ActiveRound> {
               _Hint(
                 icon: nfc == NfcState.ready ? Icons.contactless_outlined : Icons.qr_code_scanner,
                 text: kIsWeb
-                    ? 'Wähle unten eine Kolonie aus der Liste.'
+                    ? tr('Wähle unten eine Kolonie aus der Liste.')
                     : nfc == NfcState.ready
-                    ? 'Scanne die erste Kolonie – Tag antippen oder QR-Code.'
-                    : 'Scanne die erste Kolonie per QR-Code oder wähle sie aus der Liste.',
+                    ? tr('Scanne die erste Kolonie – Tag antippen oder QR-Code.')
+                    : tr('Scanne die erste Kolonie per QR-Code oder wähle sie aus der Liste.'),
               )
             else
               _ColonyCard(colony: c, done: done),
@@ -394,11 +405,11 @@ class _ActiveRoundState extends ConsumerState<_ActiveRound> {
               FilledButton.icon(
                 onPressed: widget.onFinish,
                 icon: const Icon(Icons.flag_outlined),
-                label: const Text('Rundgang abschließen'),
+                label: Text(tr('Rundgang abschließen')),
               ),
             ],
             if (p.open.isNotEmpty) ...[
-              SectionHeader('Offen · ${p.open.length}'),
+              SectionHeader(tr('Offen · {0}', [p.open.length])),
               Card(
                 child: Column(
                   children: [
@@ -415,7 +426,7 @@ class _ActiveRoundState extends ConsumerState<_ActiveRound> {
               ),
             ],
             if (p.visited > 0) ...[
-              SectionHeader('Erledigt · ${p.visited}'),
+              SectionHeader(tr('Erledigt · {0}', [p.visited])),
               Card(
                 child: Column(
                   children: [
@@ -430,7 +441,7 @@ class _ActiveRoundState extends ConsumerState<_ActiveRound> {
                               .join(', ')
                               .ifEmpty('kontrolliert'),
                         ),
-                        trailing: s.planned ? null : const Text('ergänzt'),
+                        trailing: s.planned ? null : Text(tr('ergänzt')),
                         onTap: col.id == c?.id ? null : () => widget.onArrive(col.id),
                       ),
                   ],
@@ -492,7 +503,7 @@ class _ColonyCard extends ConsumerWidget {
               children: [
                 Expanded(child: ColonyTitle(colony, large: true)),
                 IconButton(
-                  tooltip: 'Kolonie öffnen',
+                  tooltip: tr('Kolonie öffnen'),
                   onPressed: () => context.go('/colonies/${colony.id}'),
                   icon: const Icon(Icons.open_in_new),
                 ),
@@ -502,14 +513,14 @@ class _ColonyCard extends ConsumerWidget {
             const SizedBox(height: 10),
             if (shown.isEmpty)
               Text(
-                'Nichts fällig',
+                tr('Nichts fällig'),
                 style: TextStyle(color: context.colors.ok, fontWeight: FontWeight.w600),
               )
             else
               Wrap(spacing: 6, runSpacing: 6, children: [for (final t in shown) DueChip(t)]),
             if (!canEdit) ...[
               const SizedBox(height: 12),
-              Text('Nur Lesezugriff auf diese Kolonie.', style: TextStyle(color: context.colors.muted)),
+              Text(tr('Nur Lesezugriff auf diese Kolonie.'), style: TextStyle(color: context.colors.muted)),
             ] else ...[
               if (last != null) ...[
                 const SizedBox(height: 14),
@@ -518,7 +529,7 @@ class _ColonyCard extends ConsumerWidget {
                   color: Theme.of(context).colorScheme.primaryContainer,
                   child: ListTile(
                     leading: Icon(done.contains('feeding') ? Icons.check_circle : Icons.replay),
-                    title: const Text('Wie letztes Mal füttern'),
+                    title: Text(tr('Wie letztes Mal füttern')),
                     subtitle: Text(S.eventSummary(last), maxLines: 1, overflow: TextOverflow.ellipsis),
                     onTap: () => repeatFeeding(context, ref, colony),
                   ),
@@ -535,39 +546,39 @@ class _ColonyCard extends ConsumerWidget {
                 children: [
                   QuickActionTile(
                     icon: Icons.pest_control_outlined,
-                    label: 'Füttern',
+                    label: tr('Füttern'),
                     done: done.contains('feeding'),
                     onTap: () => showFeedingSheet(context, ref, colony),
                   ),
                   QuickActionTile(
                     icon: Icons.water_drop_outlined,
-                    label: 'Wasser',
+                    label: tr('Wasser'),
                     done: done.contains('water'),
                     onTap: () => quickWater(context, ref, colony),
                     onLongPress: () => showWaterSheet(context, ref, colony),
                   ),
                   QuickActionTile(
                     icon: Icons.cleaning_services_outlined,
-                    label: 'Reinigen',
+                    label: tr('Reinigen'),
                     done: done.contains('cleaning'),
                     onTap: () => showCleaningSheet(context, ref, colony),
                   ),
                   QuickActionTile(
                     icon: Icons.visibility_outlined,
-                    label: 'Kontrolle',
+                    label: tr('Kontrolle'),
                     done: done.contains('check'),
                     onTap: () => quickCheck(context, ref, colony),
                     onLongPress: () => showNoteSheet(context, ref, colony, type: 'check'),
                   ),
                   QuickActionTile(
                     icon: Icons.sticky_note_2_outlined,
-                    label: 'Notiz',
+                    label: tr('Notiz'),
                     done: done.contains('note'),
                     onTap: () => showNoteSheet(context, ref, colony),
                   ),
                   QuickActionTile(
                     icon: Icons.photo_camera_outlined,
-                    label: 'Foto',
+                    label: tr('Foto'),
                     done: done.contains('photo'),
                     onTap: () => addPhotos(context, ref, colony),
                   ),
@@ -605,13 +616,13 @@ class _NextScan extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('NÄCHSTE KOLONIE', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: .5)),
+                    Text(tr('NÄCHSTE KOLONIE'), style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: .5)),
                     Text(
                       [
-                        if (nfcReady) 'Tag antippen',
-                        if (onCamera != null) 'hier tippen für QR-Code',
-                        if (kIsWeb) 'aus der Liste unten wählen',
-                      ].join(' · ').ifEmpty('aus der Liste unten wählen'),
+                        if (nfcReady) tr('Tag antippen'),
+                        if (onCamera != null) tr('hier tippen für QR-Code'),
+                        if (kIsWeb) tr('aus der Liste unten wählen'),
+                      ].join(' · ').ifEmpty(tr('aus der Liste unten wählen')),
                     ),
                   ],
                 ),
@@ -636,12 +647,12 @@ class RoundSummaryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(roundSummaryProvider(roundId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Rundgang'), actions: const [SyncBadge()]),
+      appBar: AppBar(title: Text(tr('Rundgang')), actions: const [SyncBadge()]),
       body: s.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: 'Fehler', text: '$e'),
+        error: (e, _) => EmptyState(icon: Icons.error_outline, title: tr('Fehler'), text: '$e'),
         data: (s) =>
-            s == null ? const EmptyState(icon: Icons.route_outlined, title: 'Rundgang nicht gefunden') : _Summary(s),
+            s == null ? EmptyState(icon: Icons.route_outlined, title: tr('Rundgang nicht gefunden')) : _Summary(s),
       ),
     );
   }
@@ -672,7 +683,7 @@ class _Summary extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          s.round.open ? 'Rundgang läuft' : 'Pflege-Rundgang abgeschlossen',
+                          s.round.open ? tr('Rundgang läuft') : tr('Pflege-Rundgang abgeschlossen'),
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -680,7 +691,7 @@ class _Summary extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    '${s.visited} / ${s.total} Kolonien kontrolliert',
+                    tr('{0} / {1} Kolonien kontrolliert', [s.visited, s.total]),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
@@ -713,7 +724,7 @@ class _Summary extends ConsumerWidget {
             ),
           ),
           if (s.missing.isNotEmpty) ...[
-            SectionHeader('Nicht gescannt · ${s.missing.length}'),
+            SectionHeader(tr('Nicht gescannt · {0}', [s.missing.length])),
             Card(
               child: Column(
                 children: [
@@ -721,10 +732,7 @@ class _Summary extends ConsumerWidget {
                     ListTile(
                       title: Text(c.name),
                       subtitle: Text(c.locationPath ?? c.species),
-                      trailing: TextButton(
-                        onPressed: () => context.go('/colonies/${c.id}'),
-                        child: const Text('Öffnen'),
-                      ),
+                      trailing: TextButton(onPressed: () => context.go('/colonies/${c.id}'), child: Text(tr('Öffnen'))),
                     ),
                 ],
               ),
@@ -732,11 +740,11 @@ class _Summary extends ConsumerWidget {
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: () => ref.read(repositoryProvider)!.skipUnvisited(s.round.id),
-              child: const Text('Als übersprungen markieren'),
+              child: Text(tr('Als übersprungen markieren')),
             ),
           ],
           if (s.skipped.isNotEmpty) ...[
-            SectionHeader('Übersprungen · ${s.skipped.length}'),
+            SectionHeader(tr('Übersprungen · {0}', [s.skipped.length])),
             Card(
               child: Column(
                 children: [
@@ -752,7 +760,7 @@ class _Summary extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 20),
-          FilledButton(onPressed: () => context.go('/'), child: const Text('Fertig')),
+          FilledButton(onPressed: () => context.go('/'), child: Text(tr('Fertig'))),
         ],
       ),
     );

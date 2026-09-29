@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import '../app/i18n.dart';
 
 import 'package:http/http.dart' as http;
 
@@ -65,6 +66,8 @@ class ApiClient {
     if (json) 'Content-Type': 'application/json',
     'Accept': 'application/json',
     if (isWeb) 'X-ACM-Client': 'web',
+    // server texts (e-mail, ntfy) in the language shown here
+    'Accept-Language': currentLanguage,
     if (_access != null) 'Authorization': 'Bearer $_access',
   };
 
@@ -114,7 +117,9 @@ class ApiClient {
     } on http.ClientException catch (e) {
       throw NetworkException(e);
     }
-    if (res.statusCode != 200) throw ApiException(res.statusCode, 'http_${res.statusCode}', 'Download fehlgeschlagen');
+    if (res.statusCode != 200) {
+      throw ApiException(res.statusCode, 'http_${res.statusCode}', tr('Download fehlgeschlagen'));
+    }
     return res.bodyBytes;
   }
 
@@ -172,11 +177,11 @@ class ApiClient {
       throw ApiException(
         res.statusCode,
         data['code'] as String? ?? 'error',
-        data['title'] as String? ?? 'Fehler',
+        data['title'] as String? ?? tr('Fehler'),
         field: data['field'] as String?,
       );
     }
-    throw ApiException(res.statusCode, 'http_${res.statusCode}', 'Serverfehler (${res.statusCode})');
+    throw ApiException(res.statusCode, 'http_${res.statusCode}', tr('Serverfehler ({0})', [res.statusCode]));
   }
 
   /// Rotates the refresh token. Returns false if the session is gone.

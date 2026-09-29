@@ -10,6 +10,7 @@ import '../../domain/models.dart';
 import '../../nfc/nfc_controller.dart';
 import '../../shared/widgets.dart';
 import 'labels.dart';
+import '../../app/i18n.dart';
 
 /// Label printing (docs/06 §6): one label, a selection or a full sheet.
 class LabelsScreen extends ConsumerStatefulWidget {
@@ -40,14 +41,16 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
         )
         .toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Etiketten drucken')),
+      appBar: AppBar(title: Text(tr('Etiketten drucken'))),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton.icon(
             onPressed: _selected.isEmpty || _busy ? null : _generate,
             icon: const Icon(Icons.picture_as_pdf_outlined),
-            label: Text(_selected.isEmpty ? 'Kolonien auswählen' : 'PDF für ${_selected.length} Etikett(en)'),
+            label: Text(
+              _selected.isEmpty ? tr('Kolonien auswählen') : tr('PDF für {0} Etikett(en)', [_selected.length]),
+            ),
           ),
         ),
       ),
@@ -56,7 +59,7 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
-            const SectionHeader('Format'),
+            SectionHeader(tr('Format')),
             DropdownButtonFormField<LabelTemplate>(
               initialValue: _template,
               isExpanded: true,
@@ -75,18 +78,18 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
                   _onA4 = v;
                   _startAt = 1;
                 }),
-                title: const Text('Auf A4-Papier in Originalgröße'),
+                title: Text(tr('Auf A4-Papier in Originalgröße')),
                 subtitle: Text(
                   _onA4
-                      ? '${_effective.perPage} pro Blatt, mit Schnittlinien – für normale Drucker'
-                      : 'Eine Seite pro Etikett – nur für Etikettendrucker',
+                      ? tr('{0} pro Blatt, mit Schnittlinien – für normale Drucker', [_effective.perPage])
+                      : tr('Eine Seite pro Etikett – nur für Etikettendrucker'),
                 ),
               ),
             if (_effective.isSheet) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Expanded(child: Text('Beginnen bei Feld (angebrochener Bogen)')),
+                  Expanded(child: Text(tr('Beginnen bei Feld (angebrochener Bogen)'))),
                   IconButton(
                     onPressed: _startAt > 1 ? () => setState(() => _startAt--) : null,
                     icon: const Icon(Icons.remove),
@@ -99,28 +102,20 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
                 ],
               ),
             ],
-            const SectionHeader('Inhalt'),
+            SectionHeader(tr('Inhalt')),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
+                FilterChip(label: Text(tr('Art')), selected: _species, onSelected: (v) => setState(() => _species = v)),
+                FilterChip(label: Text(tr('Name/Nr.')), selected: _name, onSelected: (v) => setState(() => _name = v)),
                 FilterChip(
-                  label: const Text('Art'),
-                  selected: _species,
-                  onSelected: (v) => setState(() => _species = v),
-                ),
-                FilterChip(
-                  label: const Text('Name/Nr.'),
-                  selected: _name,
-                  onSelected: (v) => setState(() => _name = v),
-                ),
-                FilterChip(
-                  label: const Text('Standort'),
+                  label: Text(tr('Standort')),
                   selected: _location,
                   onSelected: (v) => setState(() => _location = v),
                 ),
                 FilterChip(
-                  label: const Text('Interner Code'),
+                  label: Text(tr('Interner Code')),
                   selected: _code,
                   onSelected: (v) => setState(() => _code = v),
                 ),
@@ -132,7 +127,7 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
               ],
             ),
             SectionHeader(
-              'Kolonien (${_selected.length})',
+              tr('Kolonien ({0})', [_selected.length]),
               trailing: TextButton(
                 onPressed: () => setState(() {
                   if (_selected.length == shown.length) {
@@ -141,13 +136,13 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
                     _selected.addAll(shown.map((c) => c.id));
                   }
                 }),
-                child: Text(_selected.length == shown.length && shown.isNotEmpty ? 'Keine' : 'Alle'),
+                child: Text(_selected.length == shown.length && shown.isNotEmpty ? tr('Keine') : tr('Alle')),
               ),
             ),
             TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Filtern (z. B. Regal A)'),
+              decoration: InputDecoration(prefixIcon: Icon(Icons.search), hintText: tr('Filtern (z. B. Regal A)')),
             ),
             const SizedBox(height: 8),
             for (final c in shown)
@@ -195,12 +190,12 @@ class _LabelsScreenState extends ConsumerState<LabelsScreen> {
       if (!mounted) return;
       if (kIsWeb) {
         downloadFile('etiketten.pdf', bytes, 'application/pdf');
-        showUndoSnack(context, 'PDF heruntergeladen – im PDF-Programm mit 100 % Skalierung drucken.');
+        showUndoSnack(context, tr('PDF heruntergeladen – im PDF-Programm mit 100 % Skalierung drucken.'));
       } else {
         await Navigator.of(context).push(
           MaterialPageRoute<void>(
             builder: (_) => Scaffold(
-              appBar: AppBar(title: const Text('Vorschau')),
+              appBar: AppBar(title: Text(tr('Vorschau'))),
               body: PdfPreview(
                 build: (_) async => bytes,
                 canChangeOrientation: false,

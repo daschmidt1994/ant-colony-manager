@@ -122,7 +122,7 @@ func (s *Service) fetchReleases(ctx context.Context) ([]releaseInfo, error) {
 }
 
 // Updates lists releases newer than current (the running server version).
-func (s *Service) Updates(ctx context.Context, current string) *UpdateInfo {
+func (s *Service) Updates(ctx context.Context, current, lang string) *UpdateInfo {
 	info := &UpdateInfo{Enabled: s.Cfg.UpdateCheck, Current: current, Newer: []releaseInfo{}}
 	cur, ok := parseVersion(current)
 	if !s.Cfg.UpdateCheck || !ok {
@@ -134,7 +134,7 @@ func (s *Service) Updates(ctx context.Context, current string) *UpdateInfo {
 		list, err := s.fetchReleases(ctx)
 		if err != nil {
 			s.Log.Warn("update check failed", "err", err)
-			info.Error = "Update-Prüfung nicht möglich"
+			info.Error = tl(lang, "Update-Prüfung nicht möglich")
 			if updateCache.url != s.Cfg.UpdateURL {
 				return info
 			}
