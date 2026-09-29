@@ -694,7 +694,15 @@ class ColonyRepository {
       ],
       sensors: sensors(),
       foodStocks: foodStocks(),
+      flightWatch: [for (final id in settings().flightWatch) ?speciesById(id)],
     );
+  }
+
+  /// Watch / unwatch a species' nuptial flight season (synced setting).
+  void setFlightWatch(String speciesId, bool on) {
+    final ids = {...settings().flightWatch};
+    on ? ids.add(speciesId) : ids.remove(speciesId);
+    updateSettings({'flight_watch': ids.toList()});
   }
 
   // ---------------------------------------------------------------------------

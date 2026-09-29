@@ -570,6 +570,26 @@ class _SpeciesCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final invasive = invasiveSpeciesFor(
+      ref.watch(speciesListProvider).value ?? const <Species>[],
+      speciesId: colony.speciesId,
+      text: colony.json['species_text'] as String?,
+    );
+    final card = _card(context, ref);
+    if (invasive == null) return card;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: InvasiveBanner(species: invasive, forColony: true),
+        ),
+        card,
+      ],
+    );
+  }
+
+  Widget _card(BuildContext context, WidgetRef ref) {
     final id = colony.speciesId;
     final species = id == null ? null : ref.watch(speciesProvider(id)).value;
     if (species == null) {

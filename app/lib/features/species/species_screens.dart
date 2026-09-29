@@ -7,6 +7,7 @@ import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../domain/models.dart';
+import '../../domain/nuptial.dart';
 import '../../shared/widgets.dart';
 import '../../app/i18n.dart';
 
@@ -116,6 +117,11 @@ class _SpeciesListScreenState extends ConsumerState<SpeciesListScreen> {
         title: Text(tr('Artenkatalog')),
         actions: [
           IconButton(
+            tooltip: tr('Schwarmflug-Kalender'),
+            icon: const Icon(Icons.calendar_month_outlined),
+            onPressed: () => context.go('/species/flights'),
+          ),
+          IconButton(
             tooltip: tr('Futter-Ratgeber'),
             icon: const Icon(Icons.restaurant_outlined),
             onPressed: () => context.go('/species/food'),
@@ -195,7 +201,14 @@ class _SpeciesTile extends StatelessWidget {
     return ListTile(
       title: Text(s.scientificName, style: const TextStyle(fontStyle: FontStyle.italic)),
       subtitle: subtitle.isEmpty ? null : Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-      trailing: s.difficulty == null ? null : _DifficultyChip(s.difficulty!),
+      trailing: s.euInvasive
+          ? Tooltip(
+              message: tr('In der EU verboten'),
+              child: Icon(Icons.dangerous_outlined, color: context.colors.overdue),
+            )
+          : s.difficulty == null
+          ? null
+          : _DifficultyChip(s.difficulty!),
       onTap: () => context.go('/species/${s.id}'),
     );
   }
@@ -227,6 +240,7 @@ class SpeciesDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(s.scientificName, style: const TextStyle(fontStyle: FontStyle.italic)),
         actions: [
+          if (flightMonths(s.original('nuptial_flight')) != null && !s.euInvasive) FlightWatchButton(species: s),
           PopupMenuButton<String>(
             onSelected: (v) => _menu(context, ref, s, v),
             itemBuilder: (_) => [
@@ -249,6 +263,7 @@ class SpeciesDetailScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (s.euInvasive) ...[const SizedBox(height: 8), InvasiveBanner(species: s)],
                 if (s.germanName != null) Text(s.germanName!, style: Theme.of(context).textTheme.titleLarge),
                 Wrap(
                   spacing: 8,
@@ -357,8 +372,20 @@ class SpeciesDetailScreen extends ConsumerWidget {
       case 'copy':
         final fields = Map<String, dynamic>.of(s.json)
           ..removeWhere(
-            (k, _) => const {'id', 'owner_id', 'version', 'created_at', 'updated_at', 'deleted_at'}.contains(k),
+            (k, _) => const {
+              'id',
+              'owner_id',
+              'version',
+              'created_at',
+              'updated_at',
+              'deleted_at',
+              'translations',
+              'eu_invasive',
+            }.contains(k),
           );
+        // the copy reads like the sheet the user sees (catalog translation)
+        final t = s.json['translations'];
+        if (t is Map && t[currentLanguage] is Map) fields.addAll((t[currentLanguage] as Map).cast<String, dynamic>());
         final id = repo.createSpecies(fields);
         context.go('/species/$id/edit');
       case 'delete':
@@ -1031,4 +1058,199 @@ class _SpeciesPickerState extends ConsumerState<_SpeciesPicker> {
       ),
     );
   }
+}
+
+// -----------------------------------------------------------------------------
+// EU invasive species
+
+/// Red notice: on the EU list of invasive alien species – keeping prohibited.
+class InvasiveBanner extends StatelessWidget {
+  const InvasiveBanner({super.key, required this.species, this.forColony = false});
+  final Species species;
+  final bool forColony;
+
+  @override
+  Widget build(BuildContext context) {
+    final red = context.colors.overdue;
+    return Card(
+      color: red.withValues(alpha: .14),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.dangerous_outlined, color: red),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    forColony ? tr('{0} ist in der EU verboten', [species.scientificName]) : tr('In der EU verboten'),
+                    style: TextStyle(fontWeight: FontWeight.w700, color: red),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tr(
+                      'Invasive gebietsfremde Art von unionsweiter Bedeutung: Halten, Züchten, Kaufen, Verkaufen, '
+                      'Transportieren und Freisetzen sind verboten (Verordnung (EU) Nr. 1143/2014).',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The catalog species on the EU list whose name matches [text] (free text of a colony).
+Species? invasiveSpeciesFor(Iterable<Species> catalog, {String? speciesId, String? text}) {
+  final t = (text ?? '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  for (final s in catalog) {
+    if (!s.euInvasive) continue;
+    if (s.id == speciesId || (t.isNotEmpty && t.startsWith(s.scientificName.toLowerCase()))) return s;
+  }
+  return null;
+}
+
+// -----------------------------------------------------------------------------
+// Nuptial flight calendar
+
+class FlightWatchButton extends ConsumerWidget {
+  const FlightWatchButton({super.key, required this.species});
+  final Species species;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final on = ref.watch(settingsProvider).value?.flightWatch.contains(species.id) ?? false;
+    return IconButton(
+      tooltip: on ? tr('Schwarmflug-Erinnerung aus') : tr('An Schwarmflugzeit erinnern'),
+      icon: Icon(on ? Icons.notifications_active : Icons.notifications_none, color: on ? context.colors.ok : null),
+      onPressed: () {
+        ref.read(repositoryProvider)?.setFlightWatch(species.id, !on);
+        showUndoSnack(
+          context,
+          on
+              ? tr('Keine Erinnerung mehr für {0}', [species.scientificName])
+              : tr('Erinnerung zu Beginn der Schwarmflugzeit von {0}', [species.scientificName]),
+        );
+      },
+    );
+  }
+}
+
+class FlightCalendarScreen extends ConsumerStatefulWidget {
+  const FlightCalendarScreen({super.key});
+  @override
+  ConsumerState<FlightCalendarScreen> createState() => _FlightCalendarScreenState();
+}
+
+class _FlightCalendarScreenState extends ConsumerState<FlightCalendarScreen> {
+  int _month = DateTime.now().month;
+
+  @override
+  Widget build(BuildContext context) {
+    final all = ref.watch(speciesListProvider).value ?? const <Species>[];
+    final withMonths = [
+      for (final s in all)
+        if (!s.euInvasive)
+          if (flightMonths(s.original('nuptial_flight')) case final m?) (s, m),
+    ];
+    final flying = withMonths.where((e) => e.$2.contains(_month)).toList()
+      ..sort((a, b) => a.$1.scientificName.compareTo(b.$1.scientificName));
+    final monthNames = [for (var m = 1; m <= 12; m++) S.format('MMM', DateTime(2026, m))];
+    final muted = TextStyle(color: context.colors.muted);
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('Schwarmflug-Kalender'))),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        children: [
+          ContentWidth(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (var m = 1; m <= 12; m++)
+                      ChoiceChip(
+                        label: Text(monthNames[m - 1]),
+                        selected: _month == m,
+                        onSelected: (_) => setState(() => _month = m),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  tr(
+                    'Monate laut Steckbrief der Art (Richtwerte, v. a. Mitteleuropa). Wetter, Höhenlage und Region '
+                    'verschieben den Schwarmflug – meist an warmen, windstillen Tagen nach Regen. Die Glocke erinnert '
+                    'zu Beginn der Schwarmflugzeit.',
+                  ),
+                  style: muted,
+                ),
+                SectionHeader(tr('Schwarmflüge im {0}', [S.format('MMMM', DateTime(2026, _month))])),
+                if (flying.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Text(tr('Keine Art aus dem Katalog in diesem Monat.'), style: muted),
+                  )
+                else
+                  Card(
+                    child: Column(
+                      children: [
+                        for (final (s, months) in flying)
+                          ListTile(
+                            title: Text(s.scientificName, style: const TextStyle(fontStyle: FontStyle.italic)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text([?s.germanName, ?s.text('nuptial_flight')].join(' · ')),
+                                const SizedBox(height: 6),
+                                _MonthStrip(months: months, selected: _month),
+                              ],
+                            ),
+                            trailing: FlightWatchButton(species: s),
+                            onTap: () => context.go('/species/${s.id}'),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Twelve small cells, flight months filled.
+class _MonthStrip extends StatelessWidget {
+  const _MonthStrip({required this.months, required this.selected});
+  final List<int> months;
+  final int selected;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (var m = 1; m <= 12; m++)
+        Expanded(
+          child: Container(
+            height: 8,
+            margin: const EdgeInsets.only(right: 2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(2),
+              color: months.contains(m)
+                  ? (m == selected ? context.colors.soon : context.colors.ok)
+                  : context.colors.surface2,
+            ),
+          ),
+        ),
+    ],
+  );
 }

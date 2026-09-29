@@ -65,6 +65,7 @@ const table = <String, String>{
   'Ameisen <ameisen@example.com>': 'Ants <ants@example.com>',
   'Ameisen heute fällig': 'Ants due today',
   'Ameisen überfällig': 'Ants overdue',
+  'An Schwarmflugzeit erinnern': 'Remind me of the flight season',
   'Andere Art wählen': 'Choose another species',
   'Anderen Server verwenden': 'Use another server',
   'Anderen Tag verwenden': 'Use another tag',
@@ -283,6 +284,7 @@ const table = <String, String>{
   'Entfernt': 'Removed',
   'Entwicklung': 'Development',
   'Entwicklung Ei → Arbeiterin': 'Development egg → worker',
+  'Erinnerung zu Beginn der Schwarmflugzeit von {0}': 'Reminder at the start of the flight season of {0}',
   'Erinnerung, sobald die Menge darunter fällt': 'Reminder as soon as the quantity drops to this',
   'Erinnerungen': 'Reminders',
   'Erlauben': 'Allow',
@@ -427,12 +429,15 @@ const table = <String, String>{
   'In der App öffnen': 'Open in the app',
   'In der App „QR-Code aus Web-App scannen“ wählen. Der Code ist 2 Minuten gültig und nur einmal verwendbar.':
       'In the app choose “Scan QR code from web app”. The code is valid for 2 minutes and can be used once.',
+  'In der EU verboten': 'Prohibited in the EU',
   'In der Web-App: „Mehr → Android-App verbinden“ – dann ist kein Passwort nötig.':
       'In the web app: “More → Connect Android app” – then no password is needed.',
   'Inhalt': 'Content',
   'Interner Code': 'Internal code',
   'Intervall': 'Interval',
   'Intervalle': 'Intervals',
+  'Invasive gebietsfremde Art von unionsweiter Bedeutung: Halten, Züchten, Kaufen, Verkaufen, Transportieren und Freisetzen sind verboten (Verordnung (EU) Nr. 1143/2014).':
+      'Invasive alien species of Union concern: keeping, breeding, buying, selling, transporting and releasing are prohibited (Regulation (EU) No 1143/2014).',
   'JSON, CSV-Tabellen für Excel und alle Fotos – deine Daten gehören dir':
       'JSON, CSV tables for Excel and all photos – your data belongs to you',
   'Ja, speichern': 'Yes, save',
@@ -458,9 +463,11 @@ const table = <String, String>{
   'Kein Tages-Überblick geplant': 'No daily overview scheduled',
   'Kein aktiver QR-Code.': 'No active QR code.',
   'Keine': 'None',
+  'Keine Art aus dem Katalog in diesem Monat.': 'No catalog species in this month.',
   'Keine Art gefunden': 'No species found',
   'Keine Daten in diesem Zeitraum': 'No data in this period',
   'Keine Einträge': 'No entries',
+  'Keine Erinnerung mehr für {0}': 'No more reminders for {0}',
   'Keine Größenangaben erfasst.': 'No size recorded.',
   'Keine Kolonien ausgewählt': 'No colonies selected',
   'Keine Pflegeintervalle festgelegt.': 'No care intervals set.',
@@ -515,6 +522,8 @@ const table = <String, String>{
   'Körnersammler (Messor, Pheidole): unbehandelte Samen wie Grassamen, Chia, Mohn, Leinsamen oder Löwenzahnsamen. Kein gebeiztes Saatgut – es ist mit Fungiziden und oft Insektiziden behandelt.':
       'Seed harvesters (Messor, Pheidole): untreated seeds such as grass seed, chia, poppy, linseed or dandelion seed. No dressed seed – it is treated with fungicides and often insecticides.',
   'Larven': 'Larvae',
+  'Laut Steckbrief {0} – Wetter und Region verschieben den Termin.':
+      'According to the care sheet {0} – weather and region shift the date.',
   'Lebensdauer Königin': 'Queen lifespan',
   'Lebensraum': 'Habitat',
   'Leer lassen = keine Erinnerung.': 'Leave empty = no reminder.',
@@ -558,6 +567,8 @@ const table = <String, String>{
   'Mindesthaltbarkeit': 'Best before',
   'Mindesthaltbarkeit abgelaufen ({0})': 'Best-before date passed ({0})',
   'Mit der Android-App scannen': 'Scan with the Android app',
+  'Monate laut Steckbrief der Art (Richtwerte, v. a. Mitteleuropa). Wetter, Höhenlage und Region verschieben den Schwarmflug – meist an warmen, windstillen Tagen nach Regen. Die Glocke erinnert zu Beginn der Schwarmflugzeit.':
+      'Months according to the species\' care sheet (guide values, mainly Central Europe). Weather, altitude and region shift the nuptial flight – usually on warm, calm days after rain. The bell reminds you at the start of the flight season.',
   'Morgen': 'Tomorrow',
   'Muss der Mail-Anbieter meist als Absender erlauben': 'Your mail provider usually has to allow it as sender',
   'Männchen': 'Males',
@@ -734,6 +745,10 @@ const table = <String, String>{
   'Schon kontrolliert – trotzdem öffnen?': 'Already inspected – open anyway?',
   'Schreibe … Tag nicht entfernen': 'Writing … don\'t remove the tag',
   'Schreibgeschützter Tag': 'Write-protected tag',
+  'Schwarmflug-Erinnerung aus': 'Flight season reminder off',
+  'Schwarmflug-Kalender': 'Nuptial flight calendar',
+  'Schwarmflugzeit: {0}': 'Flight season: {0}',
+  'Schwarmflüge im {0}': 'Nuptial flights in {0}',
   'Schwierigkeit': 'Difficulty',
   'Seifert (2018): The Ants of Central and North Europe – das Standardwerk für heimische Arten.':
       'Seifert (2018): The Ants of Central and North Europe – the standard reference for native species.',
@@ -1058,6 +1073,7 @@ const table = <String, String>{
   '{0} gespeichert: {1}': '{0} saved: {1}',
   '{0} heute': '{0} today',
   '{0} ist fällig.': '{0} is due.',
+  '{0} ist in der EU verboten': '{0} is prohibited in the EU',
   '{0} löschen?': 'Delete {0}?',
   '{0} ohne Angabe': '{0} not specified',
   '{0} pro Blatt, mit Schnittlinien – für normale Drucker': '{0} per sheet, with cut lines – for normal printers',

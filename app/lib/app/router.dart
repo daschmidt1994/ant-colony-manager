@@ -124,6 +124,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(path: 'new', builder: (_, _) => const SpeciesFormScreen()),
                   GoRoute(path: 'food', builder: (_, _) => const FoodGuideScreen()),
+                  GoRoute(path: 'flights', builder: (_, _) => const FlightCalendarScreen()),
                   GoRoute(
                     path: ':id',
                     builder: (_, s) => SpeciesDetailScreen(speciesId: s.pathParameters['id']!),

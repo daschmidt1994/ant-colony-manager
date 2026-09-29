@@ -517,6 +517,12 @@ func settingsBeforeWrite(ctx context.Context, s *Service, q db.Querier, w *write
 			return Invalid("timezone", "unknown time zone %q", tz)
 		}
 	}
+	if v, ok := w.data["flight_watch"]; ok {
+		var ids []uuid.UUID
+		if err := json.Unmarshal(v, &ids); err != nil || len(ids) > 200 {
+			return Invalid("flight_watch", "flight_watch must be a list of at most 200 species ids")
+		}
+	}
 	if v, ok := w.data["locale"]; ok {
 		var l string
 		if err := json.Unmarshal(v, &l); err != nil || (l != "system" && !languages[l]) {

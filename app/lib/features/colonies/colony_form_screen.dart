@@ -193,6 +193,19 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                       ),
                     ),
                   ),
+                  // Species on the EU list → warn while typing.
+                  ValueListenableBuilder(
+                    valueListenable: _species,
+                    builder: (context, v, _) {
+                      final inv = invasiveSpeciesFor(catalog, speciesId: _speciesId, text: v.text);
+                      return inv == null
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: InvasiveBanner(species: inv, forColony: true),
+                            );
+                    },
+                  ),
                   // Explicit switch: on = care sheet linked (search opens), off = unlink.
                   SwitchListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 4),
