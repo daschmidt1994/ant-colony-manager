@@ -305,6 +305,7 @@ void showUndoSnackOn(ScaffoldMessengerState m, String text, {VoidCallback? onUnd
   m.showSnackBar(
     SnackBar(
       duration: const Duration(seconds: 6),
+      persist: false, // with an action Flutter would keep it until tapped – covering buttons below
       content: Row(
         children: [
           Expanded(child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis)),
