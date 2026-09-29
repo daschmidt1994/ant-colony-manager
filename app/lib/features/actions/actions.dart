@@ -73,15 +73,19 @@ void quickCheck(BuildContext context, WidgetRef ref, Colony colony) {
   );
 }
 
-Future<T?> _sheet<T>(BuildContext context, Widget child) => showModalBottomSheet<T>(
-  context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  builder: (c) => Padding(
-    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
-    child: ContentWidth(maxWidth: 640, child: child),
-  ),
-);
+Future<T?> _sheet<T>(BuildContext context, Widget child) {
+  // the „gespeichert – Rückgängig“ of the previous entry must not cover „Speichern“
+  ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (c) => Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
+      child: ContentWidth(maxWidth: 640, child: child),
+    ),
+  );
+}
 
 class _SheetFrame extends StatelessWidget {
   const _SheetFrame({
@@ -97,26 +101,40 @@ class _SheetFrame extends StatelessWidget {
   final List<Widget> children;
   final VoidCallback? onSave;
 
+  // „Speichern“ stays below the scrolling content – always visible.
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-            ),
-            WhenChip(value: when, onChanged: onWhen),
-          ],
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Flexible(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  WhenChip(value: when, onChanged: onWhen),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...children,
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        ...children,
-        const SizedBox(height: 20),
-        FilledButton(onPressed: onSave, child: Text(tr('Speichern'))),
-      ],
-    ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+        child: FilledButton(onPressed: onSave, child: Text(tr('Speichern'))),
+      ),
+    ],
   );
 }
 
@@ -258,7 +276,10 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
         SegmentedButton<String>(
           segments: [
             for (final a in const ['unknown', 'accepted', 'partial', 'ignored'])
-              ButtonSegment(value: a, label: Text(S.acceptance[a]!)),
+              ButtonSegment(
+                value: a,
+                label: FittedBox(fit: BoxFit.scaleDown, child: Text(S.acceptance[a]!, maxLines: 1)),
+              ),
           ],
           selected: {_acceptance},
           onSelectionChanged: (v) => setState(() => _acceptance = v.first),
