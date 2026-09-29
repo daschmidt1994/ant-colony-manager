@@ -87,3 +87,8 @@ func (s *Server) testSMTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// updates: newer releases of the server/app, with breaking-change warnings.
+func (s *Server) updates(w http.ResponseWriter, r *http.Request) {
+	s.writeJSON(w, http.StatusOK, s.svc.Updates(r.Context(), s.version))
+}

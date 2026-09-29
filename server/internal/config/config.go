@@ -46,6 +46,10 @@ type Config struct {
 
 	LogLevel  string
 	LogFormat string
+
+	// Update check against the public GitHub release list (no data is sent).
+	UpdateCheck bool
+	UpdateURL   string
 }
 
 type SMTPConfig struct {
@@ -158,6 +162,8 @@ func LoadFrom(getenv Getenv) (*Config, error) {
 		TombstoneRetention: time.Duration(integer("TOMBSTONE_RETENTION_DAYS", 180)) * 24 * time.Hour,
 		LogLevel:           str("LOG_LEVEL", "info"),
 		LogFormat:          str("LOG_FORMAT", "json"),
+		UpdateCheck:        boolean("UPDATE_CHECK", true),
+		UpdateURL:          str("UPDATE_URL", "https://api.github.com/repos/daschmidt1994/ant-colony-manager/releases?per_page=20"),
 		SMTP: SMTPConfig{
 			Host:     str("SMTP_HOST", ""),
 			Port:     integer("SMTP_PORT", 587),

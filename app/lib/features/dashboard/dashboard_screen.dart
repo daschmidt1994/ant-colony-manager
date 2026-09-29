@@ -10,6 +10,7 @@ import '../../data/repositories/colony_repository.dart';
 import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
+import '../settings/updates.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -85,6 +86,7 @@ class _Dashboard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const UpdateWarning(),
               Row(
                 children: [
                   _Stat(value: '$active', label: 'aktiv', icon: Icons.pest_control_outlined),
