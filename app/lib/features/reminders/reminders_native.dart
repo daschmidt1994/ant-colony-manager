@@ -13,6 +13,7 @@ import '../../data/local/database.dart';
 import '../../data/repositories/colony_repository.dart';
 import '../../data/sync/background_sync_native.dart';
 import '../../domain/reminders.dart';
+import '../widget/home_widget.dart';
 import 'reminder_actions.dart';
 import '../../app/i18n.dart';
 
@@ -136,6 +137,7 @@ Future<void> syncReminders(ColonyRepository repo) async {
   if (!_android) return;
   try {
     await _syncReminders(repo);
+    await updateHomeWidget(repo);
     repo.db.setMeta(_errorKey, null);
   } catch (e) {
     repo.db.setMeta(_errorKey, '$e');
@@ -282,6 +284,7 @@ Future<void> clearReminders() async {
   if (!_android) return;
   await _init();
   await _plugin.cancelAll();
+  await clearHomeWidget();
 }
 
 /// „Erledigt“ while the app is closed or in the background: Android starts

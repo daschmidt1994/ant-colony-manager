@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">Ants – due</string>
+    <string name="widget_description">Overdue and due-today care; tap opens the care round.</string>
+    <string name="widget_open_app">Open the app once</string>
+    <!-- app palette (app/lib/app/theme.dart) -->
+    <color name="widget_background">#F21A1D20</color>
+    <color name="widget_text">#FFE9EBE6</color>
+    <color name="widget_muted">#FFA0A8A0</color>
+    <color name="widget_ok">#FF7DB36F</color>
+    <color name="widget_urgent">#FFE0685A</color>
+</resources>
