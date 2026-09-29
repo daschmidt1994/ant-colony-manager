@@ -8,9 +8,22 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Android-App** (offline-fähig) und **Web-App** mit denselben Daten
 - **NFC-Tags und QR-Etiketten** pro Kolonie, Pflege-Rundgang für viele Kolonien
 - **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos, Messwerte, Sensor-Schnittstelle
-- **Benachrichtigungen per ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit und Ruhezeiten einstellbar
+- **Benachrichtigungen per App, ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit, Ruhezeiten, „Morgen“ zum Verschieben
+- **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) – mit den eigenen Kolonien verknüpft
 - **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie
 - **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien
+
+## Screenshots
+
+| Übersicht | Kolonie | Statistik | Timeline |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/dashboard.png" width="200" alt="Übersicht mit Fälligkeiten nach Dringlichkeit"> | <img src="docs/screenshots/colony.png" width="200" alt="Kolonie mit Steckbrief, Aufgaben und Schnellaktionen"> | <img src="docs/screenshots/colony-stats.png" width="200" alt="Statistik einer Kolonie"> | <img src="docs/screenshots/timeline.png" width="200" alt="Timeline einer Kolonie"> |
+| **Kolonien** | **Artenkatalog** | **Steckbrief** | **Benachrichtigungen** |
+| <img src="docs/screenshots/colonies.png" width="200" alt="Kolonienliste"> | <img src="docs/screenshots/species-catalog.png" width="200" alt="Artenkatalog mit Suche und Filtern"> | <img src="docs/screenshots/species-sheet.png" width="200" alt="Steckbrief von Messor barbarus"> | <img src="docs/screenshots/notifications.png" width="200" alt="Benachrichtigungen: App, ntfy, E-Mail pro Thema"> |
+
+<img src="docs/screenshots/desktop-dashboard.png" width="820" alt="Web-App am Desktop">
+
+*Web-App im dunklen Design mit Beispieldaten; die Android-App sieht gleich aus.*
 
 ## Projektstand
 

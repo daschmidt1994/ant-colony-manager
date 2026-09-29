@@ -121,7 +121,21 @@ ThemeData buildTheme(Brightness brightness) {
     ),
     chipTheme: ChipThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      labelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, fontFamily: 'Inter'),
+      // Explicit label color per state: without it the label had no color and
+      // the web app drew it black on the dark surface (Artenkatalog filters).
+      // Chips read the color from a WidgetStateColor inside the style.
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+        fontFamily: 'Inter',
+        color: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.disabled)
+              ? scheme.onSurface.withValues(alpha: .38)
+              : states.contains(WidgetState.selected)
+              ? scheme.onSecondaryContainer
+              : scheme.onSurface,
+        ),
+      ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
