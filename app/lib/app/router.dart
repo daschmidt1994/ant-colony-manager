@@ -16,6 +16,7 @@ import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
 import '../features/sensors/sensors_screen.dart';
 import '../features/settings/feeds_screen.dart';
+import '../features/settings/offsite_screen.dart';
 import '../features/food_stock/food_stock_screen.dart';
 import '../features/settings/devices_screen.dart';
 import '../features/settings/notifications_screen.dart';
@@ -177,6 +178,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'food-stock', builder: (_, _) => const FoodStockScreen()),
                   GoRoute(path: 'notifications', builder: (_, _) => const NotificationsScreen()),
                   GoRoute(path: 'smtp', builder: (_, _) => const SmtpScreen()),
+                  GoRoute(path: 'offsite', builder: (_, _) => const OffsiteScreen()),
                   GoRoute(path: 'devices', builder: (_, _) => const DevicesScreen()),
                   GoRoute(
                     path: 'labels',

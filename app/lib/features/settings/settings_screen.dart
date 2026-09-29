@@ -250,6 +250,17 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => context.push('/settings/smtp'),
                 ),
               ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.cloud_upload_outlined),
+                  title: Text(tr('Backup außer Haus')),
+                  subtitle: Text(
+                    tr('Jedes Backup zusätzlich in Nextcloud, auf ein NAS oder eine Storage Box (WebDAV)'),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/offsite'),
+                ),
+              ),
             ],
             SectionHeader(tr('Etiketten')),
             Card(

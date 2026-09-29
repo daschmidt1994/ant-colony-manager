@@ -195,6 +195,22 @@ func serve() error {
 		}
 	}()
 
+	// Off-site backup: upload each new local backup (WebDAV, set up by the admin).
+	go func() {
+		t := time.NewTicker(10 * time.Minute)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+			if _, err := svc.OffsiteSync(ctx, false); err != nil && ctx.Err() == nil {
+				log.Error("off-site backup failed", "err", err)
+			}
+		}
+	}()
+
 	httpSrv := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           srv.Handler(),
