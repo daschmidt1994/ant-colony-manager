@@ -380,6 +380,35 @@ paths:
       tags: [auth]
       summary: "Send a test message via the saved ntfy address"
       responses: { "204": { description: "sent" }, "502": { description: "ntfy refused or unreachable (title explains)" } }
+  /api/v1/me/feed:
+    get:
+      tags: [auth]
+      summary: "Whether a calendar/status address exists ({active, created_at, last_used_at}); never the token"
+      responses: { "200": { description: "info" } }
+    post:
+      tags: [auth]
+      summary: "Create a new calendar/status address; an existing one stops working. The token is returned only here"
+      responses: { "201": { description: "{token, calendar_url, status_url}" } }
+    delete:
+      tags: [auth]
+      summary: "Switch the calendar/status address off"
+      responses: { "204": { description: "removed" } }
+  /api/v1/feeds/{token}/calendar.ics:
+    get:
+      tags: [colonies]
+      security: []
+      summary: "Calendar subscription (iCal): next due date of every care plan (overdue ones today), planned winter rest start/end, open tasks. Read-only, token from /me/feed"
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses: { "200": { description: "text/calendar" }, "404": { description: "unknown token" } }
+  /api/v1/feeds/{token}/status.json:
+    get:
+      tags: [colonies]
+      security: []
+      summary: "Status for Home Assistant: totals (overdue, due_today, hibernating) and per colony (also by_number) hibernating, overdue, due_today, next_due, winter, last measurement"
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses: { "200": { description: "status" }, "404": { description: "unknown token" } }
   /api/v1/export/link:
     post:
       tags: [colonies]
