@@ -2,6 +2,8 @@
 
 Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pflegealltag:
 
+**Homepage:** https://daschmidt1994.github.io/ant-colony-manager/
+
 > **SCAN → INFORMATION → AKTION → FERTIG**
 > Handy an den NFC-Tag halten oder QR-Code scannen → die Kolonie ist offen, du siehst was ansteht, und dokumentierst Fütterung, Wasser oder Reinigung mit einem Tap.
 
