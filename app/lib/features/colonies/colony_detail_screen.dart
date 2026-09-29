@@ -204,8 +204,7 @@ class _ColonyPage extends ConsumerWidget {
                         icon: Icons.photo_camera_outlined,
                         label: 'Foto',
                         subtitle: photos.isEmpty ? null : '${photos.length}',
-                        onTap: () => takePhoto(context, ref, colony),
-                        onLongPress: () => takePhoto(context, ref, colony, fromGallery: true),
+                        onTap: () => addPhotos(context, ref, colony),
                       ),
                       QuickActionTile(
                         icon: Icons.thermostat_outlined,

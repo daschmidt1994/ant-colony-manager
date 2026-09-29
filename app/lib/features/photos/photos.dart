@@ -11,6 +11,7 @@ import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
+import '../../domain/exif.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 
@@ -39,9 +40,37 @@ Future<Uint8List> makeThumb(Uint8List image) async {
   return png!.buffer.asUint8List();
 }
 
-/// „Foto“: Android opens the camera (long press: gallery), the web a file
-/// dialog (several at once). Saved without further questions – caption via
-/// „Details“ in the confirmation.
+/// „Foto“: Android asks camera or gallery (several at once), the web opens a
+/// file dialog. Saved without further questions – caption via „Details“ in
+/// the confirmation. Gallery photos keep their capture date (EXIF).
+Future<void> addPhotos(BuildContext context, WidgetRef ref, Colony colony, {String? eventId}) async {
+  if (kIsWeb) return takePhoto(context, ref, colony, eventId: eventId, fromGallery: true);
+  final gallery = await showModalBottomSheet<bool>(
+    context: context,
+    builder: (c) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_camera_outlined),
+            title: const Text('Kamera'),
+            subtitle: const Text('Jetzt ein Foto aufnehmen'),
+            onTap: () => Navigator.pop(c, false),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Aus der Galerie'),
+            subtitle: const Text('Ein oder mehrere Fotos – mit ihrem Aufnahmedatum'),
+            onTap: () => Navigator.pop(c, true),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (gallery == null || !context.mounted) return;
+  return takePhoto(context, ref, colony, eventId: eventId, fromGallery: gallery);
+}
+
 Future<void> takePhoto(
   BuildContext context,
   WidgetRef ref,
@@ -66,7 +95,9 @@ Future<void> takePhoto(
       files = [?f];
     }
   } on PlatformException catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text('Kamera nicht verfügbar: ${e.message ?? e.code}')));
+    messenger.showSnackBar(
+      SnackBar(content: Text('${fromGallery ? 'Galerie' : 'Kamera'} nicht verfügbar: ${e.message ?? e.code}')),
+    );
     return;
   }
   if (files.isEmpty) return;
@@ -80,7 +111,20 @@ Future<void> takePhoto(
       messenger.showSnackBar(const SnackBar(content: Text('Dieses Bild kann nicht gelesen werden.')));
       continue;
     }
-    saved.add(repo.addPhoto(colony.id, bytes, thumb: thumb, eventId: eventId));
+    // Gallery: the day it was taken (EXIF); camera: now.
+    // (the browser drops EXIF when resizing – there the file date is the fallback)
+    DateTime? taken;
+    if (fromGallery || kIsWeb) {
+      taken = plausibleTaken(exifDateTaken(bytes), DateTime.now());
+      if (taken == null && kIsWeb) {
+        try {
+          taken = plausibleTaken(await f.lastModified(), DateTime.now());
+        } on Exception {
+          taken = null;
+        }
+      }
+    }
+    saved.add(repo.addPhoto(colony.id, bytes, thumb: thumb, eventId: eventId, takenAt: taken));
   }
   if (saved.isEmpty) return;
   HapticFeedback.mediumImpact();
@@ -255,7 +299,7 @@ class GalleryScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(colony == null ? 'Fotos' : 'Fotos · ${colony.name}')),
       floatingActionButton: canEdit && colony != null
           ? FloatingActionButton.extended(
-              onPressed: () => takePhoto(context, ref, colony),
+              onPressed: () => addPhotos(context, ref, colony),
               icon: Icon(kIsWeb ? Icons.add_photo_alternate_outlined : Icons.photo_camera_outlined),
               label: Text(kIsWeb ? 'Fotos hinzufügen' : 'Foto'),
             )
