@@ -1,0 +1,53 @@
+name: Homepage
+
+# Publishes site/ (built by site/_build.py) to the root of GitHub Pages:
+# https://<owner>.github.io/<repo>/ – next to the F-Droid repo in fdroid/,
+# which stays untouched. Only from main (the released state).
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", ".github/workflows/site.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push to gh-pages
+
+concurrency:
+  group: homepage
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Pages are up to date with the template
+        run: |
+          python3 site/_build.py
+          git diff --exit-code -- site/index.html site/en/index.html || {
+            echo "::error::site/*.html differs from site/_build.py – run python3 site/_build.py and commit"; exit 1; }
+      - name: Publish to gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # the F-Droid publisher pushes to gh-pages too – retry on a rejected push
+          for attempt in 1 2 3; do
+            rm -rf pages
+            git clone --quiet --depth 1 --branch gh-pages "$url" pages
+            rsync -a --delete --exclude fdroid/ --exclude .nojekyll --exclude .git/ --exclude _build.py site/ pages/
+            touch pages/.nojekyll
+            cd pages
+            git add -A
+            if git diff --cached --quiet; then echo "nothing to publish"; exit 0; fi
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "Homepage: ${GITHUB_SHA::7}"
+            if git push --quiet origin gh-pages; then
+              echo "published: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+              exit 0
+            fi
+            cd ..
+            echo "push rejected – retrying ($attempt/3)"
+            sleep $((attempt * 10))
+          done
+          exit 1
