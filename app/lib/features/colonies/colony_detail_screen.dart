@@ -540,6 +540,21 @@ class _SpeciesCard extends ConsumerWidget {
   final Colony colony;
   final bool canEdit;
 
+  /// Search the catalog and link right away (no form, no „Speichern“).
+  Future<void> _link(BuildContext context, WidgetRef ref) async {
+    final s = await pickSpecies(context, initialQuery: colony.species);
+    if (s == null || !context.mounted) return;
+    final repo = ref.read(repositoryProvider)!;
+    final previous = repo.linkSpecies(colony.id, s);
+    showUndoSnack(context, 'Verknüpft mit ${s.scientificName}', onUndo: () => repo.updateColony(colony.id, previous));
+  }
+
+  void _unlink(BuildContext context, WidgetRef ref) {
+    final repo = ref.read(repositoryProvider)!;
+    final previous = repo.unlinkSpecies(colony.id);
+    showUndoSnack(context, 'Verknüpfung gelöst', onUndo: () => repo.updateColony(colony.id, previous));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final id = colony.speciesId;
@@ -551,7 +566,7 @@ class _SpeciesCard extends ConsumerWidget {
         child: TextButton.icon(
           icon: const Icon(Icons.menu_book_outlined, size: 18),
           label: const Text('Steckbrief aus dem Artenkatalog verknüpfen'),
-          onPressed: () => context.go('/colonies/${colony.id}/edit'),
+          onPressed: () => _link(context, ref),
         ),
       );
     }
@@ -561,10 +576,24 @@ class _SpeciesCard extends ConsumerWidget {
       child: Card(
         child: ListTile(
           leading: const Icon(Icons.menu_book_outlined),
-          title: const Text('Steckbrief'),
-          subtitle: Text(summary.isEmpty ? species.scientificName : summary),
-          trailing: const Icon(Icons.chevron_right),
+          title: Text('Steckbrief: ${species.scientificName}'),
+          subtitle: summary.isEmpty ? null : Text(summary),
           onTap: () => context.go('/species/${species.id}'),
+          trailing: canEdit
+              ? PopupMenuButton<String>(
+                  tooltip: 'Verknüpfung',
+                  onSelected: (v) => switch (v) {
+                    'open' => context.go('/species/${species.id}'),
+                    'change' => _link(context, ref),
+                    _ => _unlink(context, ref),
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'open', child: Text('Steckbrief öffnen')),
+                    PopupMenuItem(value: 'change', child: Text('Andere Art wählen')),
+                    PopupMenuItem(value: 'unlink', child: Text('Verknüpfung lösen')),
+                  ],
+                )
+              : const Icon(Icons.chevron_right),
         ),
       ),
     );
