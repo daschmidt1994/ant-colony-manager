@@ -939,5 +939,12 @@
  "Status-Adresse (JSON)": "Status address (JSON)",
  "Home Assistant (configuration.yaml)": "Home Assistant (configuration.yaml)",
  "Fälligkeiten als Kalender-Abo, Status für Home Assistant": "Due dates as a calendar subscription, status for Home Assistant",
- "Kopiert": "Copied"
+ "Kopiert": "Copied",
+ "{0} heute": "{0} today",
+ "{0} überfällig": "{0} overdue",
+ "Alles erledigt": "All done",
+ "Ameisen": "Ants",
+ "Nicht angemeldet": "Not signed in",
+ "Nichts fällig – gut gemacht.": "Nothing due – well done.",
+ "Stand {0} · Tippen für den Rundgang": "As of {0} · tap for the care round"
 }

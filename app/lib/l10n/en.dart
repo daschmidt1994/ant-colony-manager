@@ -46,6 +46,7 @@ const table = <String, String>{
   'Alle aktiven': 'All active',
   'Alle anderen abmelden ({0})': 'Sign out all others ({0})',
   'Alle mit Aufgaben': 'All with tasks',
+  'Alles erledigt': 'All done',
   'Alles exportieren (ZIP)': 'Export everything (ZIP)',
   'Alles neu vom Server laden': 'Reload everything from the server',
   'Alles synchron': 'Everything in sync',
@@ -60,6 +61,7 @@ const table = <String, String>{
       'You get a reminder on the planned day – you switch hibernation on and off yourself.',
   'Am verlässlichsten sind Futterinsekten aus dem Zoofachhandel bzw. von Terraristik-Züchtern: Heimchen, Grillen, Schaben (z. B. Shelfordella lateralis), Fruchtfliegen und Mehlwürmer. Sie stammen aus kontrollierter Zucht und sind frei von Pestiziden.':
       'Most reliable are feeder insects from pet shops or reptile breeders: house crickets, crickets, roaches (e.g. Shelfordella lateralis), fruit flies and mealworms. They come from controlled breeding and are free of pesticides.',
+  'Ameisen': 'Ants',
   'Ameisen <ameisen@example.com>': 'Ants <ants@example.com>',
   'Ameisen heute fällig': 'Ants due today',
   'Ameisen überfällig': 'Ants overdue',
@@ -576,11 +578,13 @@ const table = <String, String>{
   'Neuen Schlüssel erzeugen': 'Create new key',
   'Neuer Standort': 'New location',
   'Neues Passwort': 'New password',
+  'Nicht angemeldet': 'Not signed in',
   'Nicht dabei? Lege sie als eigene Art mit Steckbrief an.':
       'Not listed? Create it as your own species with a care sheet.',
   'Nicht gescannt · {0}': 'Not scanned · {0}',
   'Nicht verfügbar': 'Not available',
   'Nichts fällig': 'Nothing due',
+  'Nichts fällig – gut gemacht.': 'Nothing due – well done.',
   'Noch kein Tag. Tipp: Aufkleber außen am Formicarium, etwas Abstand zu Metall und Heizmatten.':
       'No tag yet. Tip: sticker on the outside of the formicarium, some distance from metal and heat mats.',
   'Noch keine Brut erfasst – Kolonie-Seite → Menü ⋮ → „Größe & Brut erfassen“.':
@@ -743,6 +747,7 @@ const table = <String, String>{
   'Speichern und Test-E-Mail an mich senden': 'Save and send a test e-mail to me',
   'Sprache': 'Language',
   'Später': 'Later',
+  'Stand {0} · Tippen für den Rundgang': 'As of {0} · tap for the care round',
   'Standard: https://ntfy.sh – eigener Server: dessen Domain': 'Default: https://ntfy.sh – own server: its domain',
   'Standort': 'Location',
   'Standort: ': 'Location: ',
@@ -1008,6 +1013,7 @@ const table = <String, String>{
   '{0} auf {1}': '{0} on {1}',
   '{0} bewertet': '{0} rated',
   '{0} gespeichert: {1}': '{0} saved: {1}',
+  '{0} heute': '{0} today',
   '{0} ist fällig.': '{0} is due.',
   '{0} löschen?': 'Delete {0}?',
   '{0} ohne Angabe': '{0} not specified',
@@ -1023,6 +1029,7 @@ const table = <String, String>{
   '{0} Änderung(en) ausstehend': '{0} change(s) pending',
   '{0} Änderung(en) wurden noch nicht zum Server übertragen und gehen beim Abmelden verloren. Stelle zuerst eine Verbindung her.':
       '{0} change(s) have not been sent to the server yet and are lost when signing out. Connect first.',
+  '{0} überfällig': '{0} overdue',
   '{0}: Minimum ist größer als Maximum.': '{0}: minimum is greater than maximum.',
   '{0}× Winterruhe beenden?': '{0}× end hibernation?',
   '{0}× Winterruhe beginnen?': '{0}× start hibernation?',
