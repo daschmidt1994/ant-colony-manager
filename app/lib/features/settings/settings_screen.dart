@@ -14,6 +14,7 @@ import '../../core/web_meta.dart';
 import '../../data/sync/sync_engine.dart';
 import '../../data/sync/upload_policy.dart';
 import '../../shared/widgets.dart';
+import 'updates.dart';
 
 /// Conflicts the server resolved automatically (docs/05 §5) – losing values stay visible.
 final conflictsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -267,13 +268,16 @@ class SettingsScreen extends ConsumerWidget {
                     builder: (context, ref, _) {
                       final server = ref.watch(instanceInfoProvider).value?['version'] as String?;
                       final ok = versionsMatch(appVersion, server);
+                      final updates = ref.watch(updatesProvider).value;
+                      final update = updateLine(updates);
                       return ListTile(
                         leading: const Icon(Icons.dns_outlined),
                         title: Text(auth.serverUrl),
                         subtitle: Text(
                           'App $appVersion · Server ${server ?? '–'}'
-                          '${ok ? '' : '\nVersionen passen nicht zusammen – App oder Server aktualisieren'}',
-                          style: ok ? null : TextStyle(color: context.colors.overdue),
+                          '${ok ? '' : '\nVersionen passen nicht zusammen – App oder Server aktualisieren'}'
+                          '${update == null ? '' : '\n$update'}',
+                          style: ok && updates?['breaking'] != true ? null : TextStyle(color: context.colors.overdue),
                         ),
                       );
                     },

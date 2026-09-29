@@ -10,7 +10,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos, Messwerte, Sensor-Schnittstelle
 - **Benachrichtigungen per App, ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit, Ruhezeiten, „Morgen“ zum Verschieben
 - **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) – mit den eigenen Kolonien verknüpft
-- **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie
+- **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie (nur eine abschaltbare Update-Prüfung gegen die öffentliche GitHub-Release-Liste, `UPDATE_CHECK=false`)
 - **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien
 
 ## Screenshots
@@ -212,9 +212,12 @@ Server, Web-App und Android-App haben **eine gemeinsame Version** nach [SemVer](
 
 ```bash
 ./scripts/release.sh 1.2.0     # Version setzen → Commit → Tag v1.2.0 → pushen (fragt vorher nach)
+./scripts/release.sh 2.0.0 --breaking "Was sich ändert und was vorher zu tun ist"
 ```
 
 Der Tag `v1.2.0` baut in der CI die Server-Images (`1.2.0`, `1.2`, `latest`), das GitHub-Release **v1.2.0** mit den APKs und der Compose-Datei und aktualisiert das F-Droid-Repo. Branches: **`main`** ist der fertige Stand für den Betrieb, **`dev`** der Teststand. Pushes auf `dev` bauen Images als `edge` und die Test-App **ACM Test** (eigene App-ID, läuft neben der echten App) im selben F-Droid-Repo – zum Ausprobieren auf einer [Testinstanz](docs/19-testinstanz.md). Getestet → `dev` nach `main` mergen → Release per Tag. Die Buildnummer der APK (Android `versionCode`) ist die fortlaufende CI-Laufnummer.
+
+**Breaking Changes:** Mit `--breaking` landet der Text in den Release-Notizen unter „⚠ Breaking Changes“ (Pflicht für eine neue Hauptversion). Der Server prüft alle 6 Stunden die Release-Liste auf GitHub; steht ein Update mit Breaking Change an, zeigt die App auf der Übersicht eine rote Warnung mit dem Text und der Reihenfolge *Backup → Server → App*. Normale Updates stehen nur unter Mehr → Server.
 
 ## Lizenz
 

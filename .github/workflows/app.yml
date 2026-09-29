@@ -148,10 +148,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V=${GITHUB_REF_NAME#v}
+          # Breaking changes from the tag message (scripts/release.sh --breaking) → notes; the app warns with them.
+          git fetch --quiet --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          B=$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed -n '/^BREAKING:/,$p' | sed '1d')
+          BREAKING_NOTES=""
+          # $(…) drops trailing newlines – add the blank line outside
+          [ -z "$B" ] || BREAKING_NOTES="$(printf '## ⚠ Breaking Changes\n\n%s' "$B")"$'\n\n'
           gh release create "$GITHUB_REF_NAME" build/app/outputs/flutter-apk/app-*-release.apk ../deploy/docker-compose.yml \
             --repo "$GITHUB_REPOSITORY" --verify-tag --latest --generate-notes \
             --title "Ant Colony Manager $V" \
-            --notes "**Android-App:** app-arm64-v8a-release.apk (fast alle Handys), ältere Geräte: app-armeabi-v7a-release.apk. Über eine vorhandene Installation installieren – die Daten bleiben erhalten. Updates automatisch über F-Droid: docs/18-fdroid.md
+            --notes "${BREAKING_NOTES}**Android-App:** app-arm64-v8a-release.apk (fast alle Handys), ältere Geräte: app-armeabi-v7a-release.apk. Über eine vorhandene Installation installieren – die Daten bleiben erhalten. Updates automatisch über F-Droid: docs/18-fdroid.md
 
           **Server:** Docker-Images \`ghcr.io/${GITHUB_REPOSITORY_OWNER}/ant-colony-manager:$V\` (und \`:latest\`), fest mit \`ACM_VERSION=$V\`. docker-compose.yml zum Einfügen in Dockhand/Portainer: docs/17-unraid-dockhand.md"
       # Own F-Droid repo on GitHub Pages – add in F-Droid for updates on the phone:

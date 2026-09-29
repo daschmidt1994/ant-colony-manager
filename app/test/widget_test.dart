@@ -6,6 +6,7 @@ import 'package:ant_colony_manager/features/colonies/colony_detail_screen.dart';
 import 'package:ant_colony_manager/features/dashboard/dashboard_screen.dart';
 import 'package:ant_colony_manager/features/round/round_screens.dart';
 import 'package:ant_colony_manager/features/settings/notifications_screen.dart';
+import 'package:ant_colony_manager/features/settings/updates.dart';
 import 'package:ant_colony_manager/features/timeline/timeline_screen.dart';
 import 'package:ant_colony_manager/shared/widgets.dart';
 import 'package:flutter/material.dart';
@@ -275,5 +276,50 @@ void main() {
     expect(repo.colony(id)!.speciesId, isNull);
     expect(find.text('Steckbrief aus dem Artenkatalog verknüpfen'), findsOneWidget);
     db.dispose();
+  });
+
+  testWidgets('dashboard warns before a breaking update, until dismissed', (tester) async {
+    Map<String, dynamic> info(bool breaking) => {
+      'enabled': true,
+      'current': '1.2.3',
+      'latest': '2.0.0',
+      'update_available': true,
+      'breaking': breaking,
+      'newer': [
+        {
+          'version': '2.0.0',
+          'url': 'https://github.com/x/releases/v2.0.0',
+          'breaking': breaking,
+          'breaking_text': 'Datenbank neu aufgebaut.',
+        },
+      ],
+    };
+    final db = memoryDb();
+    ColonyRepository(db, userId: 'u1', onChanged: () {}).createColony({'name': 'A', 'species_text': 'x'});
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    await tester.pumpWidget(
+      _app(db, const DashboardScreen(), extra: [updatesProvider.overrideWith((ref) async => info(true))]),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Update 2.0.0: Breaking Change'), findsOneWidget);
+    expect(find.text('Datenbank neu aufgebaut.'), findsOneWidget);
+    expect(find.textContaining('1. Backup machen'), findsOneWidget);
+    await tester.tap(find.text('Ausblenden'));
+    await tester.pumpAndSettle();
+    expect(find.text('Update 2.0.0: Breaking Change'), findsNothing);
+    expect(db.getMeta('update_warning_dismissed'), '2.0.0');
+
+    // A harmless update never shows the red card.
+    final db2 = memoryDb();
+    ColonyRepository(db2, userId: 'u1', onChanged: () {}).createColony({'name': 'A', 'species_text': 'x'});
+    await tester.pumpWidget(
+      _app(db2, const DashboardScreen(), extra: [updatesProvider.overrideWith((ref) async => info(false))]),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Breaking Change'), findsNothing);
+    expect(updateLine(info(false)), 'Update 2.0.0 verfügbar');
+    expect(updateLine(info(true)), contains('Breaking Change'));
+    db.dispose();
+    db2.dispose();
   });
 }

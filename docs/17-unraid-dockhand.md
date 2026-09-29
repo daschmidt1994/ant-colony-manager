@@ -52,6 +52,9 @@ In der App als Administrator: **Mehr → Server-Verwaltung → E-Mail-Versand** 
 
 ## Aktualisieren
 
+Die App zeigt unter **Mehr → Server**, wenn eine neue Version bereitsteht. Enthält sie einen **Breaking Change**, erscheint auf der Übersicht eine rote Warnung: dann zuerst ein Backup, danach den Server, zuletzt die App aktualisieren. (Update-Prüfung abschalten: `UPDATE_CHECK=false`.)
+
+
 In Dockhand beim Stack **Pull** + **Redeploy**. Die Daten in `DATA_DIR` bleiben erhalten, Datenbank-Migrationen laufen beim Start automatisch. Hat sich die Compose-Datei selbst geändert (steht dann in den Release-Notizen), den neuen Inhalt einfügen und die eigenen Werte übernehmen.
 
 ## Backups
