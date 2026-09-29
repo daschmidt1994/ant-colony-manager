@@ -32,7 +32,7 @@ func TestUpdateCheckWarnsAboutBreakingChanges(t *testing.T) {
 	env.Cfg.UpdateURL = gh.URL
 	ctx := context.Background()
 
-	u := env.Svc.Updates(ctx, "1.2.2-dev.abc1234")
+	u := env.Svc.Updates(ctx, "1.2.2-dev.abc1234", "de")
 	if !u.UpdateAvailable || u.Latest != "2.0.0" || !u.Breaking || len(u.Newer) != 3 {
 		t.Fatalf("updates: %+v", u)
 	}
@@ -40,24 +40,24 @@ func TestUpdateCheckWarnsAboutBreakingChanges(t *testing.T) {
 		t.Fatalf("breaking text: %+v", u.Newer)
 	}
 	// From 1.2.3: 1.3.0 is harmless, but 2.0.0 ahead still warns.
-	if u := env.Svc.Updates(ctx, "1.2.3"); !u.Breaking || u.Latest != "2.0.0" || len(u.Newer) != 2 {
+	if u := env.Svc.Updates(ctx, "1.2.3", "de"); !u.Breaking || u.Latest != "2.0.0" || len(u.Newer) != 2 {
 		t.Fatalf("from 1.2.3: %+v", u)
 	}
-	if u := env.Svc.Updates(ctx, "2.0.0"); u.UpdateAvailable || u.Breaking {
+	if u := env.Svc.Updates(ctx, "2.0.0", "de"); u.UpdateAvailable || u.Breaking {
 		t.Fatalf("up to date: %+v", u)
 	}
 	if calls.Load() != 1 {
 		t.Fatalf("release list fetched %d times – must be cached", calls.Load())
 	}
 	env.Clock.Advance(7 * time.Hour)
-	env.Svc.Updates(ctx, "2.0.0")
+	env.Svc.Updates(ctx, "2.0.0", "de")
 	if calls.Load() != 2 {
 		t.Fatal("cache not refreshed after 6 hours")
 	}
 
 	// Switched off → no request at all; the endpoint answers for every user.
 	env.Cfg.UpdateCheck = false
-	if u := env.Svc.Updates(ctx, "1.0.0"); u.Enabled || u.UpdateAvailable {
+	if u := env.Svc.Updates(ctx, "1.0.0", "de"); u.Enabled || u.UpdateAvailable {
 		t.Fatalf("disabled: %+v", u)
 	}
 	if calls.Load() != 2 {
@@ -76,7 +76,7 @@ func TestMajorVersionIsBreakingWithoutNotes(t *testing.T) {
 	}))
 	t.Cleanup(gh.Close)
 	env.Cfg.UpdateURL = gh.URL + "/major"
-	if u := env.Svc.Updates(context.Background(), "1.9.0"); !u.Breaking || !u.Newer[0].Breaking {
+	if u := env.Svc.Updates(context.Background(), "1.9.0", "de"); !u.Breaking || !u.Newer[0].Breaking {
 		t.Fatalf("major bump must warn: %+v", u)
 	}
 }

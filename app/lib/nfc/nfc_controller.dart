@@ -6,6 +6,7 @@ import '../data/repositories/colony_repository.dart';
 import '../domain/scan.dart';
 import 'ndef_uri.dart';
 import 'nfc_driver.dart';
+import '../app/i18n.dart';
 
 final nfcDriverProvider = Provider<NfcDriver>((ref) => PluginNfcDriver());
 
@@ -152,7 +153,7 @@ class NfcAssigner {
         }
         return AlreadyAssigned();
       }
-      if (!allowReassign) return BelongsToOther(repo.colony(link.colonyId)?.name ?? 'eine andere Kolonie');
+      if (!allowReassign) return BelongsToOther(repo.colony(link.colonyId)?.name ?? tr('eine andere Kolonie'));
       repo.deactivateScanLink(link.id);
     }
     if (!tag.isNdef || !tag.writable) return ReadOnlyTag(canUseSerial: hash != null);
@@ -160,18 +161,18 @@ class NfcAssigner {
     final token = newScanToken();
     final uri = '$baseUrl/c/$token';
     if (ndefMessageSize(uri) > tag.maxSize && tag.maxSize > 0) {
-      return AssignFailed('Der Tag ist zu klein (${tag.maxSize} Byte).');
+      return AssignFailed(tr('Der Tag ist zu klein ({0} Byte).', [tag.maxSize]));
     }
     try {
       await tag.writeUri(uri);
       final check = await tag.readUris();
       if (!check.contains(uri)) {
-        return AssignFailed('Prüfung nach dem Schreiben fehlgeschlagen – bitte nochmal halten.');
+        return AssignFailed(tr('Prüfung nach dem Schreiben fehlgeschlagen – bitte nochmal halten.'));
       }
     } on NfcWriteException catch (e) {
       return AssignFailed(e.message);
     } on Exception {
-      return AssignFailed('Tag zu früh entfernt – bitte nochmal ruhig an das Handy halten.');
+      return AssignFailed(tr('Tag zu früh entfernt – bitte nochmal ruhig an das Handy halten.'));
     }
     var locked = false;
     if (lockAfterWrite && tag.canLock) {

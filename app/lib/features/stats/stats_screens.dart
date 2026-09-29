@@ -11,6 +11,7 @@ import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../domain/stats.dart';
 import '../../shared/widgets.dart';
+import '../../app/i18n.dart';
 
 final colonyStatsProvider = StreamProvider.family<ColonyStats, (String, StatsRange)>(
   (ref, k) => watchRepo(ref, (r) => r.colonyStatsFor(k.$1, k.$2)),
@@ -74,7 +75,7 @@ class _ColonyStatsScreenState extends ConsumerState<ColonyStatsScreen> {
     final stats = ref.watch(colonyStatsProvider((widget.colonyId, _range)));
     final sensors = ref.watch(sensorSeriesProvider((widget.colonyId, _range))).value ?? const {};
     return Scaffold(
-      appBar: AppBar(title: Text(colony == null ? 'Statistik' : 'Statistik · ${colony.name}')),
+      appBar: AppBar(title: Text(colony == null ? tr('Statistik') : tr('Statistik · {0}', [colony.name]))),
       body: ContentWidth(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -94,7 +95,7 @@ class _ColonyStatsScreenState extends ConsumerState<ColonyStatsScreen> {
                   child: Center(child: CircularProgressIndicator()),
                 ),
               ],
-              error: (e, _) => [EmptyState(icon: Icons.error_outline, title: 'Fehler', text: '$e')],
+              error: (e, _) => [EmptyState(icon: Icons.error_outline, title: tr('Fehler'), text: '$e')],
               data: (s) => _content(context, s, sensors),
             ),
           ],
@@ -111,19 +112,19 @@ class _ColonyStatsScreenState extends ConsumerState<ColonyStatsScreen> {
       const SizedBox(height: 16),
       _KpiGrid(
         children: [
-          _Kpi('${s.feedings}', 'Fütterungen', sub: 'Protein ${s.protein} · KH ${s.carbohydrate}'),
-          _Kpi('${s.water}', 'Wasser'),
-          _Kpi('${s.cleaning}', 'Reinigungen'),
+          _Kpi('${s.feedings}', tr('Fütterungen'), sub: tr('Protein {0} · KH {1}', [s.protein, s.carbohydrate])),
+          _Kpi('${s.water}', tr('Wasser')),
+          _Kpi('${s.cleaning}', tr('Reinigungen')),
           _Kpi(
             s.rated == 0 ? '–' : '${(100 * s.accepted / s.rated).round()} %',
-            'angenommen',
-            sub: '${s.rated} bewertet',
+            tr('angenommen'),
+            sub: tr('{0} bewertet', [s.rated]),
           ),
         ],
       ),
       _ChartCard(
-        title: 'Fütterungen',
-        legend: [('Protein', c.protein), ('Kohlenhydrate', c.carbs), ('Sonstiges', c.muted)],
+        title: tr('Fütterungen'),
+        legend: [(tr('Protein'), c.protein), (tr('Kohlenhydrate'), c.carbs), (tr('Sonstiges'), c.muted)],
         empty: s.feedings == 0,
         child: _Bars(
           buckets: s.buckets,
@@ -138,8 +139,8 @@ class _ColonyStatsScreenState extends ConsumerState<ColonyStatsScreen> {
         ),
       ),
       _ChartCard(
-        title: 'Wasser & Reinigung',
-        legend: [('Wasser', c.winter), ('Reinigung', c.ok)],
+        title: tr('Wasser & Reinigung'),
+        legend: [(tr('Wasser'), c.winter), (tr('Reinigung'), c.ok)],
         empty: s.water + s.cleaning == 0,
         child: _Bars(
           buckets: s.buckets,
@@ -149,10 +150,10 @@ class _ColonyStatsScreenState extends ConsumerState<ColonyStatsScreen> {
         ),
       ),
       _ChartCard(
-        title: 'Koloniewachstum',
-        subtitle: 'Arbeiterinnen (Schätzung oder Zählung)',
+        title: tr('Koloniewachstum'),
+        subtitle: tr('Arbeiterinnen (Schätzung oder Zählung)'),
         empty: s.workers.isEmpty,
-        emptyText: 'Noch keine Koloniegröße erfasst – Kolonie-Seite → Menü ⋮ → „Größe & Brut erfassen“.',
+        emptyText: tr('Noch keine Koloniegröße erfasst – Kolonie-Seite → Menü ⋮ → „Größe & Brut erfassen“.'),
         child: _Lines(
           from: s.buckets.from,
           series: [
@@ -170,25 +171,25 @@ class _ColonyStatsScreenState extends ConsumerState<ColonyStatsScreen> {
         ),
       ),
       _ChartCard(
-        title: 'Temperatur',
-        subtitle: sensors.isEmpty ? 'Messungen' : 'Messungen und Sensor',
+        title: tr('Temperatur'),
+        subtitle: sensors.isEmpty ? tr('Messungen') : tr('Messungen und Sensor'),
         empty: temp.isEmpty,
         child: _Lines(from: s.buckets.from, series: [(temp, c.protein, false)], format: (v) => '${S.decimal(v)} °'),
       ),
       _ChartCard(
-        title: 'Luftfeuchtigkeit',
+        title: tr('Luftfeuchtigkeit'),
         empty: hum.isEmpty,
         child: _Lines(from: s.buckets.from, series: [(hum, c.winter, false)], format: (v) => '${v.round()} %'),
       ),
       _ChartCard(
-        title: 'Brutentwicklung',
-        subtitle: '0 keine · 1 wenig · 2 mittel · 3 viel',
+        title: tr('Brutentwicklung'),
+        subtitle: tr('0 keine · 1 wenig · 2 mittel · 3 viel'),
         legend: [
           for (final (i, st) in broodStages.indexed)
             if (s.brood.containsKey(st)) (_broodNames[st]!, _broodColors[i]),
         ],
         empty: s.brood.isEmpty,
-        emptyText: 'Noch keine Brut erfasst – Kolonie-Seite → Menü ⋮ → „Größe & Brut erfassen“.',
+        emptyText: tr('Noch keine Brut erfasst – Kolonie-Seite → Menü ⋮ → „Größe & Brut erfassen“.'),
         child: _Lines(
           from: s.buckets.from,
           series: [
@@ -202,12 +203,12 @@ class _ColonyStatsScreenState extends ConsumerState<ColonyStatsScreen> {
   }
 }
 
-const _broodNames = {
-  'eggs': 'Eier',
-  'larvae': 'Larven',
-  'pupae': 'Puppen (Kokon)',
-  'naked_pupae': 'Puppen (nackt)',
-  'alates': 'Geschlechtstiere',
+Map<String, String> get _broodNames => {
+  'eggs': tr('Eier'),
+  'larvae': tr('Larven'),
+  'pupae': tr('Puppen (Kokon)'),
+  'naked_pupae': tr('Puppen (nackt)'),
+  'alates': tr('Geschlechtstiere'),
 };
 const _broodColors = [Color(0xFFE0C068), Color(0xFFD08A5A), Color(0xFF8EAE6A), Color(0xFF6AA0B8), Color(0xFFB07AC0)];
 
@@ -288,7 +289,7 @@ class _ChartCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
-                  emptyText ?? 'Keine Daten in diesem Zeitraum',
+                  emptyText ?? tr('Keine Daten in diesem Zeitraum'),
                   style: TextStyle(color: context.colors.muted),
                 ),
               )
@@ -528,37 +529,37 @@ class CollectionStatsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(collectionStatsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Statistiken')),
+      appBar: AppBar(title: Text(tr('Statistiken'))),
       body: s.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => EmptyState(icon: Icons.error_outline, title: 'Fehler', text: '$e'),
+        error: (e, _) => EmptyState(icon: Icons.error_outline, title: tr('Fehler'), text: '$e'),
         data: (s) => ContentWidth(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
               _KpiGrid(
                 children: [
-                  _Kpi('${s.colonies}', 'Kolonien'),
-                  _Kpi('${s.species}', 'Arten'),
-                  _Kpi('${s.genera}', 'Gattungen'),
+                  _Kpi('${s.colonies}', tr('Kolonien')),
+                  _Kpi('${s.species}', tr('Arten')),
+                  _Kpi('${s.genera}', tr('Gattungen')),
                   _Kpi(
                     s.workersMax == null
                         ? '${S.number(s.workersMin)}+'
                         : s.workersMin == s.workersMax
                         ? S.number(s.workersMin)
                         : '${S.number(s.workersMin)}–${S.number(s.workersMax!)}',
-                    'Arbeiterinnen (geschätzt)',
-                    sub: s.workersUnknown > 0 ? '${s.workersUnknown} ohne Angabe' : null,
+                    tr('Arbeiterinnen (geschätzt)'),
+                    sub: s.workersUnknown > 0 ? tr('{0} ohne Angabe', [s.workersUnknown]) : null,
                   ),
-                  _Kpi('${s.feedingsWeek}', 'Fütterungen', sub: 'diese Woche'),
-                  _Kpi('${s.feedingsMonth}', 'Fütterungen', sub: 'dieser Monat'),
-                  _Kpi('${s.overdueTasks}', 'überfällige Aufgaben'),
-                  _Kpi('${s.hibernating}', 'in Winterruhe'),
+                  _Kpi('${s.feedingsWeek}', tr('Fütterungen'), sub: tr('diese Woche')),
+                  _Kpi('${s.feedingsMonth}', tr('Fütterungen'), sub: tr('dieser Monat')),
+                  _Kpi('${s.overdueTasks}', tr('überfällige Aufgaben')),
+                  _Kpi('${s.hibernating}', tr('in Winterruhe')),
                 ],
               ),
-              _Distribution(title: 'Nach Art', entries: s.bySpecies, italic: true),
-              _Distribution(title: 'Nach Gattung', entries: s.byGenus, italic: true),
-              _Distribution(title: 'Nach Standort', entries: s.byLocation),
+              _Distribution(title: tr('Nach Art'), entries: s.bySpecies, italic: true),
+              _Distribution(title: tr('Nach Gattung'), entries: s.byGenus, italic: true),
+              _Distribution(title: tr('Nach Standort'), entries: s.byLocation),
             ],
           ),
         ),

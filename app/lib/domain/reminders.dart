@@ -6,6 +6,7 @@ import 'dart:convert';
 
 import 'due.dart';
 import 'models.dart';
+import '../app/i18n.dart';
 
 /// One notification. [key] identifies the reason (e.g. this schedule being
 /// overdue since this date) – shown once, not every time the check runs.
@@ -65,14 +66,16 @@ List<Reminder> overdueReminders({
       for (final t in due[c.id] ?? const <DueTask>[]) {
         if (t.status != DueStatus.overdue) continue;
         final s = t.schedule;
-        final name = s.taskType == 'custom' ? (s.title ?? 'Aufgabe') : _taskLong[s.taskType] ?? s.taskType;
+        final name = s.taskType == 'custom' ? (s.title ?? tr('Aufgabe')) : _taskLong[s.taskType] ?? s.taskType;
         final since = -t.days;
         out.add(
           Reminder(
             key: 'due:${s.id}:${t.nextDue!.toUtc().toIso8601String().substring(0, 10)}',
             slot: 'due:${s.id}',
             title: titleOf(c),
-            body: '$name seit ${since == 1 ? '1 Tag' : '$since Tagen'} überfällig.',
+            body: since == 1
+                ? tr('{0} seit 1 Tag überfällig.', [name])
+                : tr('{0} seit {1} Tagen überfällig.', [name, since]),
             payload: {'kind': 'due', 'colony': c.id, 'schedule': s.id, 'task_type': s.taskType},
             canComplete: true,
             canSnooze: true,
@@ -94,7 +97,7 @@ List<Reminder> overdueReminders({
           key: 'winter_start:${w['id']}:$start',
           slot: 'winter:${w['id']}',
           title: titleOf(c),
-          body: 'Winterruhe beginnen? Der geplante Start ist erreicht.',
+          body: tr('Winterruhe beginnen? Der geplante Start ist erreicht.'),
           payload: {'kind': 'winter_start', 'colony': c.id},
           canSnooze: true,
         ),
@@ -108,7 +111,7 @@ List<Reminder> overdueReminders({
         key: 'winter:${w['id']}:$end',
         slot: 'winter:${w['id']}',
         title: titleOf(c),
-        body: 'Winterruhe beenden? Das geplante Ende ist erreicht.',
+        body: tr('Winterruhe beenden? Das geplante Ende ist erreicht.'),
         payload: {'kind': 'winter', 'colony': c.id},
         canSnooze: true,
       ),
@@ -123,8 +126,8 @@ List<Reminder> overdueReminders({
       Reminder(
         key: 'task:${t['id']}:${t['due_at']}',
         slot: 'task:${t['id']}',
-        title: c == null ? 'Aufgabe' : titleOf(c),
-        body: '${t['title'] ?? 'Aufgabe'} ist fällig.',
+        title: c == null ? tr('Aufgabe') : titleOf(c),
+        body: tr('{0} ist fällig.', [t['title'] ?? tr('Aufgabe')]),
         payload: {'kind': 'task', 'colony': ?c?.id, 'task': t['id']},
         canComplete: true,
         canSnooze: true,
@@ -143,7 +146,7 @@ List<Reminder> overdueReminders({
         key: 'alert:${e['id']}',
         slot: 'alert:${e['id']}',
         title: '⚠ ${titleOf(c)}',
-        body: e['note'] as String? ?? 'Sensor-Grenzwert überschritten',
+        body: e['note'] as String? ?? tr('Sensor-Grenzwert überschritten'),
         payload: {'kind': 'problem', 'colony': c.id},
       ),
     );
@@ -158,9 +161,10 @@ List<Reminder> overdueReminders({
       Reminder(
         key: 'silent:${s['id']}:${s['last_seen_at']}',
         slot: 'silent:${s['id']}',
-        title: 'Sensor „${s['name'] ?? 'Sensor'}“',
-        body:
-            'Sendet seit ${silent.inHours < 48 ? '${silent.inHours} Stunden' : '${silent.inDays} Tagen'} keine Daten – Stromversorgung oder WLAN prüfen.',
+        title: tr('Sensor „{0}“', [s['name'] ?? tr('Sensor')]),
+        body: silent.inHours < 48
+            ? tr('Sendet seit {0} Stunden keine Daten – Stromversorgung oder WLAN prüfen.', [silent.inHours])
+            : tr('Sendet seit {0} Tagen keine Daten – Stromversorgung oder WLAN prüfen.', [silent.inDays]),
         payload: {'kind': 'sensor', 'sensor': s['id']},
       ),
     );
@@ -183,12 +187,14 @@ Digest? digestFor(Map<String, List<DueTask>> due, {int winterEnds = 0, int winte
   if (attention == 0 && winterEnds == 0 && winterStarts == 0) return null;
   final parts = <String>[
     if (attention > 0)
-      '${attention == 1 ? '1 Kolonie braucht' : '$attention Kolonien brauchen'} heute Aufmerksamkeit'
-          '${overdue > 0 ? ' ($overdue überfällig)' : ''}',
-    if (winterStarts > 0) '$winterStarts× Winterruhe beginnen?',
-    if (winterEnds > 0) '$winterEnds× Winterruhe beenden?',
+      (attention == 1
+              ? tr('1 Kolonie braucht heute Aufmerksamkeit')
+              : tr('{0} Kolonien brauchen heute Aufmerksamkeit', [attention])) +
+          (overdue > 0 ? tr(' ({0} überfällig)', [overdue]) : ''),
+    if (winterStarts > 0) tr('{0}× Winterruhe beginnen?', [winterStarts]),
+    if (winterEnds > 0) tr('{0}× Winterruhe beenden?', [winterEnds]),
   ];
-  return Digest(title: 'Pflege heute', body: parts.join(' · '));
+  return Digest(title: tr('Pflege heute'), body: parts.join(' · '));
 }
 
 /// Stable 31-bit notification id for a slot (Android ids are ints).
@@ -200,13 +206,13 @@ int notificationId(String slot) {
   return h == 0 ? 1 : h;
 }
 
-const _taskLong = {
-  'protein': 'Proteinfütterung',
-  'carbohydrate': 'Kohlenhydratfütterung',
-  'feeding': 'Fütterung',
-  'water': 'Wasser',
-  'cleaning': 'Reinigung',
-  'check': 'Kontrolle',
+Map<String, String> get _taskLong => {
+  'protein': tr('Proteinfütterung'),
+  'carbohydrate': tr('Kohlenhydratfütterung'),
+  'feeding': tr('Fütterung'),
+  'water': tr('Wasser'),
+  'cleaning': tr('Reinigung'),
+  'check': tr('Kontrolle'),
 };
 
 String _date(DateTime t) {

@@ -49,3 +49,4 @@ package.json
 package-lock.json
 screenshots/
 colony_id
+__pycache__/

@@ -8,11 +8,12 @@ import 'app/theme.dart';
 import 'core/tab_guard.dart';
 import 'core/session.dart';
 import 'data/local/database.dart';
+import 'app/i18n.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy(); // real paths like /c/<code> instead of /#/c/<code>
-  await initializeDateFormatting('de');
+  await initializeDateFormatting(); // all languages (i18n.dart)
   if (await otherTabActive()) {
     runApp(const OtherTabApp());
     return;
@@ -27,7 +28,7 @@ class OtherTabApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Bereits geöffnet – Ant Colony Manager', // MaterialApp sets document.title
+    title: tr('Bereits geöffnet – Ant Colony Manager'), // MaterialApp sets document.title
     debugShowCheckedModeBanner: false,
     theme: buildTheme(Brightness.dark),
     home: Scaffold(
@@ -39,14 +40,14 @@ class OtherTabApp extends StatelessWidget {
             children: [
               const Icon(Icons.tab, size: 56),
               const SizedBox(height: 16),
-              const Text('Die App ist bereits in einem anderen Tab geöffnet.', textAlign: TextAlign.center),
+              Text(tr('Die App ist bereits in einem anderen Tab geöffnet.'), textAlign: TextAlign.center),
               const SizedBox(height: 8),
-              const Text(
-                'Bitte dort weiterarbeiten – oder den anderen Tab schließen und hier neu laden.',
+              Text(
+                tr('Bitte dort weiterarbeiten – oder den anderen Tab schließen und hier neu laden.'),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              const FilledButton(onPressed: reloadPage, child: Text('Neu laden')),
+              FilledButton(onPressed: reloadPage, child: Text(tr('Neu laden'))),
             ],
           ),
         ),

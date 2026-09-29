@@ -9,6 +9,7 @@ import '../core/session.dart';
 import '../data/sync/sync_engine.dart';
 import '../domain/due.dart';
 import '../domain/models.dart';
+import '../app/i18n.dart';
 
 /// Icon per event type (docs/11 §3).
 IconData eventIcon(String type) => switch (type) {
@@ -54,7 +55,7 @@ class DueChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = context.colors.due(task.status);
     final label = task.schedule.taskType == 'custom'
-        ? (task.schedule.title ?? 'Aufgabe')
+        ? (task.schedule.title ?? tr('Aufgabe'))
         : S.taskNames[task.schedule.taskType]!;
     return Semantics(
       label: '$label ${S.dueText(task)}',
@@ -92,7 +93,7 @@ class DueRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = context.colors.due(task.status);
     final name = task.schedule.taskType == 'custom'
-        ? (task.schedule.title ?? 'Aufgabe')
+        ? (task.schedule.title ?? tr('Aufgabe'))
         : S.taskNames[task.schedule.taskType]!;
     final canSnooze = onSnooze != null && task.status != DueStatus.paused && task.days <= 0;
     final row = Padding(
@@ -125,8 +126,8 @@ class DueRow extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.update),
-                title: const Text('Auf morgen verschieben'),
-                subtitle: const Text('Heute keine Zeit – ab morgen wieder fällig'),
+                title: Text(tr('Auf morgen verschieben')),
+                subtitle: Text(tr('Heute keine Zeit – ab morgen wieder fällig')),
                 onTap: () {
                   Navigator.pop(c);
                   onSnooze!();
@@ -266,13 +267,13 @@ class SyncBadge extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(syncStatusProvider).value ?? const SyncStatus();
     final (icon, tip, color) = switch (s.phase) {
-      SyncPhase.syncing => (Icons.sync, 'Synchronisiere …', null),
-      SyncPhase.offline => (Icons.cloud_off, 'Offline · ${s.pending} ausstehend', context.colors.muted),
+      SyncPhase.syncing => (Icons.sync, tr('Synchronisiere …'), null),
+      SyncPhase.offline => (Icons.cloud_off, tr('Offline · {0} ausstehend', [s.pending]), context.colors.muted),
       SyncPhase.error ||
-      SyncPhase.loginRequired => (Icons.sync_problem, s.message ?? 'Sync-Fehler', context.colors.overdue),
+      SyncPhase.loginRequired => (Icons.sync_problem, s.message ?? tr('Sync-Fehler'), context.colors.overdue),
       SyncPhase.idle when s.failed > 0 => (
         Icons.sync_problem,
-        '${s.failed} Änderung(en) abgelehnt',
+        tr('{0} Änderung(en) abgelehnt', [s.failed]),
         context.colors.soon,
       ),
       SyncPhase.idle when s.pending > 0 => (
@@ -280,7 +281,7 @@ class SyncBadge extends ConsumerWidget {
         '${s.pending} ausstehend',
         context.colors.muted,
       ),
-      _ => (Icons.cloud_done_outlined, 'Synchron', context.colors.muted),
+      _ => (Icons.cloud_done_outlined, tr('Synchron'), context.colors.muted),
     };
     return IconButton(
       tooltip: tip,
@@ -313,11 +314,11 @@ void showUndoSnackOn(ScaffoldMessengerState m, String text, {VoidCallback? onUnd
                 m.hideCurrentSnackBar();
                 onDetails();
               },
-              child: const Text('Details'),
+              child: Text(tr('Details')),
             ),
         ],
       ),
-      action: onUndo == null ? null : SnackBarAction(label: 'Rückgängig', onPressed: onUndo),
+      action: onUndo == null ? null : SnackBarAction(label: tr('Rückgängig'), onPressed: onUndo),
     ),
   );
 }
@@ -328,9 +329,9 @@ void showError(BuildContext context, Object error) {
 
 String errorText(Object e) {
   final s = e.toString();
-  if (s.startsWith('NetworkException')) return 'Server nicht erreichbar – gleiches Netzwerk? Adresse richtig?';
+  if (s.startsWith('NetworkException')) return tr('Server nicht erreichbar – gleiches Netzwerk? Adresse richtig?');
   if (s.startsWith('ApiException')) return s.substring(s.indexOf(':') + 1, s.length - 1).trim();
-  return 'Fehler: $s';
+  return tr('Fehler: {0}', [s]);
 }
 
 /// Scientific name in italics (convention) + colony name.
@@ -373,10 +374,10 @@ Future<DateTime?> pickPastDateTime(BuildContext context, {DateTime? initial}) as
     firstDate: now.subtract(const Duration(days: 365)),
     lastDate: now,
     initialDate: start.isAfter(now) ? now : start,
-    helpText: 'Wann war das?',
+    helpText: tr('Wann war das?'),
   );
   if (d == null || !context.mounted) return null;
-  final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(start), helpText: 'Uhrzeit');
+  final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(start), helpText: tr('Uhrzeit'));
   if (t == null) return null;
   final at = DateTime(d.year, d.month, d.day, t.hour, t.minute);
   return at.isAfter(now) ? now : at;
@@ -390,10 +391,10 @@ class WhenChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = value == null ? 'Jetzt' : '${S.relativeDay(value!, DateTime.now())} ${S.time(value!)}';
+    final label = value == null ? tr('Jetzt') : '${S.relativeDay(value!, DateTime.now())} ${S.time(value!)}';
     final scheme = Theme.of(context).colorScheme;
     return PopupMenuButton<String>(
-      tooltip: 'Zeitpunkt',
+      tooltip: tr('Zeitpunkt'),
       onSelected: (v) async {
         final now = DateTime.now();
         switch (v) {
@@ -410,12 +411,12 @@ class WhenChip extends StatelessWidget {
             if (at != null) onChanged(at);
         }
       },
-      itemBuilder: (_) => const [
-        PopupMenuItem(value: 'now', child: Text('Jetzt')),
-        PopupMenuItem(value: '1h', child: Text('Vor 1 Stunde')),
-        PopupMenuItem(value: 'morning', child: Text('Heute Morgen')),
-        PopupMenuItem(value: 'yesterday', child: Text('Gestern Abend')),
-        PopupMenuItem(value: 'pick', child: Text('Datum/Uhrzeit wählen …')),
+      itemBuilder: (_) => [
+        PopupMenuItem(value: 'now', child: Text(tr('Jetzt'))),
+        PopupMenuItem(value: '1h', child: Text(tr('Vor 1 Stunde'))),
+        PopupMenuItem(value: 'morning', child: Text(tr('Heute Morgen'))),
+        PopupMenuItem(value: 'yesterday', child: Text(tr('Gestern Abend'))),
+        PopupMenuItem(value: 'pick', child: Text(tr('Datum/Uhrzeit wählen …'))),
       ],
       child: Chip(
         avatar: Icon(Icons.schedule, size: 18, color: value == null ? null : scheme.onPrimaryContainer),
@@ -455,5 +456,5 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Image.asset('assets/icon/ant.png', width: size, height: size, semanticLabel: 'Ant Colony Manager');
+      Image.asset('assets/icon/ant.png', width: size, height: size, semanticLabel: tr('Ant Colony Manager'));
 }

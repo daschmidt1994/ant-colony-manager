@@ -10,6 +10,7 @@ import '../../data/repositories/colony_repository.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../species/species_screens.dart';
+import '../../app/i18n.dart';
 
 /// Default care intervals for new colonies (days).
 const defaultIntervals = {'protein': 3.0, 'carbohydrate': 5.0, 'water': 2.0, 'cleaning': 7.0};
@@ -131,8 +132,8 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
     final linked = catalog.where((sp) => sp.id == _speciesId).firstOrNull;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isNew ? 'Neue Kolonie' : 'Kolonie bearbeiten'),
-        actions: [TextButton(onPressed: _save, child: const Text('Speichern'))],
+        title: Text(_isNew ? tr('Neue Kolonie') : tr('Kolonie bearbeiten')),
+        actions: [TextButton(onPressed: _save, child: Text(tr('Speichern')))],
       ),
       body: Form(
         key: _form,
@@ -165,8 +166,8 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                       focusNode: focus,
                       autofocus: _isNew,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(labelText: 'Art *', hintText: 'Messor barbarus'),
-                      validator: (v) => (v ?? '').trim().isEmpty ? 'Bitte die Art angeben' : null,
+                      decoration: InputDecoration(labelText: tr('Art *'), hintText: tr('Messor barbarus')),
+                      validator: (v) => (v ?? '').trim().isEmpty ? tr('Bitte die Art angeben') : null,
                     ),
                     optionsViewBuilder: (context, onSelected, options) => Align(
                       alignment: Alignment.topLeft,
@@ -199,11 +200,11 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                       Icons.menu_book_outlined,
                       color: linked != null ? context.colors.ok : context.colors.muted,
                     ),
-                    title: const Text('Steckbrief aus dem Artenkatalog'),
+                    title: Text(tr('Steckbrief aus dem Artenkatalog')),
                     subtitle: Text(
                       linked != null
                           ? '${linked.scientificName}${speciesSummary(linked).isEmpty ? '' : ' · ${speciesSummary(linked)}'}'
-                          : 'Aus – einschalten, um eine Art aus dem Katalog zu wählen',
+                          : tr('Aus – einschalten, um eine Art aus dem Katalog zu wählen'),
                     ),
                     value: linked != null,
                     onChanged: (on) async {
@@ -226,9 +227,9 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _name,
-                    decoration: const InputDecoration(labelText: 'Name'),
+                    decoration: InputDecoration(labelText: tr('Name')),
                     onChanged: (_) => _nameTouched = true,
-                    validator: (v) => (v ?? '').trim().isEmpty ? 'Bitte einen Namen angeben' : null,
+                    validator: (v) => (v ?? '').trim().isEmpty ? tr('Bitte einen Namen angeben') : null,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -236,7 +237,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _code,
-                          decoration: const InputDecoration(labelText: 'Interner Code'),
+                          decoration: InputDecoration(labelText: tr('Interner Code')),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -244,7 +245,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                         child: DropdownButtonFormField<String?>(
                           initialValue: _locationId,
                           isExpanded: true,
-                          decoration: const InputDecoration(labelText: 'Standort'),
+                          decoration: InputDecoration(labelText: tr('Standort')),
                           items: [
                             const DropdownMenuItem(value: null, child: Text('–')),
                             for (final l in locations)
@@ -252,7 +253,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                                 value: l.id,
                                 child: Text(l.path, overflow: TextOverflow.ellipsis),
                               ),
-                            const DropdownMenuItem(value: '__new', child: Text('+ Neuer Standort …')),
+                            DropdownMenuItem(value: '__new', child: Text(tr('+ Neuer Standort …'))),
                           ],
                           onChanged: (v) async {
                             if (v == '__new') {
@@ -266,7 +267,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                       ),
                     ],
                   ),
-                  const SectionHeader('Status'),
+                  SectionHeader(tr('Status')),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -279,7 +280,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                         ),
                     ],
                   ),
-                  const SectionHeader('Königinnen'),
+                  SectionHeader(tr('Königinnen')),
                   SegmentedButton<String>(
                     segments: [
                       for (final g in const ['monogyne', 'polygyne', 'unknown'])
@@ -290,7 +291,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                     showSelectedIcon: false,
                   ),
                   if (_isNew) ...[
-                    const SectionHeader('Koloniegröße (Schätzung)'),
+                    SectionHeader(tr('Koloniegröße (Schätzung)')),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -304,7 +305,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                       ],
                     ),
                   ],
-                  const SectionHeader('Pflegeintervalle (Tage)'),
+                  SectionHeader(tr('Pflegeintervalle (Tage)')),
                   Row(
                     children: [
                       for (final t in defaultIntervals.keys) ...[
@@ -321,40 +322,43 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('Leer lassen = keine Erinnerung.', style: TextStyle(color: context.colors.muted, fontSize: 12)),
+                  Text(
+                    tr('Leer lassen = keine Erinnerung.'),
+                    style: TextStyle(color: context.colors.muted, fontSize: 12),
+                  ),
                   const SizedBox(height: 8),
                   ExpansionTile(
                     tilePadding: EdgeInsets.zero,
-                    title: const Text('Herkunft & Daten'),
+                    title: Text(tr('Herkunft & Daten')),
                     children: [
                       DropdownButtonFormField<String?>(
                         initialValue: _origin,
-                        decoration: const InputDecoration(labelText: 'Herkunft'),
-                        items: const [
+                        decoration: InputDecoration(labelText: tr('Herkunft')),
+                        items: [
                           DropdownMenuItem(value: null, child: Text('–')),
-                          DropdownMenuItem(value: 'wild_caught', child: Text('Selbst gefangen')),
-                          DropdownMenuItem(value: 'bought', child: Text('Gekauft')),
-                          DropdownMenuItem(value: 'bred', child: Text('Eigene Zucht')),
-                          DropdownMenuItem(value: 'traded', child: Text('Getauscht')),
-                          DropdownMenuItem(value: 'gift', child: Text('Geschenkt')),
-                          DropdownMenuItem(value: 'other', child: Text('Sonstiges')),
+                          DropdownMenuItem(value: 'wild_caught', child: Text(tr('Selbst gefangen'))),
+                          DropdownMenuItem(value: 'bought', child: Text(tr('Gekauft'))),
+                          DropdownMenuItem(value: 'bred', child: Text(tr('Eigene Zucht'))),
+                          DropdownMenuItem(value: 'traded', child: Text(tr('Getauscht'))),
+                          DropdownMenuItem(value: 'gift', child: Text(tr('Geschenkt'))),
+                          DropdownMenuItem(value: 'other', child: Text(tr('Sonstiges'))),
                         ],
                         onChanged: (v) => setState(() => _origin = v),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _findLocation,
-                        decoration: const InputDecoration(labelText: 'Fundort (bleibt privat)'),
+                        decoration: InputDecoration(labelText: tr('Fundort (bleibt privat)')),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _seller,
-                        decoration: const InputDecoration(labelText: 'Verkäufer / Züchter'),
+                        decoration: InputDecoration(labelText: tr('Verkäufer / Züchter')),
                       ),
                       const SizedBox(height: 12),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Gründungsdatum'),
+                        title: Text(tr('Gründungsdatum')),
                         subtitle: Text(_founded == null ? '–' : S.date(_founded!)),
                         trailing: const Icon(Icons.edit_calendar),
                         onTap: () async {
@@ -373,10 +377,10 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                     controller: _notes,
                     minLines: 2,
                     maxLines: 6,
-                    decoration: const InputDecoration(labelText: 'Notizen'),
+                    decoration: InputDecoration(labelText: tr('Notizen')),
                   ),
                   const SizedBox(height: 24),
-                  FilledButton(onPressed: _save, child: Text(_isNew ? 'Kolonie anlegen' : 'Speichern')),
+                  FilledButton(onPressed: _save, child: Text(_isNew ? tr('Kolonie anlegen') : tr('Speichern'))),
                 ],
               ),
             ),
@@ -393,22 +397,22 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, set) => AlertDialog(
-          title: const Text('Neuer Standort'),
+          title: Text(tr('Neuer Standort')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: name,
                 autofocus: true,
-                decoration: const InputDecoration(labelText: 'Name', hintText: 'Regal A'),
+                decoration: InputDecoration(labelText: tr('Name'), hintText: tr('Regal A')),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 initialValue: parent,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Liegt in'),
+                decoration: InputDecoration(labelText: tr('Liegt in')),
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('– (oberste Ebene)')),
+                  DropdownMenuItem(value: null, child: Text(tr('– (oberste Ebene)'))),
                   for (final l in existing) DropdownMenuItem(value: l.id, child: Text(l.path)),
                 ],
                 onChanged: (v) => set(() => parent = v),
@@ -416,8 +420,8 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Anlegen')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Abbrechen'))),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Anlegen'))),
           ],
         ),
       ),

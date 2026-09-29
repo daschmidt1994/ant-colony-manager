@@ -4,13 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../shared/widgets.dart';
+import '../../app/i18n.dart';
 
 /// E-mail server (SMTP) for administrators – replaces SMTP_* in the compose file.
 final smtpSettingsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   return await ref.read(authProvider.notifier).api.get('/api/v1/admin/smtp') as Map<String, dynamic>;
 });
 
-const smtpSecurity = {'starttls': ('STARTTLS', 587), 'tls': ('SSL/TLS', 465), 'none': ('keine (nur Heimnetz)', 25)};
+Map<String, (String, int)> get smtpSecurity => {
+  'starttls': ('STARTTLS', 587),
+  'tls': ('SSL/TLS', 465),
+  'none': (tr('keine (nur Heimnetz)'), 25),
+};
 
 /// Request body; the password only when typed or removed.
 Map<String, dynamic> smtpBody({
@@ -45,9 +50,9 @@ class SmtpScreen extends ConsumerWidget {
           appBar: AppBar(title: const Text('E-Mail-Versand')),
           body: EmptyState(
             icon: Icons.cloud_off,
-            title: 'Nur mit Verbindung zum Server',
+            title: tr('Nur mit Verbindung zum Server'),
             text: errorText(e),
-            action: FilledButton(onPressed: () => ref.invalidate(smtpSettingsProvider), child: const Text('Erneut')),
+            action: FilledButton(onPressed: () => ref.invalidate(smtpSettingsProvider), child: Text(tr('Erneut'))),
           ),
         ),
         data: (s) => _SmtpForm(initial: s),
@@ -111,7 +116,7 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
       password: _password.text,
       removePassword: _removePassword,
     ),
-    'Gespeichert – gilt ab sofort',
+    tr('Gespeichert – gilt ab sofort'),
   );
 
   Future<void> _test() async {
@@ -120,7 +125,12 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
     try {
       await ref.read(authProvider.notifier).api.post('/api/v1/admin/smtp/test');
       final auth = ref.read(authProvider);
-      if (mounted) showUndoSnack(context, 'Test-E-Mail gesendet an ${auth is SignedIn ? auth.user.email : 'dich'}');
+      if (mounted) {
+        showUndoSnack(
+          context,
+          auth is SignedIn ? tr('Test-E-Mail gesendet an {0}', [auth.user.email]) : tr('Test-E-Mail gesendet'),
+        );
+      }
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -132,19 +142,19 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        title: const Text('E-Mail-Einstellungen entfernen?'),
+        title: Text(tr('E-Mail-Einstellungen entfernen?')),
         content: Text(
           _s['env_configured'] == true
-              ? 'Danach gelten wieder die Werte aus der Docker-Konfiguration (SMTP_*).'
-              : 'Danach verschickt der Server keine E-Mails mehr.',
+              ? tr('Danach gelten wieder die Werte aus der Docker-Konfiguration (SMTP_*).')
+              : tr('Danach verschickt der Server keine E-Mails mehr.'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Entfernen')),
+          TextButton(onPressed: () => Navigator.pop(d, false), child: Text(tr('Abbrechen'))),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(tr('Entfernen'))),
         ],
       ),
     );
-    if (ok == true && await _put({'host': ''}, 'Entfernt') && mounted) {
+    if (ok == true && await _put({'host': ''}, tr('Entfernt')) && mounted) {
       _host.text = _s['host'] as String? ?? '';
       _user.text = _s['user'] as String? ?? '';
       _from.text = _s['from'] as String? ?? '';
@@ -157,18 +167,18 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
     final muted = TextStyle(color: context.colors.muted);
     final source = _s['source'] as String? ?? 'none';
     final (statusIcon, statusText, statusColor) = switch (source) {
-      'app' => (Icons.check_circle_outline, 'Aktiv – eingerichtet in der App', context.colors.ok),
+      'app' => (Icons.check_circle_outline, tr('Aktiv – eingerichtet in der App'), context.colors.ok),
       'env' => (
         Icons.info_outline,
-        'Aktiv – aus der Docker-Konfiguration (SMTP_*). Hier gespeichert hat Vorrang.',
+        tr('Aktiv – aus der Docker-Konfiguration (SMTP_*). Hier gespeichert hat Vorrang.'),
         context.colors.soon,
       ),
-      _ => (Icons.mail_lock_outlined, 'Kein E-Mail-Versand eingerichtet', context.colors.muted),
+      _ => (Icons.mail_lock_outlined, tr('Kein E-Mail-Versand eingerichtet'), context.colors.muted),
     };
     return Scaffold(
       appBar: AppBar(
         title: const Text('E-Mail-Versand'),
-        actions: [TextButton(onPressed: _busy ? null : _save, child: const Text('Speichern'))],
+        actions: [TextButton(onPressed: _busy ? null : _save, child: Text(tr('Speichern')))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -186,20 +196,19 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Für „Passwort vergessen“, den Tages-Überblick und Benachrichtigungen per E-Mail. '
-                  'Die Daten stehen bei deinem Mail-Anbieter (Postausgangsserver / SMTP). '
-                  'Bei Gmail, Outlook & Co. meist ein eigenes App-Passwort verwenden.',
+                  tr(
+                    'Für „Passwort vergessen“, den Tages-Überblick und Benachrichtigungen per E-Mail. '
+                    'Die Daten stehen bei deinem Mail-Anbieter (Postausgangsserver / SMTP). '
+                    'Bei Gmail, Outlook & Co. meist ein eigenes App-Passwort verwenden.',
+                  ),
                   style: muted,
                 ),
-                const SectionHeader('Server'),
+                SectionHeader(tr('Server')),
                 TextField(
                   controller: _host,
                   keyboardType: TextInputType.url,
                   autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Postausgangsserver (SMTP)',
-                    hintText: 'smtp.example.com',
-                  ),
+                  decoration: InputDecoration(labelText: tr('Postausgangsserver (SMTP)'), hintText: 'smtp.example.com'),
                   onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
@@ -210,7 +219,7 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
                       child: DropdownButtonFormField<String>(
                         initialValue: _tls,
                         isExpanded: true,
-                        decoration: const InputDecoration(labelText: 'Verschlüsselung'),
+                        decoration: InputDecoration(labelText: tr('Verschlüsselung')),
                         items: [
                           for (final e in smtpSecurity.entries)
                             DropdownMenuItem(
@@ -233,17 +242,17 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
                       child: TextField(
                         controller: _port,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Port'),
+                        decoration: InputDecoration(labelText: tr('Port')),
                       ),
                     ),
                   ],
                 ),
-                const SectionHeader('Anmeldung'),
+                SectionHeader(tr('Anmeldung')),
                 TextField(
                   controller: _user,
                   autocorrect: false,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Benutzer', hintText: 'meist die E-Mail-Adresse'),
+                  decoration: InputDecoration(labelText: tr('Benutzer'), hintText: tr('meist die E-Mail-Adresse')),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -251,33 +260,33 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
                   obscureText: true,
                   autocorrect: false,
                   decoration: InputDecoration(
-                    labelText: 'Passwort',
-                    hintText: _passwordSet ? 'gespeichert – leer lassen zum Behalten' : null,
-                    helperText: 'Wird verschlüsselt auf dem Server gespeichert und nie angezeigt',
+                    labelText: tr('Passwort'),
+                    hintText: _passwordSet ? tr('gespeichert – leer lassen zum Behalten') : null,
+                    helperText: tr('Wird verschlüsselt auf dem Server gespeichert und nie angezeigt'),
                     suffixIcon: _passwordSet
                         ? IconButton(
-                            tooltip: 'Passwort entfernen',
+                            tooltip: tr('Passwort entfernen'),
                             icon: const Icon(Icons.delete_outline),
                             onPressed: () => setState(() => _removePassword = true),
                           )
                         : null,
                   ),
                 ),
-                const SectionHeader('Absender'),
+                SectionHeader(tr('Absender')),
                 TextField(
                   controller: _from,
                   autocorrect: false,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Absender',
-                    hintText: 'Ameisen <ameisen@example.com>',
-                    helperText: 'Muss der Mail-Anbieter meist als Absender erlauben',
+                  decoration: InputDecoration(
+                    labelText: tr('Absender'),
+                    hintText: tr('Ameisen <ameisen@example.com>'),
+                    helperText: tr('Muss der Mail-Anbieter meist als Absender erlauben'),
                   ),
                 ),
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   icon: const Icon(Icons.send_outlined),
-                  label: const Text('Speichern und Test-E-Mail an mich senden'),
+                  label: Text(tr('Speichern und Test-E-Mail an mich senden')),
                   onPressed: _busy || _host.text.trim().isEmpty ? null : _test,
                 ),
                 if (source == 'app') ...[
@@ -285,7 +294,7 @@ class _SmtpFormState extends ConsumerState<_SmtpForm> {
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(foregroundColor: context.colors.overdue),
                     icon: const Icon(Icons.delete_outline),
-                    label: const Text('E-Mail-Einstellungen entfernen'),
+                    label: Text(tr('E-Mail-Einstellungen entfernen')),
                     onPressed: _busy ? null : _remove,
                   ),
                 ],

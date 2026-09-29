@@ -19,6 +19,7 @@ import '../photos/photos.dart';
 import '../reports/report_action.dart';
 import '../species/species_screens.dart';
 import '../timeline/timeline_screen.dart';
+import '../../app/i18n.dart';
 
 class ColonyDetailScreen extends ConsumerWidget {
   const ColonyDetailScreen({super.key, required this.colonyId});
@@ -30,16 +31,16 @@ class ColonyDetailScreen extends ConsumerWidget {
     return colony.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
-        body: EmptyState(icon: Icons.error_outline, title: 'Fehler', text: '$e'),
+        body: EmptyState(icon: Icons.error_outline, title: tr('Fehler'), text: '$e'),
       ),
       data: (c) => c == null
           ? Scaffold(
               appBar: AppBar(),
               body: EmptyState(
                 icon: Icons.search_off,
-                title: 'Kolonie nicht gefunden',
-                text: 'Sie wurde gelöscht oder nicht mehr mit dir geteilt.',
-                action: FilledButton(onPressed: () => context.go('/colonies'), child: const Text('Zur Liste')),
+                title: tr('Kolonie nicht gefunden'),
+                text: tr('Sie wurde gelöscht oder nicht mehr mit dir geteilt.'),
+                action: FilledButton(onPressed: () => context.go('/colonies'), child: Text(tr('Zur Liste'))),
               ),
             )
           : _ColonyPage(colony: c),
@@ -64,7 +65,7 @@ class _ColonyPage extends ConsumerWidget {
     final now = DateTime.now();
 
     DateTime? lastOf(String type) => events.where((e) => e.type == type).firstOrNull?.occurredAt;
-    String? ago(DateTime? t) => t == null ? null : 'zuletzt ${S.relativeDay(t, now).toLowerCase()}';
+    String? ago(DateTime? t) => t == null ? null : tr('zuletzt {0}', [S.relativeDayInline(t, now)]);
 
     final askAcceptance =
         canEdit &&
@@ -85,19 +86,22 @@ class _ColonyPage extends ConsumerWidget {
           PopupMenuButton<String>(
             onSelected: (v) => _menu(context, ref, v),
             itemBuilder: (_) => [
-              if (canEdit) const PopupMenuItem(value: 'backdate', child: Text('Nachtragen …')),
-              if (canEdit) const PopupMenuItem(value: 'edit', child: Text('Bearbeiten')),
-              const PopupMenuItem(value: 'timeline', child: Text('Timeline')),
-              if (canEdit) const PopupMenuItem(value: 'measure', child: Text('Messung erfassen')),
-              if (canEdit) const PopupMenuItem(value: 'census', child: Text('Größe & Brut erfassen')),
-              const PopupMenuItem(value: 'stats', child: Text('Statistik')),
-              const PopupMenuItem(value: 'report', child: Text('Bericht als PDF')),
+              if (canEdit) PopupMenuItem(value: 'backdate', child: Text(tr('Nachtragen …'))),
+              if (canEdit) PopupMenuItem(value: 'edit', child: Text(tr('Bearbeiten'))),
+              PopupMenuItem(value: 'timeline', child: Text(tr('Timeline'))),
+              if (canEdit) PopupMenuItem(value: 'measure', child: Text(tr('Messung erfassen'))),
+              if (canEdit) PopupMenuItem(value: 'census', child: Text(tr('Größe & Brut erfassen'))),
+              PopupMenuItem(value: 'stats', child: Text(tr('Statistik'))),
+              PopupMenuItem(value: 'report', child: Text(tr('Bericht als PDF'))),
               if (canEdit && ref.read(nfcControllerProvider) != NfcState.unsupported)
-                const PopupMenuItem(value: 'nfc', child: Text('NFC-Tag zuweisen')),
-              const PopupMenuItem(value: 'label', child: Text('Etikett drucken')),
+                PopupMenuItem(value: 'nfc', child: Text(tr('NFC-Tag zuweisen'))),
+              PopupMenuItem(value: 'label', child: Text(tr('Etikett drucken'))),
               if (isOwner)
-                PopupMenuItem(value: 'archive', child: Text(colony.archived ? 'Aus Archiv holen' : 'Archivieren')),
-              if (isOwner) const PopupMenuItem(value: 'delete', child: Text('Löschen')),
+                PopupMenuItem(
+                  value: 'archive',
+                  child: Text(colony.archived ? tr('Aus Archiv holen') : tr('Archivieren')),
+                ),
+              if (isOwner) PopupMenuItem(value: 'delete', child: Text(tr('Löschen'))),
             ],
           ),
         ],
@@ -112,24 +116,24 @@ class _ColonyPage extends ConsumerWidget {
                 _Header(colony: colony),
                 _SpeciesCard(colony: colony, canEdit: canEdit),
                 if (colony.archived)
-                  _Banner(icon: Icons.archive_outlined, text: 'Archiviert', color: context.colors.muted),
+                  _Banner(icon: Icons.archive_outlined, text: tr('Archiviert'), color: context.colors.muted),
                 if (!(canEdit && colony.isCareActive) && colony.status == 'hibernating')
                   _Banner(
                     icon: Icons.ac_unit,
-                    text: 'Winterruhe – Erinnerungen angepasst',
+                    text: tr('Winterruhe – Erinnerungen angepasst'),
                     color: context.colors.winter,
                   ),
                 SectionHeader(
-                  'Nächste Aufgaben',
+                  tr('Nächste Aufgaben'),
                   trailing: canEdit
                       ? TextButton(
                           onPressed: () => context.go('/colonies/${colony.id}/edit'),
-                          child: const Text('Intervalle'),
+                          child: Text(tr('Intervalle')),
                         )
                       : null,
                 ),
                 if (due.isEmpty)
-                  Text('Keine Pflegeintervalle festgelegt.', style: TextStyle(color: context.colors.muted))
+                  Text(tr('Keine Pflegeintervalle festgelegt.'), style: TextStyle(color: context.colors.muted))
                 else
                   for (final t in due)
                     DueRow(
@@ -140,7 +144,7 @@ class _ColonyPage extends ConsumerWidget {
                               final previous = repo.snoozeSchedule(t.schedule.id);
                               showUndoSnack(
                                 context,
-                                'Auf morgen verschoben',
+                                tr('Auf morgen verschoben'),
                                 onUndo: () => repo.setScheduleSnooze(t.schedule.id, previous),
                               );
                             }
@@ -154,13 +158,13 @@ class _ColonyPage extends ConsumerWidget {
                       child: ListTile(
                         leading: const Icon(Icons.replay),
                         title: Text(S.eventSummary(lastFeeding), maxLines: 2, overflow: TextOverflow.ellipsis),
-                        subtitle: const Text('Letzte Fütterung wiederholen'),
+                        subtitle: Text(tr('Letzte Fütterung wiederholen')),
                         trailing: const Icon(Icons.check_circle_outline),
                         onTap: () => repeatFeeding(context, ref, colony),
                       ),
                     ),
                   ],
-                  const SectionHeader('Schnellaktionen'),
+                  SectionHeader(tr('Schnellaktionen')),
                   GridView.count(
                     crossAxisCount: 3,
                     shrinkWrap: true,
@@ -171,45 +175,44 @@ class _ColonyPage extends ConsumerWidget {
                     children: [
                       QuickActionTile(
                         icon: Icons.pest_control_outlined,
-                        label: 'Füttern',
+                        label: tr('Füttern'),
                         subtitle: ago(lastFeeding?.occurredAt),
                         onTap: () => showFeedingSheet(context, ref, colony),
                       ),
                       QuickActionTile(
                         icon: Icons.water_drop_outlined,
-                        label: 'Wasser',
+                        label: tr('Wasser'),
                         subtitle: ago(lastOf('water')),
                         onTap: () => quickWater(context, ref, colony),
                         onLongPress: () => showWaterSheet(context, ref, colony),
                       ),
                       QuickActionTile(
                         icon: Icons.cleaning_services_outlined,
-                        label: 'Reinigen',
+                        label: tr('Reinigen'),
                         subtitle: ago(lastOf('cleaning')),
                         onTap: () => showCleaningSheet(context, ref, colony),
                       ),
                       QuickActionTile(
                         icon: Icons.visibility_outlined,
-                        label: 'Kontrolle',
+                        label: tr('Kontrolle'),
                         subtitle: ago(lastOf('check')),
                         onTap: () => quickCheck(context, ref, colony),
                         onLongPress: () => showNoteSheet(context, ref, colony, type: 'check'),
                       ),
                       QuickActionTile(
                         icon: Icons.sticky_note_2_outlined,
-                        label: 'Notiz',
+                        label: tr('Notiz'),
                         onTap: () => showNoteSheet(context, ref, colony),
                       ),
                       QuickActionTile(
                         icon: Icons.photo_camera_outlined,
-                        label: 'Foto',
+                        label: tr('Foto'),
                         subtitle: photos.isEmpty ? null : '${photos.length}',
-                        onTap: () => takePhoto(context, ref, colony),
-                        onLongPress: () => takePhoto(context, ref, colony, fromGallery: true),
+                        onTap: () => addPhotos(context, ref, colony),
                       ),
                       QuickActionTile(
                         icon: Icons.thermostat_outlined,
-                        label: 'Messung',
+                        label: tr('Messung'),
                         subtitle: ago(lastOf('measurement')),
                         onTap: () => showMeasurementSheet(context, ref, colony),
                       ),
@@ -217,8 +220,10 @@ class _ColonyPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Wasser und Kontrolle speichern sofort – lange drücken für Details. '
-                    'Vergessen einzutragen? Menü oben rechts → Nachtragen, oder im Dialog auf „Jetzt“ tippen.',
+                    tr(
+                      'Wasser und Kontrolle speichern sofort – lange drücken für Details. '
+                      'Vergessen einzutragen? Menü oben rechts → Nachtragen, oder im Dialog auf „Jetzt“ tippen.',
+                    ),
                     style: TextStyle(color: context.colors.muted, fontSize: 12),
                   ),
                   if (colony.isCareActive) _WinterCard(colony: colony),
@@ -232,7 +237,7 @@ class _ColonyPage extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Fütterung von ${S.relativeDay(lastFeeding.occurredAt, now).toLowerCase()} angenommen?',
+                            tr('Fütterung von {0} angenommen?', [S.relativeDayInline(lastFeeding.occurredAt, now)]),
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 10),
@@ -253,23 +258,23 @@ class _ColonyPage extends ConsumerWidget {
                 ],
                 if (photos.isNotEmpty) ...[
                   SectionHeader(
-                    'Fotos · ${photos.length}',
+                    tr('Fotos · {0}', [photos.length]),
                     trailing: TextButton(
                       onPressed: () => context.go('/colonies/${colony.id}/photos'),
-                      child: const Text('Galerie'),
+                      child: Text(tr('Galerie')),
                     ),
                   ),
                   PhotoStrip(photos: photos.take(12).toList(), size: 88),
                 ],
                 SectionHeader(
-                  'Timeline',
+                  tr('Timeline'),
                   trailing: TextButton(
                     onPressed: () => context.go('/colonies/${colony.id}/timeline'),
-                    child: const Text('Alle'),
+                    child: Text(tr('Alle')),
                   ),
                 ),
                 if (events.isEmpty)
-                  Text('Noch keine Einträge.', style: TextStyle(color: context.colors.muted))
+                  Text(tr('Noch keine Einträge.'), style: TextStyle(color: context.colors.muted))
                 else
                   Card(
                     child: Column(
@@ -312,24 +317,26 @@ class _ColonyPage extends ConsumerWidget {
         repo.archiveColony(colony.id, !colony.archived);
         showUndoSnack(
           context,
-          colony.archived ? 'Aus dem Archiv geholt' : 'Archiviert',
+          colony.archived ? tr('Aus dem Archiv geholt') : tr('Archiviert'),
           onUndo: () => repo.archiveColony(colony.id, colony.archived),
         );
       case 'delete':
         final ok = await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-            title: Text('${colony.name} löschen?'),
-            content: const Text(
-              'Die Kolonie und ihre Timeline verschwinden auf allen Geräten. '
-              'Archivieren behält die Daten.',
+            title: Text(tr('{0} löschen?', [colony.name])),
+            content: Text(
+              tr(
+                'Die Kolonie und ihre Timeline verschwinden auf allen Geräten. '
+                'Archivieren behält die Daten.',
+              ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
+              TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Abbrechen'))),
               FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: context.colors.overdue),
                 onPressed: () => Navigator.pop(c, true),
-                child: const Text('Löschen'),
+                child: Text(tr('Löschen')),
               ),
             ],
           ),
@@ -353,7 +360,7 @@ class _Header extends StatelessWidget {
       if (colony.queenCount != null)
         (Icons.workspace_premium_outlined, '${colony.queenCount} ${colony.queenCount == 1 ? 'Königin' : 'Königinnen'}'),
       if (colony.workerMin != null || colony.workerMax != null)
-        (Icons.groups_outlined, 'ca. ${S.workers(colony.workerMin, colony.workerMax)}'),
+        (Icons.groups_outlined, tr('ca. {0}', [S.workers(colony.workerMin, colony.workerMax)])),
       if (colony.lastTemperature != null) (Icons.thermostat_outlined, '${S.decimal(colony.lastTemperature!)} °C'),
       if (colony.lastHumidity != null) (Icons.water_drop_outlined, '${colony.lastHumidity!.round()} %'),
     ];
@@ -366,7 +373,7 @@ class _Header extends StatelessWidget {
             Text(colony.species, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontStyle: FontStyle.italic)),
           Text(
             [
-              'Kolonie #${colony.number}',
+              tr('Kolonie #{0}', [colony.number]),
               if (colony.locationPath != null) colony.locationPath!,
               S.statusNames[colony.status] ?? colony.status,
             ].join(' · '),
@@ -405,11 +412,11 @@ class _WinterCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final w = ref.watch(colonyWinterProvider(colony.id)).value;
     final running = w?.started ?? false;
-    final end = w?.plannedEndOn == null ? '' : ' · aufwecken am ${S.date(w!.plannedEndOn!)}';
+    final end = w?.plannedEndOn == null ? '' : tr(' · aufwecken am {0}', [S.date(w!.plannedEndOn!)]);
     final text = switch (w) {
-      null => 'Aus · planen, um erinnert zu werden',
-      _ when running => 'Seit ${S.date(w.startedOn!)}$end',
-      _ => 'Geplant ab ${S.date(w.plannedStartOn!)}$end',
+      null => tr('Aus · planen, um erinnert zu werden'),
+      _ when running => tr('Seit {0}{1}', [S.date(w.startedOn!), end]),
+      _ => tr('Geplant ab {0}{1}', [S.date(w.plannedStartOn!), end]),
     };
     final color = context.colors.winter;
     return Padding(
@@ -421,13 +428,13 @@ class _WinterCard extends ConsumerWidget {
           visualDensity: VisualDensity.compact,
           contentPadding: const EdgeInsets.only(left: 12, right: 4),
           leading: Icon(Icons.ac_unit, color: color, size: 20),
-          title: const Text('Winterruhe'),
+          title: Text(tr('Winterruhe')),
           subtitle: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                tooltip: w == null ? 'Planen' : 'Plan ändern',
+                tooltip: w == null ? tr('Planen') : tr('Plan ändern'),
                 icon: const Icon(Icons.edit_calendar, size: 20),
                 onPressed: () => _plan(context, ref, w),
               ),
@@ -438,7 +445,7 @@ class _WinterCard extends ConsumerWidget {
                   on ? repo.startWinter(colony.id) : repo.endWinter(colony.id);
                   showUndoSnack(
                     context,
-                    on ? 'Winterruhe begonnen' : 'Winterruhe beendet – normale Intervalle ab jetzt',
+                    on ? tr('Winterruhe begonnen') : tr('Winterruhe beendet – normale Intervalle ab jetzt'),
                   );
                 },
               ),
@@ -467,14 +474,14 @@ class _WinterCard extends ConsumerWidget {
         builder: (c, set) {
           final valid = end == null || end!.isAfter(start);
           return AlertDialog(
-            title: const Text('Winterruhe planen'),
+            title: Text(tr('Winterruhe planen')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.bedtime_outlined),
-                  title: Text(running ? 'Begonnen' : 'Beginn'),
+                  title: Text(running ? tr('Begonnen') : tr('Beginn')),
                   subtitle: Text(S.date(start)),
                   trailing: running ? null : const Icon(Icons.edit_calendar),
                   onTap: running
@@ -487,12 +494,12 @@ class _WinterCard extends ConsumerWidget {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.wb_sunny_outlined),
-                  title: const Text('Aufwecken'),
+                  title: Text(tr('Aufwecken')),
                   subtitle: Text(end == null ? 'offen' : S.date(end!)),
                   trailing: end == null
                       ? const Icon(Icons.edit_calendar)
                       : IconButton(
-                          tooltip: 'Kein Datum',
+                          tooltip: tr('Kein Datum'),
                           icon: const Icon(Icons.clear),
                           onPressed: () => set(() => end = null),
                         ),
@@ -506,19 +513,21 @@ class _WinterCard extends ConsumerWidget {
                   },
                 ),
                 if (!valid)
-                  Text('Aufwecken muss nach dem Beginn liegen.', style: TextStyle(color: context.colors.overdue)),
+                  Text(tr('Aufwecken muss nach dem Beginn liegen.'), style: TextStyle(color: context.colors.overdue)),
                 const SizedBox(height: 8),
                 Text(
-                  'Am geplanten Tag bekommst du eine Erinnerung – ein- und ausschalten tust du die Winterruhe selbst.',
+                  tr(
+                    'Am geplanten Tag bekommst du eine Erinnerung – ein- und ausschalten tust du die Winterruhe selbst.',
+                  ),
                   style: TextStyle(color: context.colors.muted),
                 ),
               ],
             ),
             actions: [
               if (w != null && !running)
-                TextButton(onPressed: () => Navigator.pop(c, 'cancel'), child: const Text('Plan löschen')),
-              TextButton(onPressed: () => Navigator.pop(c), child: const Text('Abbrechen')),
-              FilledButton(onPressed: valid ? () => Navigator.pop(c, 'save') : null, child: const Text('Speichern')),
+                TextButton(onPressed: () => Navigator.pop(c, 'cancel'), child: Text(tr('Plan löschen'))),
+              TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Abbrechen'))),
+              FilledButton(onPressed: valid ? () => Navigator.pop(c, 'save') : null, child: Text(tr('Speichern'))),
             ],
           );
         },
@@ -546,13 +555,17 @@ class _SpeciesCard extends ConsumerWidget {
     if (s == null || !context.mounted) return;
     final repo = ref.read(repositoryProvider)!;
     final previous = repo.linkSpecies(colony.id, s);
-    showUndoSnack(context, 'Verknüpft mit ${s.scientificName}', onUndo: () => repo.updateColony(colony.id, previous));
+    showUndoSnack(
+      context,
+      tr('Verknüpft mit {0}', [s.scientificName]),
+      onUndo: () => repo.updateColony(colony.id, previous),
+    );
   }
 
   void _unlink(BuildContext context, WidgetRef ref) {
     final repo = ref.read(repositoryProvider)!;
     final previous = repo.unlinkSpecies(colony.id);
-    showUndoSnack(context, 'Verknüpfung gelöst', onUndo: () => repo.updateColony(colony.id, previous));
+    showUndoSnack(context, tr('Verknüpfung gelöst'), onUndo: () => repo.updateColony(colony.id, previous));
   }
 
   @override
@@ -565,7 +578,7 @@ class _SpeciesCard extends ConsumerWidget {
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
           icon: const Icon(Icons.menu_book_outlined, size: 18),
-          label: const Text('Steckbrief aus dem Artenkatalog verknüpfen'),
+          label: Text(tr('Steckbrief aus dem Artenkatalog verknüpfen')),
           onPressed: () => _link(context, ref),
         ),
       );
@@ -576,21 +589,21 @@ class _SpeciesCard extends ConsumerWidget {
       child: Card(
         child: ListTile(
           leading: const Icon(Icons.menu_book_outlined),
-          title: Text('Steckbrief: ${species.scientificName}'),
+          title: Text(tr('Steckbrief: {0}', [species.scientificName])),
           subtitle: summary.isEmpty ? null : Text(summary),
           onTap: () => context.go('/species/${species.id}'),
           trailing: canEdit
               ? PopupMenuButton<String>(
-                  tooltip: 'Verknüpfung',
+                  tooltip: tr('Verknüpfung'),
                   onSelected: (v) => switch (v) {
                     'open' => context.go('/species/${species.id}'),
                     'change' => _link(context, ref),
                     _ => _unlink(context, ref),
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'open', child: Text('Steckbrief öffnen')),
-                    PopupMenuItem(value: 'change', child: Text('Andere Art wählen')),
-                    PopupMenuItem(value: 'unlink', child: Text('Verknüpfung lösen')),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 'open', child: Text(tr('Steckbrief öffnen'))),
+                    PopupMenuItem(value: 'change', child: Text(tr('Andere Art wählen'))),
+                    PopupMenuItem(value: 'unlink', child: Text(tr('Verknüpfung lösen'))),
                   ],
                 )
               : const Icon(Icons.chevron_right),
@@ -665,7 +678,7 @@ class _QrSheet extends ConsumerWidget {
             ),
           const SizedBox(height: 16),
           if (url == null)
-            const Text('Kein aktiver QR-Code.', textAlign: TextAlign.center)
+            Text(tr('Kein aktiver QR-Code.'), textAlign: TextAlign.center)
           else ...[
             Center(
               child: Container(
@@ -693,27 +706,27 @@ class _QrSheet extends ConsumerWidget {
                   context.push('/settings/labels?colony=${colony.id}');
                 },
                 icon: const Icon(Icons.print_outlined),
-                label: const Text('Etikett drucken'),
+                label: Text(tr('Etikett drucken')),
               ),
               if (url != null)
                 OutlinedButton.icon(
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: url));
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link kopiert')));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Link kopiert'))));
                   },
                   icon: const Icon(Icons.copy),
-                  label: const Text('Link kopieren'),
+                  label: Text(tr('Link kopieren')),
                 ),
               if (canEdit)
                 OutlinedButton.icon(
                   onPressed: () => _regenerate(context, repo),
                   icon: const Icon(Icons.autorenew),
-                  label: const Text('Neu generieren'),
+                  label: Text(tr('Neu generieren')),
                 ),
             ],
           ),
           SectionHeader(
-            'NFC-Tags (${tags.length})',
+            tr('NFC-Tags ({0})', [tags.length]),
             trailing: canEdit && nfc != NfcState.unsupported
                 ? TextButton.icon(
                     onPressed: () {
@@ -721,15 +734,15 @@ class _QrSheet extends ConsumerWidget {
                       context.push('/colonies/${colony.id}/nfc');
                     },
                     icon: const Icon(Icons.add),
-                    label: const Text('Tag zuweisen'),
+                    label: Text(tr('Tag zuweisen')),
                   )
                 : null,
           ),
           if (tags.isEmpty)
             Text(
               nfc == NfcState.unsupported
-                  ? 'NFC-Tags werden mit der Android-App zugewiesen.'
-                  : 'Noch kein Tag. Tipp: Aufkleber außen am Formicarium, etwas Abstand zu Metall und Heizmatten.',
+                  ? tr('NFC-Tags werden mit der Android-App zugewiesen.')
+                  : tr('Noch kein Tag. Tipp: Aufkleber außen am Formicarium, etwas Abstand zu Metall und Heizmatten.'),
               style: TextStyle(color: context.colors.muted),
             )
           else
@@ -740,14 +753,15 @@ class _QrSheet extends ConsumerWidget {
                 title: Text(t['label'] as String? ?? t['tag_type'] as String? ?? 'NFC-Tag'),
                 subtitle: Text(
                   [
-                    if (t['scan_link_id'] == null) 'nur Seriennummer',
-                    if (t['locked'] == true) 'schreibgeschützt',
-                    if (t['written_at'] != null) 'beschrieben ${S.date(DateTime.parse(t['written_at'] as String))}',
+                    if (t['scan_link_id'] == null) tr('nur Seriennummer'),
+                    if (t['locked'] == true) tr('schreibgeschützt'),
+                    if (t['written_at'] != null)
+                      tr('beschrieben {0}', [S.date(DateTime.parse(t['written_at'] as String))]),
                   ].join(' · '),
                 ),
                 trailing: canEdit
                     ? IconButton(
-                        tooltip: 'Entfernen',
+                        tooltip: tr('Entfernen'),
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () => repo.removeNfcTag(t['id'] as String),
                       )
@@ -762,11 +776,11 @@ class _QrSheet extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('QR-Code neu generieren?'),
-        content: const Text('Gedruckte Etiketten mit dem alten Code funktionieren danach nicht mehr.'),
+        title: Text(tr('QR-Code neu generieren?')),
+        content: Text(tr('Gedruckte Etiketten mit dem alten Code funktionieren danach nicht mehr.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Neu generieren')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Abbrechen'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Neu generieren'))),
         ],
       ),
     );

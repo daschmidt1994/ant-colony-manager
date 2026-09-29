@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../core/session.dart';
+import '../../app/i18n.dart';
 
 /// Newer releases, checked by the server (GitHub, cached there).
 final updatesProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
@@ -58,7 +59,7 @@ class _UpdateWarningState extends ConsumerState<UpdateWarning> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Update $version: Breaking Change',
+                      tr('Update {0}: Breaking Change', [version]),
                       style: TextStyle(color: red, fontWeight: FontWeight.w700, fontSize: 16),
                     ),
                   ),
@@ -66,9 +67,11 @@ class _UpdateWarningState extends ConsumerState<UpdateWarning> {
               ),
               const SizedBox(height: 8),
               if (text != null && text.isNotEmpty) ...[Text(text), const SizedBox(height: 8)],
-              const Text(
-                'Vor dem Update: 1. Backup machen · 2. Server aktualisieren · 3. dann erst die App. '
-                'App und Server müssen danach dieselbe Version haben.',
+              Text(
+                tr(
+                  'Vor dem Update: 1. Backup machen · 2. Server aktualisieren · 3. dann erst die App. '
+                  'App und Server müssen danach dieselbe Version haben.',
+                ),
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               Row(
@@ -77,11 +80,11 @@ class _UpdateWarningState extends ConsumerState<UpdateWarning> {
                   if (r['url'] is String && (r['url'] as String).startsWith('https://'))
                     TextButton(
                       onPressed: () => launchUrl(Uri.parse(r['url'] as String), mode: LaunchMode.externalApplication),
-                      child: const Text('Details'),
+                      child: Text(tr('Details')),
                     ),
                   TextButton(
                     onPressed: () => setState(() => db.setMeta(_dismissedKey, version)),
-                    child: const Text('Ausblenden'),
+                    child: Text(tr('Ausblenden')),
                   ),
                 ],
               ),
@@ -98,6 +101,6 @@ String? updateLine(Map<String, dynamic>? info) {
   if (info == null || info['update_available'] != true) return null;
   final latest = info['latest'];
   return info['breaking'] == true
-      ? 'Update $latest verfügbar – ⚠ Breaking Change, vorher Backup'
-      : 'Update $latest verfügbar';
+      ? tr('Update {0} verfügbar – ⚠ Breaking Change, vorher Backup', [latest])
+      : tr('Update {0} verfügbar', [latest]);
 }

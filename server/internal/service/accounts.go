@@ -515,12 +515,13 @@ func (s *Service) ForgotPassword(ctx context.Context, email string, meta ClientM
 		return err
 	}
 	s.Audit(ctx, &id, "password_reset_requested", "", nil, meta.IP)
-	body := "Hallo " + name + ",\n\nüber diesen Link kannst du dein Passwort für Ant Colony Manager zurücksetzen (30 Minuten gültig):\n\n" +
-		s.resetLink(tok) + "\n\nWenn du das nicht angefordert hast, kannst du diese E-Mail ignorieren.\n"
+	lang := s.userLang(ctx, id)
+	body := tl(lang, "Hallo %s,\n\nüber diesen Link kannst du dein Passwort für Ant Colony Manager zurücksetzen (30 Minuten gültig):\n\n%s\n\nWenn du das nicht angefordert hast, kannst du diese E-Mail ignorieren.\n",
+		name, s.resetLink(tok))
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
-		if err := s.Mail.Send(ctx, mailer.Message{To: email, Subject: "Passwort zurücksetzen", Body: body}); err != nil {
+		if err := s.Mail.Send(ctx, mailer.Message{To: email, Subject: tl(lang, "Passwort zurücksetzen"), Body: body}); err != nil {
 			s.Log.Error("sending reset mail failed", "err", err)
 		}
 	}()

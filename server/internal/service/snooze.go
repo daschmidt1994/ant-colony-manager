@@ -57,6 +57,7 @@ func (s *Service) SnoozeByLink(ctx context.Context, q url.Values) (string, error
 		return "", err
 	}
 	prefs := s.userPrefs(ctx, s.Pool, user)
+	lang := s.userLang(ctx, user)
 	switch q.Get("k") {
 	case "care":
 		n, err := s.snoozeCare(ctx, colony, prefs.Location)
@@ -64,14 +65,14 @@ func (s *Service) SnoozeByLink(ctx context.Context, q url.Values) (string, error
 			return "", err
 		}
 		if n == 0 {
-			return "Nichts mehr fällig", nil
+			return tl(lang, "Nichts mehr fällig"), nil
 		}
-		return "Auf morgen verschoben", nil
+		return tl(lang, "Auf morgen verschoben"), nil
 	case "winter":
 		if err := s.snoozeWinter(ctx, colony, prefs.Location); err != nil {
 			return "", err
 		}
-		return "Winterruhe um einen Tag verschoben", nil
+		return tl(lang, "Winterruhe um einen Tag verschoben"), nil
 	}
 	return "", Invalid("k", "unknown kind")
 }

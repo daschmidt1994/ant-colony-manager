@@ -11,6 +11,7 @@ import '../data/sync/upload_policy.dart';
 import '../features/reminders/reminders.dart';
 import 'api_client.dart';
 import 'key_value_store.dart';
+import '../app/i18n.dart';
 
 /// Set by CI from app/pubspec.yaml – the server image gets the same string
 /// (release: `1.2.3`, test build from dev: `1.2.3-dev.<commit>`).
@@ -35,7 +36,7 @@ class SessionStore implements TokenStore {
 
 /// One id per installation (kept in the local database; a wipe starts a new device).
 /// Name shown in „Geräte & Sitzungen“; can be changed there.
-String deviceNameOf(AppDatabase db) => db.getMeta(deviceNameKey) ?? (kIsWeb ? 'Web-Browser' : 'Android');
+String deviceNameOf(AppDatabase db) => db.getMeta(deviceNameKey) ?? (kIsWeb ? tr('Web-Browser') : tr('Android'));
 
 String deviceIdOf(AppDatabase db) {
   final existing = db.getMeta('device_id');
@@ -193,7 +194,7 @@ class AuthController extends Notifier<AuthState> {
   Future<void> connect(String input) async {
     final url = normalizeServerUrl(input);
     final i = await _client(url).public('GET', '/api/v1/instance') as Map<String, dynamic>;
-    if (i['api_version'] != 1) throw ApiException(0, 'incompatible', 'Server-Version wird nicht unterstützt');
+    if (i['api_version'] != 1) throw ApiException(0, 'incompatible', tr('Server-Version wird nicht unterstützt'));
     await _store.write('server_url', url);
     state = SignedOut(url, setupRequired: i['setup_required'] == true, instanceName: i['name'] as String?);
   }
@@ -286,7 +287,7 @@ class AuthController extends Notifier<AuthState> {
               url,
               setupRequired: s.setupRequired,
               instanceName: s.instanceName,
-              notice: 'Dieses Gerät wurde abgemeldet. Die lokalen Daten wurden entfernt.',
+              notice: tr('Dieses Gerät wurde abgemeldet. Die lokalen Daten wurden entfernt.'),
             )
           : s;
     }

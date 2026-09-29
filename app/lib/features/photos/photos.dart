@@ -11,8 +11,10 @@ import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
+import '../../domain/exif.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
+import '../../app/i18n.dart';
 
 /// Long edge of the uploaded image and JPEG quality (docs/05 §7). The
 /// server re-encodes anyway; compressing here saves mobile data and storage.
@@ -39,9 +41,37 @@ Future<Uint8List> makeThumb(Uint8List image) async {
   return png!.buffer.asUint8List();
 }
 
-/// „Foto“: Android opens the camera (long press: gallery), the web a file
-/// dialog (several at once). Saved without further questions – caption via
-/// „Details“ in the confirmation.
+/// „Foto“: Android asks camera or gallery (several at once), the web opens a
+/// file dialog. Saved without further questions – caption via „Details“ in
+/// the confirmation. Gallery photos keep their capture date (EXIF).
+Future<void> addPhotos(BuildContext context, WidgetRef ref, Colony colony, {String? eventId}) async {
+  if (kIsWeb) return takePhoto(context, ref, colony, eventId: eventId, fromGallery: true);
+  final gallery = await showModalBottomSheet<bool>(
+    context: context,
+    builder: (c) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_camera_outlined),
+            title: Text(tr('Kamera')),
+            subtitle: Text(tr('Jetzt ein Foto aufnehmen')),
+            onTap: () => Navigator.pop(c, false),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: Text(tr('Aus der Galerie')),
+            subtitle: Text(tr('Ein oder mehrere Fotos – mit ihrem Aufnahmedatum')),
+            onTap: () => Navigator.pop(c, true),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (gallery == null || !context.mounted) return;
+  return takePhoto(context, ref, colony, eventId: eventId, fromGallery: gallery);
+}
+
 Future<void> takePhoto(
   BuildContext context,
   WidgetRef ref,
@@ -66,7 +96,15 @@ Future<void> takePhoto(
       files = [?f];
     }
   } on PlatformException catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text('Kamera nicht verfügbar: ${e.message ?? e.code}')));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          fromGallery
+              ? tr('Galerie nicht verfügbar: {0}', [e.message ?? e.code])
+              : tr('Kamera nicht verfügbar: {0}', [e.message ?? e.code]),
+        ),
+      ),
+    );
     return;
   }
   if (files.isEmpty) return;
@@ -77,16 +115,29 @@ Future<void> takePhoto(
     try {
       thumb = await makeThumb(bytes);
     } on Exception {
-      messenger.showSnackBar(const SnackBar(content: Text('Dieses Bild kann nicht gelesen werden.')));
+      messenger.showSnackBar(SnackBar(content: Text(tr('Dieses Bild kann nicht gelesen werden.'))));
       continue;
     }
-    saved.add(repo.addPhoto(colony.id, bytes, thumb: thumb, eventId: eventId));
+    // Gallery: the day it was taken (EXIF); camera: now.
+    // (the browser drops EXIF when resizing – there the file date is the fallback)
+    DateTime? taken;
+    if (fromGallery || kIsWeb) {
+      taken = plausibleTaken(exifDateTaken(bytes), DateTime.now());
+      if (taken == null && kIsWeb) {
+        try {
+          taken = plausibleTaken(await f.lastModified(), DateTime.now());
+        } on Exception {
+          taken = null;
+        }
+      }
+    }
+    saved.add(repo.addPhoto(colony.id, bytes, thumb: thumb, eventId: eventId, takenAt: taken));
   }
   if (saved.isEmpty) return;
   HapticFeedback.mediumImpact();
   showUndoSnackOn(
     messenger,
-    saved.length == 1 ? 'Foto gespeichert' : '${saved.length} Fotos gespeichert',
+    saved.length == 1 ? tr('Foto gespeichert') : tr('{0} Fotos gespeichert', [saved.length]),
     onUndo: () {
       for (final p in saved) {
         repo.deletePhoto(p.id);
@@ -101,17 +152,17 @@ Future<void> editCaption(BuildContext context, WidgetRef ref, Photo photo) async
   final text = await showDialog<String>(
     context: context,
     builder: (d) => AlertDialog(
-      title: const Text('Beschreibung'),
+      title: Text(tr('Beschreibung')),
       content: TextField(
         controller: c,
         autofocus: true,
         maxLines: 3,
         textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(hintText: 'z. B. erste Larven sichtbar'),
+        decoration: InputDecoration(hintText: tr('z. B. erste Larven sichtbar')),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(d), child: const Text('Abbrechen')),
-        FilledButton(onPressed: () => Navigator.pop(d, c.text), child: const Text('Speichern')),
+        TextButton(onPressed: () => Navigator.pop(d), child: Text(tr('Abbrechen'))),
+        FilledButton(onPressed: () => Navigator.pop(d, c.text), child: Text(tr('Speichern'))),
       ],
     ),
   );
@@ -167,7 +218,7 @@ class PhotoThumb extends ConsumerWidget {
     final uploading = !photo.stored && ref.read(databaseProvider).photoUpload(photo.id) != null;
     return Semantics(
       image: true,
-      label: photo.caption ?? 'Foto vom ${S.date(photo.takenAt)}',
+      label: photo.caption ?? tr('Foto vom {0}', [S.date(photo.takenAt)]),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
@@ -191,7 +242,7 @@ class PhotoThumb extends ConsumerWidget {
                     right: 4,
                     top: 4,
                     child: Tooltip(
-                      message: 'wird hochgeladen, sobald Verbindung besteht',
+                      message: tr('wird hochgeladen, sobald Verbindung besteht'),
                       child: CircleAvatar(
                         radius: 10,
                         backgroundColor: Colors.black54,
@@ -252,19 +303,19 @@ class GalleryScreen extends ConsumerWidget {
       (groups[month.format(photos[i].takenAt.toLocal())] ??= []).add(i);
     }
     return Scaffold(
-      appBar: AppBar(title: Text(colony == null ? 'Fotos' : 'Fotos · ${colony.name}')),
+      appBar: AppBar(title: Text(colony == null ? tr('Fotos') : tr('Fotos · {0}', [colony.name]))),
       floatingActionButton: canEdit && colony != null
           ? FloatingActionButton.extended(
-              onPressed: () => takePhoto(context, ref, colony),
+              onPressed: () => addPhotos(context, ref, colony),
               icon: Icon(kIsWeb ? Icons.add_photo_alternate_outlined : Icons.photo_camera_outlined),
-              label: Text(kIsWeb ? 'Fotos hinzufügen' : 'Foto'),
+              label: Text(kIsWeb ? tr('Fotos hinzufügen') : tr('Foto')),
             )
           : null,
       body: photos.isEmpty
-          ? const EmptyState(
+          ? EmptyState(
               icon: Icons.photo_library_outlined,
-              title: 'Noch keine Fotos',
-              text: 'Fotos werden vor dem Hochladen verkleinert und sind auch offline sichtbar.',
+              title: tr('Noch keine Fotos'),
+              text: tr('Fotos werden vor dem Hochladen verkleinert und sind auch offline sichtbar.'),
             )
           : ContentWidth(
               child: CustomScrollView(
@@ -332,11 +383,11 @@ class _PhotoViewerState extends ConsumerState<_PhotoViewer> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        title: const Text('Foto löschen?'),
-        content: const Text('Das Foto verschwindet auf allen Geräten.'),
+        title: Text(tr('Foto löschen?')),
+        content: Text(tr('Das Foto verschwindet auf allen Geräten.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Löschen')),
+          TextButton(onPressed: () => Navigator.pop(d, false), child: Text(tr('Abbrechen'))),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(tr('Löschen'))),
         ],
       ),
     );
@@ -359,11 +410,15 @@ class _PhotoViewerState extends ConsumerState<_PhotoViewer> {
         actions: [
           if (widget.canEdit) ...[
             IconButton(
-              tooltip: 'Beschreibung',
+              tooltip: tr('Beschreibung'),
               onPressed: () => editCaption(context, ref, current),
               icon: const Icon(Icons.edit_outlined),
             ),
-            IconButton(tooltip: 'Löschen', onPressed: () => _delete(current), icon: const Icon(Icons.delete_outline)),
+            IconButton(
+              tooltip: tr('Löschen'),
+              onPressed: () => _delete(current),
+              icon: const Icon(Icons.delete_outline),
+            ),
           ],
         ],
       ),
@@ -381,8 +436,8 @@ class _PhotoViewerState extends ConsumerState<_PhotoViewer> {
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (_, _) => const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white54)),
                   data: (b) => b == null
-                      ? const Center(
-                          child: Text('Offline – Foto noch nicht geladen', style: TextStyle(color: Colors.white70)),
+                      ? Center(
+                          child: Text(tr('Offline – Foto noch nicht geladen'), style: TextStyle(color: Colors.white70)),
                         )
                       : InteractiveViewer(maxScale: 5, child: Center(child: Image.memory(b))),
                 );

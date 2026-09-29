@@ -10,6 +10,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos, Messwerte, Sensor-Schnittstelle
 - **Benachrichtigungen per App, ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit, Ruhezeiten, „Morgen“ zum Verschieben
 - **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) – mit den eigenen Kolonien verknüpft
+- **Deutsch und Englisch** (weitere Sprachen: eine Übersetzungsdatei, [docs/21-sprachen.md](docs/21-sprachen.md)); Fotos auch aus der Galerie, mit Aufnahmedatum
 - **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie (nur eine abschaltbare Update-Prüfung gegen die öffentliche GitHub-Release-Liste, `UPDATE_CHECK=false`)
 - **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien
 

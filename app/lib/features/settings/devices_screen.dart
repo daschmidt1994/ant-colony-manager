@@ -7,6 +7,7 @@ import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../data/sync/sync_engine.dart';
 import '../../shared/widgets.dart';
+import '../../app/i18n.dart';
 
 /// One signed-in device or browser (a session family on the server).
 class DeviceSession {
@@ -24,8 +25,8 @@ class DeviceSession {
     final n = (json['device_name'] as String?)?.trim() ?? '';
     final browser = describeUserAgent(json['user_agent'] as String?);
     if (n.isNotEmpty && !_defaultNames.contains(n)) return n;
-    if (platform == 'web' || (n.isEmpty && browser != null)) return browser ?? 'Web-Browser';
-    return n.isEmpty ? 'Unbekanntes Gerät' : n;
+    if (platform == 'web' || (n.isEmpty && browser != null)) return browser ?? tr('Web-Browser');
+    return n.isEmpty ? tr('Unbekanntes Gerät') : n;
   }
 
   static const _defaultNames = {'Web-Browser', 'Android', 'android', 'web', 'ios'};
@@ -43,29 +44,29 @@ String? describeUserAgent(String? ua) {
   // Scripts and tools (curl, a sensor gateway …): their own name.
   if (!ua.startsWith('Mozilla/')) return ua.split(' ').first;
   final browser = ua.contains('Edg/')
-      ? 'Edge'
+      ? tr('Edge')
       : ua.contains('Firefox/')
-      ? 'Firefox'
+      ? tr('Firefox')
       : ua.contains('Chrome/') || ua.contains('Chromium/')
-      ? 'Chrome'
+      ? tr('Chrome')
       : ua.contains('Safari/')
-      ? 'Safari'
+      ? tr('Safari')
       : ua.startsWith('Dart/') || ua.contains('okhttp')
       ? null
-      : 'Browser';
-  final os = ua.contains('Android')
-      ? 'Android'
+      : tr('Browser');
+  final os = ua.contains(tr('Android'))
+      ? tr('Android')
       : ua.contains('iPhone') || ua.contains('iPad')
       ? 'iOS'
-      : ua.contains('Windows')
-      ? 'Windows'
-      : ua.contains('Mac OS')
+      : ua.contains(tr('Windows'))
+      ? tr('Windows')
+      : ua.contains(tr('Mac OS'))
       ? 'macOS'
-      : ua.contains('Linux')
-      ? 'Linux'
+      : ua.contains(tr('Linux'))
+      ? tr('Linux')
       : null;
   if (browser == null) return null;
-  return os == null ? browser : '$browser auf $os';
+  return os == null ? browser : tr('{0} auf {1}', [browser, os]);
 }
 
 final deviceSessionsProvider = FutureProvider.autoDispose<List<DeviceSession>>((ref) async {
@@ -89,18 +90,18 @@ class DevicesScreen extends ConsumerWidget {
     final name = await showDialog<String>(
       context: context,
       builder: (d) => AlertDialog(
-        title: const Text('Name dieses Geräts'),
+        title: Text(tr('Name dieses Geräts')),
         content: TextField(
           controller: c,
           autofocus: true,
           maxLength: 60,
           textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(hintText: kIsWeb ? 'z. B. Laptop Wohnzimmer' : 'z. B. Pixel 7 von Anna'),
+          decoration: InputDecoration(hintText: kIsWeb ? tr('z. B. Laptop Wohnzimmer') : tr('z. B. Pixel 7 von Anna')),
           onSubmitted: (v) => Navigator.pop(d, v),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(d), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.pop(d, c.text), child: const Text('Speichern')),
+          TextButton(onPressed: () => Navigator.pop(d), child: Text(tr('Abbrechen'))),
+          FilledButton(onPressed: () => Navigator.pop(d, c.text), child: Text(tr('Speichern'))),
         ],
       ),
     );
@@ -116,14 +117,18 @@ class DevicesScreen extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        title: Text(which.length == 1 ? '„${which.single.name}“ abmelden?' : '${which.length} Geräte abmelden?'),
-        content: const Text(
-          'Das Gerät muss sich danach neu anmelden. Eine Android-App löscht dabei ihre lokalen Daten – '
-          'noch nicht synchronisierte Einträge dieses Geräts gehen verloren.',
+        title: Text(
+          which.length == 1 ? '„${which.single.name}“ abmelden?' : tr('{0} Geräte abmelden?', [which.length]),
+        ),
+        content: Text(
+          tr(
+            'Das Gerät muss sich danach neu anmelden. Eine Android-App löscht dabei ihre lokalen Daten – '
+            'noch nicht synchronisierte Einträge dieses Geräts gehen verloren.',
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Abmelden')),
+          TextButton(onPressed: () => Navigator.pop(d, false), child: Text(tr('Abbrechen'))),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(tr('Abmelden'))),
         ],
       ),
     );
@@ -136,7 +141,7 @@ class DevicesScreen extends ConsumerWidget {
       if (context.mounted) {
         showUndoSnack(
           context,
-          which.length == 1 ? '„${which.single.name}“ abgemeldet' : '${which.length} Geräte abgemeldet',
+          which.length == 1 ? '„${which.single.name}“ abgemeldet' : tr('{0} Geräte abgemeldet', [which.length]),
         );
       }
     } catch (e) {
@@ -150,10 +155,10 @@ class DevicesScreen extends ConsumerWidget {
     final sessions = ref.watch(deviceSessionsProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Geräte & Sitzungen'),
+        title: Text(tr('Geräte & Sitzungen')),
         actions: [
           IconButton(
-            tooltip: 'Aktualisieren',
+            tooltip: tr('Aktualisieren'),
             onPressed: () => ref.invalidate(deviceSessionsProvider),
             icon: const Icon(Icons.refresh),
           ),
@@ -163,11 +168,11 @@ class DevicesScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(
           icon: Icons.cloud_off,
-          title: 'Nicht verfügbar',
-          text: '${errorText(e)}\nDie Geräteliste braucht eine Verbindung zum Server.',
+          title: tr('Nicht verfügbar'),
+          text: tr('{0}\nDie Geräteliste braucht eine Verbindung zum Server.', [errorText(e)]),
           action: OutlinedButton(
             onPressed: () => ref.invalidate(deviceSessionsProvider),
-            child: const Text('Erneut versuchen'),
+            child: Text(tr('Erneut versuchen')),
           ),
         ),
         data: (list) {
@@ -179,8 +184,10 @@ class DevicesScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
                 Text(
-                  'Überall, wo du angemeldet bist. Ein verlorenes Handy hier abmelden – '
-                  'die App löscht dann beim nächsten Kontakt ihre lokalen Daten.',
+                  tr(
+                    'Überall, wo du angemeldet bist. Ein verlorenes Handy hier abmelden – '
+                    'die App löscht dann beim nächsten Kontakt ihre lokalen Daten.',
+                  ),
                   style: TextStyle(color: context.colors.muted),
                 ),
                 const SizedBox(height: 12),
@@ -190,21 +197,21 @@ class DevicesScreen extends ConsumerWidget {
                       for (final s in list)
                         ListTile(
                           leading: Icon(s.icon, color: s.current ? Theme.of(context).colorScheme.primary : null),
-                          title: Text(s.current ? '${s.name} · dieses Gerät' : s.name),
+                          title: Text(s.current ? tr('{0} · dieses Gerät', [s.name]) : s.name),
                           subtitle: Text(
                             [
                               if (s.lastUsedAt != null)
-                                'aktiv ${S.relativeDay(s.lastUsedAt!, now).toLowerCase()} ${S.time(s.lastUsedAt!)}',
-                              if (s.createdAt != null) 'angemeldet seit ${S.date(s.createdAt!)}',
+                                'aktiv ${S.relativeDayInline(s.lastUsedAt!, now)} ${S.time(s.lastUsedAt!)}',
+                              if (s.createdAt != null) tr('angemeldet seit {0}', [S.date(s.createdAt!)]),
                             ].join(' · '),
                           ),
                           trailing: s.current
                               ? IconButton(
-                                  tooltip: 'Umbenennen',
+                                  tooltip: tr('Umbenennen'),
                                   onPressed: () => _rename(context, ref),
                                   icon: const Icon(Icons.edit_outlined),
                                 )
-                              : TextButton(onPressed: () => _revoke(context, ref, [s]), child: const Text('Abmelden')),
+                              : TextButton(onPressed: () => _revoke(context, ref, [s]), child: Text(tr('Abmelden'))),
                         ),
                     ],
                   ),
@@ -215,7 +222,7 @@ class DevicesScreen extends ConsumerWidget {
                     style: OutlinedButton.styleFrom(foregroundColor: context.colors.overdue),
                     onPressed: () => _revoke(context, ref, others),
                     icon: const Icon(Icons.logout),
-                    label: Text('Alle anderen abmelden (${others.length})'),
+                    label: Text(tr('Alle anderen abmelden ({0})', [others.length])),
                   ),
                 ],
               ],

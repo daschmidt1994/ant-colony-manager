@@ -4,6 +4,7 @@ library;
 
 import 'due.dart';
 import 'models.dart';
+import '../app/i18n.dart';
 
 enum StatsRange {
   week('7 T', 7),
@@ -12,9 +13,12 @@ enum StatsRange {
   year('1 J', 365),
   all('Gesamt', null);
 
-  const StatsRange(this.label, this.days);
-  final String label;
+  const StatsRange(this._label, this.days);
+  final String _label;
   final int? days;
+
+  /// Translated at use (enum constants cannot call tr()); keys in lib/l10n.
+  String get label => tr(_label);
 }
 
 /// Time buckets of a chart: days for short ranges, weeks for 3 months,
@@ -277,6 +281,6 @@ GlobalStats globalStats({
     hibernating: active.where((c) => c.status == 'hibernating').length,
     bySpecies: species,
     byGenus: genera,
-    byLocation: count(active.map((c) => c.locationPath ?? 'ohne Standort')),
+    byLocation: count(active.map((c) => c.locationPath ?? tr('ohne Standort'))),
   );
 }
