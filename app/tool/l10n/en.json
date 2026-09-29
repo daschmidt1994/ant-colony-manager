@@ -990,5 +990,18 @@
  "Heimchen": "House crickets",
  "Samen": "Seeds",
  "Zuckerwasser": "Sugar water",
- "Honigwasser": "Honey water"
+ "Honigwasser": "Honey water",
+ "{0} ist in der EU verboten": "{0} is prohibited in the EU",
+ "An Schwarmflugzeit erinnern": "Remind me of the flight season",
+ "Erinnerung zu Beginn der Schwarmflugzeit von {0}": "Reminder at the start of the flight season of {0}",
+ "In der EU verboten": "Prohibited in the EU",
+ "Invasive gebietsfremde Art von unionsweiter Bedeutung: Halten, Züchten, Kaufen, Verkaufen, Transportieren und Freisetzen sind verboten (Verordnung (EU) Nr. 1143/2014).": "Invasive alien species of Union concern: keeping, breeding, buying, selling, transporting and releasing are prohibited (Regulation (EU) No 1143/2014).",
+ "Keine Art aus dem Katalog in diesem Monat.": "No catalog species in this month.",
+ "Keine Erinnerung mehr für {0}": "No more reminders for {0}",
+ "Laut Steckbrief {0} – Wetter und Region verschieben den Termin.": "According to the care sheet {0} – weather and region shift the date.",
+ "Monate laut Steckbrief der Art (Richtwerte, v. a. Mitteleuropa). Wetter, Höhenlage und Region verschieben den Schwarmflug – meist an warmen, windstillen Tagen nach Regen. Die Glocke erinnert zu Beginn der Schwarmflugzeit.": "Months according to the species' care sheet (guide values, mainly Central Europe). Weather, altitude and region shift the nuptial flight – usually on warm, calm days after rain. The bell reminds you at the start of the flight season.",
+ "Schwarmflüge im {0}": "Nuptial flights in {0}",
+ "Schwarmflug-Erinnerung aus": "Flight season reminder off",
+ "Schwarmflug-Kalender": "Nuptial flight calendar",
+ "Schwarmflugzeit: {0}": "Flight season: {0}"
 }

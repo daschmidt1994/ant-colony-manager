@@ -179,7 +179,8 @@ var entities = map[string]*entity{
 	"user_settings": {
 		Scope: scopeSettings, Collection: "settings",
 		Fields: []string{"timezone", "locale", "theme", "due_soon_days", "digest_time",
-			"notify_overdue", "email_digest", "label_defaults", "notify_digest_app", "notify_sensor_app", "notify_winter_app"},
+			"notify_overdue", "email_digest", "label_defaults", "notify_digest_app", "notify_sensor_app", "notify_winter_app",
+			"flight_watch"},
 		beforeWrite: settingsBeforeWrite,
 	},
 	"sensors": {

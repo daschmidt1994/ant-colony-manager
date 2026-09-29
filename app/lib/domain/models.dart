@@ -2,6 +2,8 @@
 /// fields are kept in [json], so nothing is lost when writing back.
 library;
 
+import '../app/i18n.dart';
+
 DateTime? _date(Object? v) => v is String ? DateTime.tryParse(v) : null;
 int? _int(Object? v) => (v as num?)?.toInt();
 double? _double(Object? v) => (v as num?)?.toDouble();
@@ -119,8 +121,22 @@ class Species {
   String? get germanName => text('german_name');
   bool get isCatalog => json['owner_id'] == null;
 
-  /// Non-empty text field or null.
+  /// On the EU list of invasive alien species – keeping is prohibited.
+  bool get euInvasive => json['eu_invasive'] == true;
+
+  /// Non-empty text field or null – in the app language if the catalog
+  /// carries a translation (translations.en.distribution …), else German.
   String? text(String key) {
+    final t = json['translations'];
+    if (t is Map && t[currentLanguage] is Map) {
+      final v = (t[currentLanguage] as Map)[key];
+      if (v is String && v.trim().isNotEmpty) return v;
+    }
+    return original(key);
+  }
+
+  /// The German source text, without translation.
+  String? original(String key) {
     final v = json[key];
     return v is String && v.trim().isNotEmpty ? v : null;
   }
@@ -137,7 +153,13 @@ class Species {
   /// Matches scientific name, German name and genus, case-insensitively.
   bool matches(String query) {
     final q = query.trim().toLowerCase();
-    return q.isEmpty || [scientificName, germanName ?? '', genus].any((s) => s.toLowerCase().contains(q));
+    return q.isEmpty ||
+        [
+          scientificName,
+          germanName ?? '',
+          original('german_name') ?? '',
+          genus,
+        ].any((s) => s.toLowerCase().contains(q));
   }
 }
 
@@ -173,6 +195,9 @@ class UserSettings {
   bool get notifyDigestApp => json['notify_digest_app'] as bool? ?? true;
   bool get notifySensorApp => json['notify_sensor_app'] as bool? ?? true;
   bool get notifyWinterApp => json['notify_winter_app'] as bool? ?? true;
+
+  /// Species whose nuptial flight season the app announces.
+  List<String> get flightWatch => [...?(json['flight_watch'] as List?)?.whereType<String>()];
   bool get emailDigest => json['email_digest'] as bool? ?? false;
 }
 

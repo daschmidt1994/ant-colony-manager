@@ -64,3 +64,43 @@ func TestSpeciesCatalog(t *testing.T) {
 		}
 	}
 }
+
+func TestSpeciesCatalogTranslationsInvasiveAndFlightWatch(t *testing.T) {
+	env := testenv.New(t)
+	u := env.User(t, "Anna")
+	var catalog struct {
+		Items []map[string]any `json:"items"`
+	}
+	u.Do("GET", "/api/v1/species", nil).Must(t, 200).Decode(t, &catalog)
+	invasive := map[string]bool{}
+	for _, s := range catalog.Items {
+		if s["owner_id"] != nil {
+			continue
+		}
+		en, _ := s["translations"].(map[string]any)["en"].(map[string]any)
+		if en["german_name"] == nil || en["distribution"] == nil {
+			t.Errorf("%s: no English care sheet: %v", s["scientific_name"], s["translations"])
+		}
+		if s["eu_invasive"] == true {
+			invasive[s["scientific_name"].(string)] = true
+			if s["legal_note"] == nil || len(s["sources"].([]any)) < 2 {
+				t.Errorf("%s: invasive without legal note or sources", s["scientific_name"])
+			}
+		}
+	}
+	for _, n := range []string{"Solenopsis invicta", "Solenopsis richteri", "Solenopsis geminata", "Wasmannia auropunctata"} {
+		if !invasive[n] {
+			t.Errorf("%s not marked as EU invasive", n)
+		}
+	}
+	if len(invasive) != 4 {
+		t.Errorf("invasive: %v", invasive)
+	}
+
+	id := catalog.Items[0]["id"].(string)
+	u.Do("PATCH", "/api/v1/me/settings", map[string]any{"flight_watch": []string{id}}).Must(t, 200)
+	if got := u.Do("GET", "/api/v1/me/settings", nil).Must(t, 200).JSON()["flight_watch"].([]any); len(got) != 1 || got[0] != id {
+		t.Fatalf("flight_watch: %v", got)
+	}
+	u.Do("PATCH", "/api/v1/me/settings", map[string]any{"flight_watch": "Lasius"}).Must(t, 422)
+}

@@ -38,6 +38,7 @@ String? handleReminder(ColonyRepository repo, {String? actionId, String? payload
     'digest' => '/',
     'sensor' => '/settings/sensors',
     'stock' => '/settings/food-stock',
+    'flight' => '/species/flights',
     _ => open,
   };
 }
