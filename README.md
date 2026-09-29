@@ -13,6 +13,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Widget für den Startbildschirm** (Android) – überfällig/heute fällig auf einen Blick, Tippen öffnet den Rundgang
 - **Kalender-Abo und Home Assistant** – Fälligkeiten in jedem Kalender, Status pro Kolonie für Automationen ([docs/22](docs/22-kalender-home-assistant.md))
 - **Benachrichtigungen per App, ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit, Ruhezeiten, „Morgen“ zum Verschieben
+- **Futtervorrat** – Futtertiere, Zuckerwasser und Zuchten mit Haltbarkeit, Nachbestell- und Versorgungs-Hinweisen
 - **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) – mit den eigenen Kolonien verknüpft
 - **Deutsch und Englisch** (weitere Sprachen: eine Übersetzungsdatei, [docs/21-sprachen.md](docs/21-sprachen.md)); Fotos auch aus der Galerie, mit Aufnahmedatum
 - **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie (nur eine abschaltbare Update-Prüfung gegen die öffentliche GitHub-Release-Liste, `UPDATE_CHECK=false`)

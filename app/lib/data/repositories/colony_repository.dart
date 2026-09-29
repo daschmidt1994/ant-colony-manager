@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/due.dart';
+import '../../domain/food_stock.dart';
 import '../../domain/models.dart';
 import '../../domain/reminders.dart';
 import '../../domain/stats.dart';
@@ -692,7 +693,51 @@ class ColonyRepository {
           _decode(r['data'] as String),
       ],
       sensors: sensors(),
+      foodStocks: foodStocks(),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Food stock
+
+  List<FoodStock> foodStocks({bool includeArchived = false}) =>
+      [
+        for (final r in db.records('food_stocks', orderBy: 'id'))
+          if (includeArchived || r.json['archived_at'] == null) FoodStock(r.json),
+      ]..sort((a, b) {
+        if (a.isCulture != b.isCulture) return a.isCulture ? 1 : -1;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+  /// Stock entries with something to do now (dashboard, reminders).
+  List<(FoodStock, List<StockIssue>)> foodStockIssues() => [
+    for (final s in foodStocks())
+      if (s.issues(now()) case final i when i.isNotEmpty) (s, i),
+  ];
+
+  String createFoodStock(Map<String, dynamic> fields) =>
+      _write(() => _create('food_stocks', {'kind': 'stock', ...fields})['id'] as String);
+
+  void updateFoodStock(String id, Map<String, dynamic> patch) => _write(() => _update('food_stocks', id, patch));
+
+  void deleteFoodStock(String id) => _write(() => _delete('food_stocks', id));
+
+  /// Culture looked after (fed, cleaned) – next care counts from now.
+  void careFoodStock(String id) {
+    if (db.record('food_stocks', id) != null) updateFoodStock(id, {'last_cared_at': now().toUtc().toIso8601String()});
+  }
+
+  /// Freshly opened / newly made (e.g. honey water) – the shelf life starts today.
+  void openFoodStock(String id) {
+    if (db.record('food_stocks', id) != null) updateFoodStock(id, {'opened_on': _dateString(now())});
+  }
+
+  /// +/- on the quantity (never below 0).
+  void adjustFoodStock(String id, double delta) {
+    final s = db.record('food_stocks', id);
+    if (s == null) return;
+    final q = FoodStock(s.json).quantity ?? 0;
+    updateFoodStock(id, {'quantity': max(0, q + delta)});
   }
 
   /// Winter rests whose planned end has passed (for the digest).

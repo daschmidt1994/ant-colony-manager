@@ -48,6 +48,22 @@ NotificationDetails get _dueDetails => NotificationDetails(
   ),
 );
 
+/// Food culture: „Erledigt“ without „Morgen“.
+NotificationDetails get _doneDetails => NotificationDetails(
+  android: AndroidNotificationDetails(
+    'due',
+    tr('Überfällige Pflege'),
+    channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
+    category: AndroidNotificationCategory.reminder,
+    color: _green,
+    groupKey: _groupKey,
+    actions: [
+      AndroidNotificationAction('done', tr('Erledigt')),
+      AndroidNotificationAction('open', tr('Öffnen'), showsUserInterface: true),
+    ],
+  ),
+);
+
 /// Winter rest plan: no „Erledigt“ (the switch is in the app), but „Morgen“.
 NotificationDetails get _snoozeDetails => NotificationDetails(
   android: AndroidNotificationDetails(
@@ -166,7 +182,9 @@ Future<void> _syncReminders(ColonyRepository repo) async {
       id: notificationId(r.slot),
       title: r.title,
       body: r.body,
-      notificationDetails: r.canComplete
+      notificationDetails: r.canComplete && !r.canSnooze
+          ? _doneDetails
+          : r.canComplete
           ? _dueDetails
           : r.canSnooze
           ? _snoozeDetails

@@ -126,6 +126,7 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 - [17-unraid-dockhand.md](17-unraid-dockhand.md) – Installation auf Unraid mit Dockhand/Portainer (fertige Compose-Datei)
 - [21-sprachen.md](21-sprachen.md) – Deutsch/Englisch umschalten, neue Sprache hinzufügen
 - [22-kalender-home-assistant.md](22-kalender-home-assistant.md) – Kalender-Abo (iCal) und Status für Home Assistant, Heizung folgt der Winterruhe
+- [23-futtervorrat.md](23-futtervorrat.md) – Futtervorrat und Futtertier-Zuchten mit Haltbarkeit, Nachbestell- und Versorgungs-Hinweisen
 - [20-benachrichtigungen.md](20-benachrichtigungen.md) – Benachrichtigungen per ntfy (auch eigener Server) und E-Mail: Themen, Häufigkeit, Ruhezeiten
 - [19-testinstanz.md](19-testinstanz.md) – zweite Instanz (`edge`) und Test-App „ACM Test“ zum Ausprobieren vor einem Release
 - [18-fdroid.md](18-fdroid.md) – Android-App über ein eigenes F-Droid-Repo installieren und aktualisieren

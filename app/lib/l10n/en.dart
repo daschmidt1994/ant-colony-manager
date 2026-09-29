@@ -237,7 +237,9 @@ const table = <String, String>{
   'Dieses Gerät wurde abgemeldet. Die lokalen Daten wurden entfernt.':
       'This device was signed out. The local data was removed.',
   'Dieses Konto ist gesperrt.': 'This account is disabled.',
+  'Dosen': 'cans',
   'Download fehlgeschlagen': 'Download failed',
+  'Drosophila-Zucht': 'Drosophila culture',
   'Du wurdest eingeladen.': 'You have been invited.',
   'Dunkel': 'Dark',
   'Dussutour & Simpson (2009): Communal nutrition in ants. Current Biology 19':
@@ -263,10 +265,12 @@ const table = <String, String>{
   'Eine Seite pro Etikett – nur für Etikettendrucker': 'One page per label – label printers only',
   'Eine private Adresse, über die andere Programme deine Kolonien lesen können – nur lesen, nichts ändern. Kalender-Apps zeigen damit alle Fälligkeiten, Home Assistant den Status jeder Kolonie (z. B. Winterruhe → Heizung aus).':
       'A private address through which other programs can read your colonies – read only, no changes. Calendar apps show all due dates with it, Home Assistant the status of every colony (e.g. hibernation → heating off).',
+  'Einheit': 'Unit',
   'Einladung erhalten? Konto erstellen': 'Got an invitation? Create account',
   'Einmal täglich: was heute ansteht': 'Once a day: what is due today',
   'Einsteiger': 'Beginner',
   'Eintrag': 'Entry',
+  'Eintrag bearbeiten': 'Edit entry',
   'Eintrag gelöscht': 'Entry deleted',
   'Eintrag löschen': 'Delete entry',
   'Eintrag löschen?': 'Delete entry?',
@@ -279,6 +283,7 @@ const table = <String, String>{
   'Entfernt': 'Removed',
   'Entwicklung': 'Development',
   'Entwicklung Ei → Arbeiterin': 'Development egg → worker',
+  'Erinnerung, sobald die Menge darunter fällt': 'Reminder as soon as the quantity drops to this',
   'Erinnerungen': 'Reminders',
   'Erlauben': 'Allow',
   'Erledigt': 'Done',
@@ -318,6 +323,7 @@ const table = <String, String>{
   'Fotos werden vor dem Hochladen verkleinert und sind auch offline sichtbar.':
       'Photos are downscaled before uploading and are visible offline too.',
   'Fotos · {0}': 'Photos · {0}',
+  'Frisch': 'Fresh',
   'Frucht': 'Fruit',
   'Fruchtfliege': 'Fruit fly',
   'Fundort (bleibt privat)': 'Place found (stays private)',
@@ -327,6 +333,12 @@ const table = <String, String>{
   'Futterreste': 'Food remains',
   'Futterreste nach spätestens 24 Stunden entfernen – sonst drohen Schimmel und Milben.':
       'Remove leftovers after 24 hours at the latest – otherwise mould and mites threaten.',
+  'Futtertiere, Zucker- oder Honigwasser und Zuchten eintragen – die App erinnert, wenn etwas zu lange offen ist, abläuft, knapp wird oder die Zucht versorgt werden muss.':
+      'Add feeder insects, sugar or honey water and cultures – the app reminds you when something has been open too long, expires, runs low or the culture needs care.',
+  'Futtertiere, Zuckerwasser, Zuchten – mit Haltbarkeit und Nachbestell-Hinweis':
+      'Feeder insects, sugar water, cultures – with shelf life and reorder hint',
+  'Futtervorrat': 'Food stock',
+  'Futtervorrat: {0}': 'Food stock: {0}',
   'Fällig': 'Due',
   'Fälligkeiten als Kalender-Abo, Status für Home Assistant':
       'Due dates as a calendar subscription, status for Home Assistant',
@@ -336,6 +348,8 @@ const table = <String, String>{
       'For “Forgot password”, the daily overview and e-mail notifications. You get the details from your mail provider (outgoing mail server / SMTP). With Gmail, Outlook & co. usually use a separate app password.',
   'Füttern': 'Feed',
   'Füttern · {0}': 'Feed · {0}',
+  'Füttern, Substrat wechseln, neu ansetzen – „Versorgt“ setzt die Frist zurück.':
+      'Feed, change substrate, restart – “Cared for” resets the interval.',
   'Fütterung': 'Feeding',
   'Fütterung von {0} angenommen?': 'Feeding from {0} accepted?',
   'Fütterungen': 'Feedings',
@@ -363,6 +377,7 @@ const table = <String, String>{
   'Gestern': 'Yesterday',
   'Gestern Abend': 'Last night',
   'Getauscht': 'Traded',
+  'Geöffnet / angesetzt am': 'Opened / made on',
   'Gleichzeitig geändert': 'Changed at the same time',
   'Google Kalender: „Weitere Kalender“ → „Per URL“. Outlook: „Kalender hinzufügen“ → „Aus dem Internet“. Thunderbird, Apple: „Kalender abonnieren“. Enthält den nächsten Termin jedes Pflegeplans (überfällige heute), geplanten Beginn und Ende der Winterruhe und offene Aufgaben. Kalender-Apps aktualisieren Abos selbst – Google teils nur alle 12–24 Stunden.':
       'Google Calendar: “Other calendars” → “From URL”. Outlook: “Add calendar” → “From the internet”. Thunderbird, Apple: “Subscribe to calendar”. Contains the next date of every care plan (overdue ones today), planned start and end of hibernation and open tasks. Calendar apps refresh subscriptions themselves – Google sometimes only every 12–24 hours.',
@@ -382,7 +397,7 @@ const table = <String, String>{
   'Halte das Handy an den Tag': 'Hold the phone against the tag',
   'Haltung': 'Keeping',
   'Hat nicht geklappt': 'That didn\'t work',
-  'Heimchen': 'House cricket',
+  'Heimchen': 'House crickets',
   'Hell': 'Light',
   'Herkunft': 'Origin',
   'Herkunft & Daten': 'Origin & data',
@@ -397,6 +412,8 @@ const table = <String, String>{
   'Hinweis': 'Note',
   'Hinweis entfernen': 'Remove hint',
   'Hinweise entfernen': 'Remove hints',
+  'Hinweise erscheinen in der Übersicht und als App-Benachrichtigung (Thema „Überfällige Pflege“).':
+      'Hints appear on the overview and as an app notification (topic “Overdue care”).',
   'Hochzeitsflug': 'Nuptial flight',
   'Home Assistant': 'Home Assistant',
   'Home Assistant (configuration.yaml)': 'Home Assistant (configuration.yaml)',
@@ -523,6 +540,7 @@ const table = <String, String>{
   'Luftfeuchte Nest': 'Nest humidity',
   'Luftfeuchtigkeit': 'Humidity',
   'Löschen': 'Delete',
+  'MHD {0}': 'best before {0}',
   'Mac OS': 'Mac OS',
   'Mehlwurm': 'Mealworm',
   'Mehr': 'More',
@@ -537,6 +555,8 @@ const table = <String, String>{
   'Messungen und Sensor': 'Measurements and sensor',
   'Messwerte (optional)': 'Readings (optional)',
   'Mindestens 10 Zeichen': 'At least 10 characters',
+  'Mindesthaltbarkeit': 'Best before',
+  'Mindesthaltbarkeit abgelaufen ({0})': 'Best-before date passed ({0})',
   'Mit der Android-App scannen': 'Scan with the Android app',
   'Morgen': 'Tomorrow',
   'Muss der Mail-Anbieter meist als Absender erlauben': 'Your mail provider usually has to allow it as sender',
@@ -552,6 +572,8 @@ const table = <String, String>{
   'Nach Art': 'By species',
   'Nach Gattung': 'By genus',
   'Nach Standort': 'By location',
+  'Nach dem Öffnen haltbar (Tage)': 'Keeps after opening (days)',
+  'Nachbestellen ab': 'Reorder at',
   'Nachtragen · {0} {1}': 'Add later · {0} {1}',
   'Nachtragen …': 'Add later …',
   'Name': 'Name',
@@ -576,6 +598,7 @@ const table = <String, String>{
   'Neue Adresse erzeugen?': 'Create a new address?',
   'Neue Kolonie': 'New colony',
   'Neuen Schlüssel erzeugen': 'Create new key',
+  'Neuer Eintrag': 'New entry',
   'Neuer Standort': 'New location',
   'Neues Passwort': 'New password',
   'Nicht angemeldet': 'Not signed in',
@@ -587,6 +610,7 @@ const table = <String, String>{
   'Nichts fällig – gut gemacht.': 'Nothing due – well done.',
   'Noch kein Tag. Tipp: Aufkleber außen am Formicarium, etwas Abstand zu Metall und Heizmatten.':
       'No tag yet. Tip: sticker on the outside of the formicarium, some distance from metal and heat mats.',
+  'Noch kein Vorrat erfasst': 'No stock yet',
   'Noch keine Brut erfasst – Kolonie-Seite → Menü ⋮ → „Größe & Brut erfassen“.':
       'No brood recorded yet – colony page → menu ⋮ → “Record size & brood”.',
   'Noch keine Einträge.': 'No entries yet.',
@@ -608,6 +632,7 @@ const table = <String, String>{
   'Nur jetzt sichtbar – kopieren und wie ein Passwort behandeln.':
       'Only visible now – copy it and treat it like a password.',
   'Nur mit Verbindung zum Server': 'Only with a connection to the server',
+  'Nur noch {0} – nachbestellen': 'Only {0} left – reorder',
   'NÄCHSTE KOLONIE': 'NEXT COLONY',
   'Nächste Aufgaben': 'Next tasks',
   'Nächste Kolonie scannen': 'Scan next colony',
@@ -642,6 +667,7 @@ const table = <String, String>{
   'Polymorph': 'Polymorphic',
   'Polymorph (verschieden große Arbeiterinnen)': 'Polymorphic (workers of different sizes)',
   'Port': 'Port',
+  'Portionen': 'portions',
   'Postausgangsserver (SMTP)': 'Outgoing mail server (SMTP)',
   'Postausgangsserver für Passwort vergessen, Überblick und Benachrichtigungen':
       'Outgoing mail server for forgot password, overview and notifications',
@@ -696,6 +722,8 @@ const table = <String, String>{
   'Scanne die erste Kolonie – Tag antippen oder QR-Code.': 'Scan the first colony – tap the tag or QR code.',
   'Scannen': 'Scan',
   'Schabe': 'Roach',
+  'Schaben': 'Cockroaches',
+  'Schabenzucht': 'Cockroach culture',
   'Schalte NFC in den Android-Einstellungen ein und komm dann zurück.':
       'Switch on NFC in the Android settings and come back.',
   'Scheiben': 'Glass',
@@ -709,6 +737,7 @@ const table = <String, String>{
   'Schwierigkeit': 'Difficulty',
   'Seifert (2018): The Ants of Central and North Europe – das Standardwerk für heimische Arten.':
       'Seifert (2018): The Ants of Central and North Europe – the standard reference for native species.',
+  'Seit {0} Tagen offen – ersetzen (hält {1} Tage)': 'Open for {0} days – replace (keeps {1} days)',
   'Seit {0}{1}': 'Since {0}{1}',
   'Seite {0} / {1}': 'Page {0} / {1}',
   'Selbst gefangen': 'Wild-caught',
@@ -762,6 +791,7 @@ const table = <String, String>{
   'Steckbrief öffnen': 'Open care sheet',
   'Steckbrief: {0}': 'Care sheet: {0}',
   'Studien & Links': 'Studies & links',
+  'Stück': 'pcs',
   'Substrat': 'Substrate',
   'Sync-Fehler': 'Sync error',
   'Synchron': 'In sync',
@@ -836,6 +866,8 @@ const table = <String, String>{
   'Verkäufer / Züchter': 'Seller / breeder',
   'Verlässliche Informationsquellen': 'Reliable sources of information',
   'Verschlüsselung': 'Encryption',
+  'Versorgen alle … Tage': 'Care every … days',
+  'Versorgt': 'Cared for',
   'Verwerfen': 'Discard',
   'Vom Server abgelehnt': 'Rejected by the server',
   'Von': 'From',
@@ -850,6 +882,7 @@ const table = <String, String>{
       'A feeding was already saved less than 2 minutes ago. Again anyway?',
   'Vor {0} Tagen': '{0} days ago',
   'Vorausgefüllt mit den letzten Werten.': 'Prefilled with the last values.',
+  'Vorrat': 'Stock',
   'Vorschau': 'Preview',
   'Wachsmotte': 'Wax moth',
   'Wann war das?': 'When was that?',
@@ -866,6 +899,7 @@ const table = <String, String>{
   'Weiter': 'Continue',
   'Weiteren Tag zuweisen': 'Assign another tag',
   'Welche Kolonien?': 'Which colonies?',
+  'Weniger': 'Less',
   'Wenn es ein Konto mit dieser Adresse gibt, ist eine E-Mail mit einem Link unterwegs.':
       'If there is an account with this address, an e-mail with a link is on its way.',
   'Wert außerhalb des gültigen Bereichs': 'Value outside the valid range',
@@ -895,6 +929,11 @@ const table = <String, String>{
   'Zeitpunkt': 'Time',
   'Zeitraum': 'Period',
   'Zu viele Versuche – bitte kurz warten.': 'Too many attempts – please wait a moment.',
+  'Zucht': 'Culture',
+  'Zucht versorgen (alle {0} Tage)': 'Care for the culture (every {0} days)',
+  'Zuchten': 'Cultures',
+  'Zucker- und Honigwasser gären – alle paar Tage frisch ansetzen.':
+      'Sugar and honey water ferment – make it fresh every few days.',
   'Zuckerwasser': 'Sugar water',
   'Zuckerwasser (etwa 1 Teil Zucker auf 2–3 Teile Wasser) oder verdünnter Honig; alle paar Tage frisch ansetzen, da es gärt und schimmelt.':
       'Sugar water (about 1 part sugar to 2–3 parts water) or diluted honey; make it fresh every few days as it ferments and moulds.',
@@ -935,6 +974,7 @@ const table = <String, String>{
   'groß': 'large',
   'heute': 'today',
   'heute fällig oder überfällig': 'due today or overdue',
+  'heute geöffnet': 'opened today',
   'hier tippen für QR-Code': 'tap here for QR code',
   'ignoriert': 'ignored',
   'in Winterruhe': 'hibernating',
@@ -956,11 +996,13 @@ const table = <String, String>{
   'nackte Puppen': 'naked pupae',
   'nein': 'no',
   'nicht eingerichtet (Server-Verwaltung)': 'not set up (server administration)',
+  'nicht gesetzt': 'not set',
   'noch keine Daten': 'no data yet',
   'noch nicht abgerufen': 'not fetched yet',
   'noch nicht synchronisiert': 'not synced yet',
   'nur Seriennummer': 'serial number only',
   'nur einmal': 'only once',
+  'nächste Versorgung {0}': 'next care {0}',
   'nötig': 'required',
   'oben Server und Topic eintragen': 'enter server and topic above',
   'oder genau gezählt': 'or counted exactly',
@@ -969,6 +1011,7 @@ const table = <String, String>{
   'pausiert': 'paused',
   'polygyn': 'polygynous',
   'schreibgeschützt': 'write-protected',
+  'seit {0} Tagen offen': 'open for {0} days',
   'seit {0} Tagen überfällig': 'overdue for {0} days',
   'semi-claustral – Königin braucht Futter': 'semi-claustral – queen needs food',
   'sozialparasitisch – braucht eine Hilfsart': 'socially parasitic – needs a host species',
@@ -1046,9 +1089,11 @@ const table = <String, String>{
   'überfällig': 'overdue',
   'überfällige Aufgaben': 'overdue tasks',
   'übernommen: {0}\nverworfen: {1}': 'kept: {0}\ndiscarded: {1}',
+  '–': '–',
   '– (oberste Ebene)': '– (top level)',
   '– keine –': '– none –',
   '„7 Kolonien brauchen heute Aufmerksamkeit“ – einmal täglich': '“7 colonies need attention today” – once a day',
+  '„{0}“ entfernt': '“{0}” removed',
   '… und {0} ältere Einträge (vollständig im JSON-/CSV-Export).':
       '… and {0} older entries (complete in the JSON/CSV export).',
 };
