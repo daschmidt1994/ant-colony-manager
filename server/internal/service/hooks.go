@@ -517,6 +517,12 @@ func settingsBeforeWrite(ctx context.Context, s *Service, q db.Querier, w *write
 			return Invalid("timezone", "unknown time zone %q", tz)
 		}
 	}
+	if v, ok := w.data["locale"]; ok {
+		var l string
+		if err := json.Unmarshal(v, &l); err != nil || (l != "system" && !languages[l]) {
+			return Invalid("locale", "locale must be system or one of the supported languages")
+		}
+	}
 	return nil
 }
 

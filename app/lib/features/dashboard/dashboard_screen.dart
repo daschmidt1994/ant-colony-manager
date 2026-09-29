@@ -11,6 +11,7 @@ import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../settings/updates.dart';
+import '../../app/i18n.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -19,12 +20,12 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(dashboardProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Übersicht'), actions: const [SyncBadge()]),
+      appBar: AppBar(title: Text(tr('Übersicht')), actions: const [SyncBadge()]),
       body: RefreshIndicator(
         onRefresh: () async => ref.read(syncEngineProvider)?.sync(resetBackoff: true),
         child: data.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => EmptyState(icon: Icons.error_outline, title: 'Fehler', text: '$e'),
+          error: (e, _) => EmptyState(icon: Icons.error_outline, title: tr('Fehler'), text: '$e'),
           data: (d) => d.colonies.isEmpty ? const _Welcome() : _Dashboard(d),
         ),
       ),
@@ -40,12 +41,12 @@ class _Welcome extends StatelessWidget {
       const SizedBox(height: 60),
       EmptyState(
         icon: Icons.hive_outlined,
-        title: 'Willkommen!',
-        text: 'Lege deine erste Kolonie an. Sie bekommt automatisch einen QR-Code.',
+        title: tr('Willkommen!'),
+        text: tr('Lege deine erste Kolonie an. Sie bekommt automatisch einen QR-Code.'),
         action: FilledButton.icon(
           onPressed: () => context.go('/colonies/new'),
           icon: const Icon(Icons.add),
-          label: const Text('Erste Kolonie anlegen'),
+          label: Text(tr('Erste Kolonie anlegen')),
         ),
       ),
     ],
@@ -56,12 +57,12 @@ class _Dashboard extends StatelessWidget {
   const _Dashboard(this.d);
   final DashboardData d;
 
-  static const _groups = [
-    (DueGroup.overdue, 'Überfällig', true),
-    (DueGroup.today, 'Heute', true),
-    (DueGroup.tomorrow, 'Morgen', false),
-    (DueGroup.thisWeek, 'Diese Woche', false),
-    (DueGroup.later, 'Später', false),
+  static List<(DueGroup, String, bool)> get _groups => [
+    (DueGroup.overdue, tr('Überfällig'), true),
+    (DueGroup.today, tr('Heute'), true),
+    (DueGroup.tomorrow, tr('Morgen'), false),
+    (DueGroup.thisWeek, tr('Diese Woche'), false),
+    (DueGroup.later, tr('Später'), false),
   ];
 
   @override
@@ -89,18 +90,18 @@ class _Dashboard extends StatelessWidget {
               const UpdateWarning(),
               Row(
                 children: [
-                  _Stat(value: '$active', label: 'aktiv', icon: Icons.pest_control_outlined),
+                  _Stat(value: '$active', label: tr('aktiv'), icon: Icons.pest_control_outlined),
                   const SizedBox(width: 12),
                   _Stat(
                     value: '${d.count('hibernating')}',
-                    label: 'Winterruhe',
+                    label: tr('Winterruhe'),
                     icon: Icons.ac_unit,
                     color: context.colors.winter,
                   ),
                   const SizedBox(width: 12),
                   _Stat(
                     value: '$overdue',
-                    label: 'überfällig',
+                    label: tr('überfällig'),
                     icon: Icons.error_outline,
                     color: overdue > 0 ? context.colors.overdue : null,
                   ),
@@ -117,7 +118,7 @@ class _Dashboard extends StatelessWidget {
                     color: _groupColor(context, group),
                   ),
               if (d.hibernating.isNotEmpty) ...[
-                const SectionHeader('Winterruhe'),
+                SectionHeader(tr('Winterruhe')),
                 Card(
                   child: Column(
                     children: [
@@ -128,7 +129,7 @@ class _Dashboard extends StatelessWidget {
                           subtitle: Text(
                             since == null
                                 ? c.species
-                                : '${c.species} · seit ${DateTime.now().difference(since).inDays} Tagen',
+                                : tr('{0} · seit {1} Tagen', [c.species, DateTime.now().difference(since).inDays]),
                           ),
                           onTap: () => context.go('/colonies/${c.id}'),
                         ),
@@ -137,7 +138,7 @@ class _Dashboard extends StatelessWidget {
                 ),
               ],
               if (d.recent.isNotEmpty) ...[
-                const SectionHeader('Letzte Aktivitäten'),
+                SectionHeader(tr('Letzte Aktivitäten')),
                 Card(
                   child: Column(
                     children: [
@@ -183,15 +184,19 @@ class _RoundCard extends ConsumerWidget {
       child: ListTile(
         leading: Icon(active != null ? Icons.play_circle_outline : Icons.route_outlined, color: scheme.primary),
         title: Text(
-          active != null ? 'Rundgang fortsetzen (${active.visited}/${active.total})' : 'Pflege-Rundgang starten',
+          active != null
+              ? tr('Rundgang fortsetzen ({0}/{1})', [active.visited, active.total])
+              : tr('Pflege-Rundgang starten'),
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         subtitle: active != null
             ? null
             : Text(
                 needsAttention > 0
-                    ? '$needsAttention ${needsAttention == 1 ? 'Kolonie braucht' : 'Kolonien brauchen'} heute Pflege'
-                    : 'Heute ist nichts fällig',
+                    ? (needsAttention == 1
+                          ? tr('1 Kolonie braucht heute Pflege')
+                          : tr('{0} Kolonien brauchen heute Pflege', [needsAttention]))
+                    : tr('Heute ist nichts fällig'),
               ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => context.go('/round'),

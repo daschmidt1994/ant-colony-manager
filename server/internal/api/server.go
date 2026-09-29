@@ -396,6 +396,10 @@ func (s *Server) authenticated(next http.Handler) http.Handler {
 			s.problem(w, r, service.RateLimited(retry))
 			return
 		}
+		// language of the app (for e-mail/ntfy when „device language“ is set)
+		if al := r.Header.Get("Accept-Language"); al != "" {
+			s.svc.NoteLanguage(r.Context(), actor.UserID, al)
+		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxActor, actor)))
 	})
 }

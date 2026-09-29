@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/daschmidt1994/ant-colony-manager/server/internal/testenv"
 )
 
@@ -341,4 +343,48 @@ func TestSnoozeWinterPlanByLink(t *testing.T) {
 	if start != day(1) || end != day(2) {
 		t.Fatalf("plan after snooze: %s – %s", start, end)
 	}
+}
+
+func TestNotificationsInTheUsersLanguage(t *testing.T) {
+	env := testenv.New(t)
+	ntfy := newFakeNtfy(t)
+	ctx := context.Background()
+	setup := func(name string) (*testenv.Client, uuid.UUID) {
+		u := env.User(t, name)
+		c := u.CreateColony(t, map[string]any{"name": name + " #1"})
+		u.Push(t, testenv.Op{OpID: testenv.NewID(), Entity: "care_schedules", EntityID: testenv.NewID(), Op: "create",
+			Payload: testenv.Payload(map[string]any{"colony_id": c, "task_type": "water", "interval_days": 2,
+				"starts_at": time.Now().Add(-5 * 24 * time.Hour)})})
+		u.Do("PUT", "/api/v1/me/notifications", map[string]any{"ntfy_url": ntfy.URL + "/" + name, "overdue_ntfy": true,
+			"overdue_repeat_hours": 0, "sensor_repeat_hours": 6, "winter_repeat_hours": 24}).Must(t, 200)
+		return u, c
+	}
+	// Chosen explicitly.
+	emma, _ := setup("Emma")
+	emma.Do("PATCH", "/api/v1/me/settings", map[string]any{"locale": "en"}).Must(t, 200)
+	// Device language: learned from the app's Accept-Language.
+	sam, _ := setup("Sam")
+	sam.Do("GET", "/api/v1/me", nil, "Accept-Language", "en-GB,en;q=0.9").Must(t, 200)
+	// Default: German.
+	setup("Anna")
+
+	if _, err := env.Svc.SendNotifications(ctx); err != nil {
+		t.Fatal(err)
+	}
+	byTopic := map[string]map[string]any{}
+	for _, m := range ntfy.take() {
+		byTopic[m["topic"].(string)] = m
+	}
+	for topic, want := range map[string][3]string{
+		"Emma": {"Emma #1 (Messor barbarus): Care overdue", "Water overdue for 3 days", "Tomorrow"},
+		"Sam":  {"Sam #1 (Messor barbarus): Care overdue", "Water overdue for 3 days", "Tomorrow"},
+		"Anna": {"Anna #1 (Messor barbarus): Pflege überfällig", "Wasser seit 3 Tagen überfällig", "Morgen"},
+	} {
+		m := byTopic[topic]
+		if m == nil || m["title"] != want[0] || m["message"] != want[1] ||
+			m["actions"].([]any)[0].(map[string]any)["label"] != want[2] {
+			t.Errorf("%s: %v", topic, m)
+		}
+	}
+	emma.Do("PATCH", "/api/v1/me/settings", map[string]any{"locale": "klingon"}).Must(t, 422)
 }

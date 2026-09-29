@@ -15,6 +15,7 @@ import '../../data/sync/sync_engine.dart';
 import '../../data/sync/upload_policy.dart';
 import '../../shared/widgets.dart';
 import 'updates.dart';
+import '../../app/i18n.dart';
 
 /// Conflicts the server resolved automatically (docs/05 §5) – losing values stay visible.
 final conflictsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -22,24 +23,24 @@ final conflictsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
   return (res['conflicts'] as List).cast<Map<String, dynamic>>();
 });
 
-const _entityNames = {
-  'colonies': 'Kolonie',
-  'colony_events': 'Eintrag',
-  'locations': 'Standort',
-  'care_schedules': 'Intervall',
-  'queens': 'Königin',
-  'food_items': 'Futtermittel',
+Map<String, String> get _entityNames => {
+  'colonies': tr('Kolonie'),
+  'colony_events': tr('Eintrag'),
+  'locations': tr('Standort'),
+  'care_schedules': tr('Intervall'),
+  'queens': tr('Königin'),
+  'food_items': tr('Futtermittel'),
 };
 
-const _fieldNames = {
-  'name': 'Name',
-  'notes': 'Notizen',
-  'note': 'Notiz',
-  'status': 'Status',
-  'location_id': 'Standort',
-  'interval_days': 'Intervall',
-  'occurred_at': 'Zeitpunkt',
-  'details_rev': 'Details',
+Map<String, String> get _fieldNames => {
+  'name': tr('Name'),
+  'notes': tr('Notizen'),
+  'note': tr('Notiz'),
+  'status': tr('Status'),
+  'location_id': tr('Standort'),
+  'interval_days': tr('Intervall'),
+  'occurred_at': tr('Zeitpunkt'),
+  'details_rev': tr('Details'),
 };
 
 /// ERINNERUNGEN (S20). Stored in user_settings, so they apply to all devices.
@@ -57,17 +58,17 @@ class _ReminderSettings extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionHeader('Erinnerungen'),
+        SectionHeader(tr('Erinnerungen')),
         Card(
           child: Column(
             children: [
               ListTile(
                 leading: const Icon(Icons.schedule),
-                title: const Text('Tages-Überblick'),
+                title: Text(tr('Tages-Überblick')),
                 subtitle: Text(
                   kIsWeb
-                      ? 'Uhrzeit für den Überblick (Android-App und E-Mail)'
-                      : '„7 Kolonien brauchen heute Aufmerksamkeit“ – einmal täglich',
+                      ? tr('Uhrzeit für den Überblick (Android-App und E-Mail)')
+                      : tr('„7 Kolonien brauchen heute Aufmerksamkeit“ – einmal täglich'),
                 ),
                 trailing: Text(time, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 onTap: () async {
@@ -83,10 +84,15 @@ class _ReminderSettings extends ConsumerWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.campaign_outlined),
-                title: const Text('Benachrichtigungen'),
+                title: Text(tr('Benachrichtigungen')),
                 subtitle: Text(
-                  'Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe – '
-                  'App, ntfy${mail ? ', E-Mail' : ''}; Häufigkeit, Ruhezeiten',
+                  mail
+                      ? tr(
+                          'Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe – App, ntfy, E-Mail; Häufigkeit, Ruhezeiten',
+                        )
+                      : tr(
+                          'Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe – App, ntfy; Häufigkeit, Ruhezeiten',
+                        ),
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/settings/notifications'),
@@ -114,9 +120,11 @@ class _WifiOnlySwitchState extends ConsumerState<_WifiOnlySwitch> {
     return Card(
       child: SwitchListTile(
         secondary: const Icon(Icons.wifi),
-        title: const Text('Fotos nur im WLAN hochladen'),
+        title: Text(tr('Fotos nur im WLAN hochladen')),
         subtitle: Text(
-          db.pendingUploadCount() == 0 ? 'Alle Fotos sind hochgeladen' : '${db.pendingUploadCount()} Fotos warten',
+          db.pendingUploadCount() == 0
+              ? tr('Alle Fotos sind hochgeladen')
+              : tr('{0} Fotos warten', [db.pendingUploadCount()]),
         ),
         value: on,
         onChanged: (v) {
@@ -139,13 +147,13 @@ class SettingsScreen extends ConsumerWidget {
     final theme = ref.watch(themeModeProvider);
     if (auth is! SignedIn) return const SizedBox.shrink();
     return Scaffold(
-      appBar: AppBar(title: const Text('Mehr')),
+      appBar: AppBar(title: Text(tr('Mehr'))),
       body: ContentWidth(
         maxWidth: 640,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
           children: [
-            const SectionHeader('Konto'),
+            SectionHeader(tr('Konto')),
             Card(
               child: Column(
                 children: [
@@ -156,20 +164,20 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   ListTile(
                     leading: const Icon(Icons.devices),
-                    title: const Text('Geräte & Sitzungen'),
-                    subtitle: const Text('Wo du angemeldet bist – verlorenes Handy abmelden'),
+                    title: Text(tr('Geräte & Sitzungen')),
+                    subtitle: Text(tr('Wo du angemeldet bist – verlorenes Handy abmelden')),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/settings/devices'),
                   ),
                 ],
               ),
             ),
-            const SectionHeader('Auswertung'),
+            SectionHeader(tr('Auswertung')),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.bar_chart),
-                title: const Text('Statistiken'),
-                subtitle: const Text('Kolonien, Arten, Fütterungen, Verteilung nach Standort'),
+                title: Text(tr('Statistiken')),
+                subtitle: Text(tr('Kolonien, Arten, Fütterungen, Verteilung nach Standort')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/settings/stats'),
               ),
@@ -177,21 +185,24 @@ class SettingsScreen extends ConsumerWidget {
             Card(
               child: ListTile(
                 leading: const Icon(Icons.sensors),
-                title: const Text('Sensoren'),
-                subtitle: const Text('Temperatur und Luftfeuchte automatisch erfassen (ESP32 …)'),
+                title: Text(tr('Sensoren')),
+                subtitle: Text(tr('Temperatur und Luftfeuchte automatisch erfassen (ESP32 …)')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/settings/sensors'),
               ),
             ),
-            const SectionHeader('Synchronisierung'),
+            SectionHeader(tr('Synchronisierung')),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.sync),
                 title: Text(_syncTitle(sync)),
                 subtitle: Text(
                   sync.lastSync == null
-                      ? 'Noch nie synchronisiert'
-                      : 'Zuletzt ${S.relativeDay(sync.lastSync!, DateTime.now()).toLowerCase()} ${S.time(sync.lastSync!)}',
+                      ? tr('Noch nie synchronisiert')
+                      : tr('Zuletzt {0} {1}', [
+                          S.relativeDayInline(sync.lastSync!, DateTime.now()),
+                          S.time(sync.lastSync!),
+                        ]),
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/settings/sync'),
@@ -199,68 +210,89 @@ class SettingsScreen extends ConsumerWidget {
             ),
             if (!kIsWeb) const _WifiOnlySwitch(),
             if (kIsWeb) ...[
-              const SectionHeader('Geräte'),
+              SectionHeader(tr('Geräte')),
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.phone_android),
-                  title: const Text('Android-App verbinden'),
-                  subtitle: const Text('QR-Code mit der App scannen – ohne Passwort-Eingabe'),
+                  title: Text(tr('Android-App verbinden')),
+                  subtitle: Text(tr('QR-Code mit der App scannen – ohne Passwort-Eingabe')),
                   onTap: () => _deviceLink(context, ref),
                 ),
               ),
             ],
             const _ReminderSettings(),
             if (auth.user.isAdmin) ...[
-              const SectionHeader('Server-Verwaltung'),
+              SectionHeader(tr('Server-Verwaltung')),
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.outgoing_mail),
                   title: const Text('E-Mail-Versand'),
-                  subtitle: const Text('Postausgangsserver für Passwort vergessen, Überblick und Benachrichtigungen'),
+                  subtitle: Text(tr('Postausgangsserver für Passwort vergessen, Überblick und Benachrichtigungen')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/settings/smtp'),
                 ),
               ),
             ],
-            const SectionHeader('Etiketten'),
+            SectionHeader(tr('Etiketten')),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.print_outlined),
-                title: const Text('Etiketten drucken'),
-                subtitle: const Text('QR-Etiketten als PDF – einzeln oder als Bogen'),
+                title: Text(tr('Etiketten drucken')),
+                subtitle: Text(tr('QR-Etiketten als PDF – einzeln oder als Bogen')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/settings/labels'),
               ),
             ),
-            const SectionHeader('Daten'),
+            SectionHeader(tr('Daten')),
             Card(
               child: Column(
                 children: [
                   ListTile(
                     leading: const Icon(Icons.download_outlined),
-                    title: const Text('Alles exportieren (ZIP)'),
-                    subtitle: const Text('JSON, CSV-Tabellen für Excel und alle Fotos – deine Daten gehören dir'),
+                    title: Text(tr('Alles exportieren (ZIP)')),
+                    subtitle: Text(tr('JSON, CSV-Tabellen für Excel und alle Fotos – deine Daten gehören dir')),
                     onTap: () => _export(context, ref, photos: true),
                   ),
                   ListTile(
                     leading: const Icon(Icons.table_chart_outlined),
-                    title: const Text('Nur Daten (ohne Fotos)'),
+                    title: Text(tr('Nur Daten (ohne Fotos)')),
                     onTap: () => _export(context, ref, photos: false),
                   ),
                 ],
               ),
             ),
-            const SectionHeader('Darstellung'),
+            SectionHeader(tr('Darstellung')),
             SegmentedButton<ThemeMode>(
-              segments: const [
-                ButtonSegment(value: ThemeMode.dark, label: Text('Dunkel'), icon: Icon(Icons.dark_mode_outlined)),
-                ButtonSegment(value: ThemeMode.light, label: Text('Hell'), icon: Icon(Icons.light_mode_outlined)),
-                ButtonSegment(value: ThemeMode.system, label: Text('System')),
+              segments: [
+                ButtonSegment(value: ThemeMode.dark, label: Text(tr('Dunkel')), icon: Icon(Icons.dark_mode_outlined)),
+                ButtonSegment(value: ThemeMode.light, label: Text(tr('Hell')), icon: Icon(Icons.light_mode_outlined)),
+                ButtonSegment(value: ThemeMode.system, label: Text(tr('System'))),
               ],
               selected: {theme},
               onSelectionChanged: (v) => ref.read(themeModeProvider.notifier).set(v.first),
             ),
-            const SectionHeader('Server'),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.translate),
+                title: Text(tr('Sprache')),
+                trailing: DropdownButton<String>(
+                  value: ref.watch(languageSettingProvider),
+                  underline: const SizedBox.shrink(),
+                  items: [
+                    DropdownMenuItem(value: 'system', child: Text(tr('Gerätesprache'))),
+                    for (final e in languages.entries) DropdownMenuItem(value: e.key, child: Text(e.value.$1)),
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    ref.read(databaseProvider).setMeta(languageMetaKey, v);
+                    ref.read(repositoryProvider)?.updateSettings({'locale': v});
+                    ref.invalidate(languageSettingProvider);
+                  },
+                ),
+              ),
+            ),
+            SectionHeader(tr('Server')),
             Card(
               child: Column(
                 children: [
@@ -285,7 +317,7 @@ class SettingsScreen extends ConsumerWidget {
                   if (!kIsWeb)
                     ListTile(
                       leading: const Icon(Icons.swap_horiz),
-                      title: const Text('Anderen Server verwenden'),
+                      title: Text(tr('Anderen Server verwenden')),
                       onTap: () => _confirmLogout(context, ref, changeServer: true),
                     ),
                 ],
@@ -295,7 +327,7 @@ class SettingsScreen extends ConsumerWidget {
             OutlinedButton.icon(
               onPressed: () => _confirmLogout(context, ref),
               icon: const Icon(Icons.logout),
-              label: const Text('Abmelden'),
+              label: Text(tr('Abmelden')),
             ),
           ],
         ),
@@ -313,14 +345,14 @@ class SettingsScreen extends ConsumerWidget {
         final res = await api.post('/api/v1/export/link?photos=${photos ? 1 : 0}') as Map<String, dynamic>;
         final url = Uri.parse('${api.baseUrl}${res['url']}');
         if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-          m.showSnackBar(const SnackBar(content: Text('Kein Browser gefunden')));
+          m.showSnackBar(SnackBar(content: Text(tr('Kein Browser gefunden'))));
         }
       } catch (e) {
         m.showSnackBar(SnackBar(content: Text(errorText(e))));
       }
       return;
     }
-    m.showSnackBar(const SnackBar(content: Text('Export wird erstellt …')));
+    m.showSnackBar(SnackBar(content: Text(tr('Export wird erstellt …'))));
     try {
       final bytes = await ref
           .read(authProvider.notifier)
@@ -335,12 +367,12 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   static String _syncTitle(SyncStatus s) => switch (s.phase) {
-    SyncPhase.syncing => 'Synchronisiere …',
-    SyncPhase.offline => 'Offline · ${s.pending} Änderung(en) warten',
-    SyncPhase.error || SyncPhase.loginRequired => s.message ?? 'Fehler',
-    _ when s.failed > 0 => '${s.failed} Änderung(en) abgelehnt',
-    _ when s.pending > 0 => '${s.pending} Änderung(en) ausstehend',
-    _ => 'Alles synchron',
+    SyncPhase.syncing => tr('Synchronisiere …'),
+    SyncPhase.offline => tr('Offline · {0} Änderung(en) warten', [s.pending]),
+    SyncPhase.error || SyncPhase.loginRequired => s.message ?? tr('Fehler'),
+    _ when s.failed > 0 => tr('{0} Änderung(en) abgelehnt', [s.failed]),
+    _ when s.pending > 0 => tr('{0} Änderung(en) ausstehend', [s.pending]),
+    _ => tr('Alles synchron'),
   };
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref, {bool changeServer = false}) async {
@@ -348,19 +380,24 @@ class SettingsScreen extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(changeServer ? 'Server wechseln?' : 'Abmelden?'),
+        title: Text(changeServer ? tr('Server wechseln?') : tr('Abmelden?')),
         content: Text(
           pending > 0
-              ? '$pending Änderung(en) wurden noch nicht zum Server übertragen und gehen beim Abmelden verloren. '
-                    'Stelle zuerst eine Verbindung her.'
-              : 'Die lokal gespeicherten Daten werden von diesem Gerät entfernt. Auf dem Server bleibt alles erhalten.',
+              ? tr(
+                  '{0} Änderung(en) wurden noch nicht zum Server übertragen und gehen beim Abmelden verloren. '
+                  'Stelle zuerst eine Verbindung her.',
+                  [pending],
+                )
+              : tr(
+                  'Die lokal gespeicherten Daten werden von diesem Gerät entfernt. Auf dem Server bleibt alles erhalten.',
+                ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Abbrechen'))),
           FilledButton(
             style: pending > 0 ? FilledButton.styleFrom(backgroundColor: c.colors.overdue) : null,
             onPressed: () => Navigator.pop(c, true),
-            child: Text(pending > 0 ? 'Trotzdem abmelden' : 'Abmelden'),
+            child: Text(pending > 0 ? tr('Trotzdem abmelden') : tr('Abmelden')),
           ),
         ],
       ),
@@ -377,7 +414,7 @@ class SettingsScreen extends ConsumerWidget {
       await showDialog<void>(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('Android-App verbinden'),
+          title: Text(tr('Android-App verbinden')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -387,13 +424,15 @@ class SettingsScreen extends ConsumerWidget {
                 child: QrImageView(data: link['qr_payload'] as String, size: 240, backgroundColor: Colors.white),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'In der App „QR-Code aus Web-App scannen“ wählen. Der Code ist 2 Minuten gültig und nur einmal verwendbar.',
+              Text(
+                tr(
+                  'In der App „QR-Code aus Web-App scannen“ wählen. Der Code ist 2 Minuten gültig und nur einmal verwendbar.',
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Schließen'))],
+          actions: [TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Schließen')))],
         ),
       );
     } catch (e) {
@@ -412,7 +451,7 @@ class SyncDetailsScreen extends ConsumerWidget {
     final db = ref.watch(databaseProvider);
     final failed = db.failedOps();
     return Scaffold(
-      appBar: AppBar(title: const Text('Synchronisierung')),
+      appBar: AppBar(title: Text(tr('Synchronisierung'))),
       body: ContentWidth(
         maxWidth: 640,
         child: ListView(
@@ -421,10 +460,10 @@ class SyncDetailsScreen extends ConsumerWidget {
             Card(
               child: Column(
                 children: [
-                  ListTile(title: const Text('Status'), trailing: Text(SettingsScreen._syncTitle(s))),
-                  ListTile(title: const Text('Ausstehende Änderungen'), trailing: Text('${s.pending}')),
+                  ListTile(title: Text(tr('Status')), trailing: Text(SettingsScreen._syncTitle(s))),
+                  ListTile(title: Text(tr('Ausstehende Änderungen')), trailing: Text('${s.pending}')),
                   ListTile(
-                    title: const Text('Letzte Synchronisierung'),
+                    title: Text(tr('Letzte Synchronisierung')),
                     trailing: Text(s.lastSync == null ? '–' : S.dateTime(s.lastSync!)),
                   ),
                 ],
@@ -434,7 +473,7 @@ class SyncDetailsScreen extends ConsumerWidget {
             FilledButton.icon(
               onPressed: engine == null ? null : () => engine.sync(resetBackoff: true),
               icon: const Icon(Icons.sync),
-              label: const Text('Jetzt synchronisieren'),
+              label: Text(tr('Jetzt synchronisieren')),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
@@ -448,7 +487,7 @@ class SyncDetailsScreen extends ConsumerWidget {
                       }
                     },
               icon: const Icon(Icons.cloud_download_outlined),
-              label: const Text('Alles neu vom Server laden'),
+              label: Text(tr('Alles neu vom Server laden')),
             ),
             ...ref
                 .watch(conflictsProvider)
@@ -456,9 +495,9 @@ class SyncDetailsScreen extends ConsumerWidget {
                   data: (list) => list.isEmpty
                       ? <Widget>[]
                       : [
-                          const SectionHeader('Gleichzeitig geändert'),
+                          SectionHeader(tr('Gleichzeitig geändert')),
                           Text(
-                            'Diese Felder wurden auf zwei Geräten geändert. Die neuere Änderung wurde übernommen.',
+                            tr('Diese Felder wurden auf zwei Geräten geändert. Die neuere Änderung wurde übernommen.'),
                             style: TextStyle(color: context.colors.muted),
                           ),
                           const SizedBox(height: 8),
@@ -470,11 +509,14 @@ class SyncDetailsScreen extends ConsumerWidget {
                                   '${_entityNames[c['entity']] ?? c['entity']} · ${_fieldNames[c['field']] ?? c['field']}',
                                 ),
                                 subtitle: Text(
-                                  'übernommen: ${_show(c['kept_value'])}\nverworfen: ${_show(c['lost_value'])}',
+                                  tr('übernommen: {0}\nverworfen: {1}', [
+                                    _show(c['kept_value']),
+                                    _show(c['lost_value']),
+                                  ]),
                                 ),
                                 isThreeLine: true,
                                 trailing: IconButton(
-                                  tooltip: 'Hinweis entfernen',
+                                  tooltip: tr('Hinweis entfernen'),
                                   icon: const Icon(Icons.close),
                                   onPressed: () async {
                                     await ref
@@ -490,7 +532,7 @@ class SyncDetailsScreen extends ConsumerWidget {
                   orElse: () => <Widget>[],
                 ),
             if (failed.isNotEmpty) ...[
-              const SectionHeader('Vom Server abgelehnt'),
+              SectionHeader(tr('Vom Server abgelehnt')),
               for (final op in failed)
                 Card(
                   child: ListTile(
@@ -499,12 +541,14 @@ class SyncDetailsScreen extends ConsumerWidget {
                     subtitle: Text(op.lastError ?? ''),
                   ),
                 ),
-              TextButton(onPressed: db.dismissFailed, child: const Text('Hinweise entfernen')),
+              TextButton(onPressed: db.dismissFailed, child: Text(tr('Hinweise entfernen'))),
             ],
             const SizedBox(height: 16),
             Text(
-              'Alle Einträge werden zuerst auf diesem Gerät gespeichert und im Hintergrund übertragen – '
-              'auch ohne Internet geht nichts verloren.',
+              tr(
+                'Alle Einträge werden zuerst auf diesem Gerät gespeichert und im Hintergrund übertragen – '
+                'auch ohne Internet geht nichts verloren.',
+              ),
               style: TextStyle(color: context.colors.muted),
             ),
           ],

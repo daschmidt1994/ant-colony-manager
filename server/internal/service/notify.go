@@ -154,8 +154,9 @@ func (s *Service) TestNotify(ctx context.Context, actor Actor) error {
 	if err != nil {
 		return err
 	}
-	err = s.sendNtfy(ctx, *u, deref(tok), notice{
-		Title: "Ant Colony Manager", Body: "Testnachricht – ntfy ist eingerichtet. 🐜",
+	lang := s.userLang(ctx, actor.UserID)
+	err = s.sendNtfy(ctx, lang, *u, deref(tok), notice{
+		Title: "Ant Colony Manager", Body: tl(lang, "Testnachricht – ntfy ist eingerichtet. 🐜"),
 		Click: s.publicURL() + "/", Priority: 3, Tags: []string{"ant"},
 	})
 	if err != nil {
@@ -176,7 +177,7 @@ type notice struct {
 
 // sendNtfy publishes as JSON to the server root, so titles may contain
 // umlauts. The token may be an access token (tk_…) or "user:password".
-func (s *Service) sendNtfy(ctx context.Context, topicURL, token string, n notice) error {
+func (s *Service) sendNtfy(ctx context.Context, lang, topicURL, token string, n notice) error {
 	u, err := url.Parse(topicURL)
 	if err != nil {
 		return err
@@ -191,7 +192,7 @@ func (s *Service) sendNtfy(ctx context.Context, topicURL, token string, n notice
 		"topic": topic, "title": n.Title, "message": n.Body, "priority": n.Priority, "tags": n.Tags, "click": n.Click,
 	}
 	if n.SnoozeURL != "" {
-		msg["actions"] = []map[string]any{{"action": "http", "label": "Morgen", "url": n.SnoozeURL, "method": "POST", "clear": true}}
+		msg["actions"] = []map[string]any{{"action": "http", "label": tl(lang, "Morgen"), "url": n.SnoozeURL, "method": "POST", "clear": true}}
 	}
 	body, _ := json.Marshal(msg)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(body))
@@ -208,16 +209,16 @@ func (s *Service) sendNtfy(ctx context.Context, topicURL, token string, n notice
 	}
 	resp, err := notifyClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("ntfy nicht erreichbar: %w", err)
+		return fmt.Errorf("%s", tl(lang, "ntfy nicht erreichbar: %v", err))
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 300))
 		switch resp.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
-			return fmt.Errorf("ntfy lehnt ab (%d) – Token oder Berechtigung für das Topic prüfen", resp.StatusCode)
+			return fmt.Errorf("%s", tl(lang, "ntfy lehnt ab (%d) – Token oder Berechtigung für das Topic prüfen", resp.StatusCode))
 		}
-		return fmt.Errorf("ntfy antwortet %d: %s", resp.StatusCode, strings.TrimSpace(string(msg)))
+		return fmt.Errorf("%s", tl(lang, "ntfy antwortet %d: %s", resp.StatusCode, strings.TrimSpace(string(msg))))
 	}
 	return nil
 }
@@ -232,21 +233,22 @@ type recipient struct {
 	quietFrom, quiet *time.Time
 	quietSensor      bool
 	prefs            NotifyPrefs
+	lang             string
 }
 
 // deliver sends over the chosen channels; true if at least one worked.
 func (s *Service) deliver(ctx context.Context, r recipient, emailOn, ntfyOn bool, n notice) bool {
 	ok := false
 	if ntfyOn && r.ntfyURL != "" {
-		if err := s.sendNtfy(ctx, r.ntfyURL, r.token, n); err != nil {
+		if err := s.sendNtfy(ctx, r.lang, r.ntfyURL, r.token, n); err != nil {
 			s.Log.Warn("ntfy notification failed", "user", r.id, "err", err)
 		} else {
 			ok = true
 		}
 	}
 	if emailOn && s.Mail.Enabled() {
-		body := n.Body + "\n\nÖffnen: " + n.Click + "\n\nEinstellen: Mehr → Benachrichtigungen\n"
-		if err := s.Mail.Send(ctx, mail.Message{To: r.email, Subject: "Ameisen: " + n.Title, Body: body}); err != nil {
+		body := n.Body + "\n\n" + tl(r.lang, "Öffnen: %s", n.Click) + "\n\n" + tl(r.lang, "Einstellen: Mehr → Benachrichtigungen") + "\n"
+		if err := s.Mail.Send(ctx, mail.Message{To: r.email, Subject: tl(r.lang, "Ameisen: %s", n.Title), Body: body}); err != nil {
 			s.Log.Warn("notification mail failed", "user", r.id, "err", err)
 		} else {
 			ok = true
@@ -266,7 +268,7 @@ func (s *Service) publicURL() string { return strings.TrimRight(s.Cfg.PublicURL.
 func (s *Service) SendNotifications(ctx context.Context) (int, error) {
 	rows, err := s.Pool.Query(ctx, `
 		SELECT u.id, u.email, COALESCE(np.ntfy_token, ''), us.timezone, us.digest_time::text, us.due_soon_days,
-			np.quiet_start::text, np.quiet_end::text, `+prefsCols+`
+			np.quiet_start::text, np.quiet_end::text, us.locale, u.lang_hint, `+prefsCols+`
 		FROM notification_prefs np
 		JOIN users u ON u.id = np.user_id AND u.disabled_at IS NULL
 		JOIN user_settings us ON us.id = u.id
@@ -277,12 +279,14 @@ func (s *Service) SendNotifications(ctx context.Context) (int, error) {
 	list, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (recipient, error) {
 		var r recipient
 		var tz, digest string
-		var qs, qe *string
+		var qs, qe, locale, hint *string
 		r.prefs = defaultPrefs()
-		err := row.Scan(append([]any{&r.id, &r.email, &r.token, &tz, &digest, &r.soonDays, &qs, &qe}, r.prefs.scanTargets()...)...)
+		err := row.Scan(append([]any{&r.id, &r.email, &r.token, &tz, &digest, &r.soonDays, &qs, &qe, &locale, &hint},
+			r.prefs.scanTargets()...)...)
 		if err != nil {
 			return r, err
 		}
+		r.lang = resolveLang(locale, hint)
 		r.ntfyURL = r.prefs.NtfyURL
 		if r.loc, err = time.LoadLocation(tz); err != nil {
 			r.loc = time.UTC
@@ -382,7 +386,7 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 	send := func(m map[uuid.UUID]*pending, emailOn, ntfyOn bool, title string, prio int, tags []string, snoozeKind string) error {
 		for _, p := range m {
 			c := byID[p.colony]
-			n := notice{Title: c.label() + ": " + title, Body: strings.Join(p.lines, "\n"),
+			n := notice{Title: c.label() + ": " + tl(r.lang, title), Body: strings.Join(p.lines, "\n"),
 				Click: s.publicURL() + "/colonies/" + c.id.String(), Priority: prio, Tags: tags}
 			if snoozeKind != "" {
 				n.SnoozeURL = s.snoozeURL(r.id, snoozeKind, c.id)
@@ -416,7 +420,7 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 				}
 				key := fmt.Sprintf("overdue:%s:%d", t.ScheduleID, t.NextDueAt.Unix())
 				if due(key, p.OverdueRepeatHours) && !quiet {
-					collect(out, colony, key, taskLabel(t)+" "+dueText(t.Days))
+					collect(out, colony, key, taskLabel(r.lang, t)+" "+dueText(r.lang, t.Days))
 				}
 			}
 		}
@@ -443,7 +447,7 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 		var value float64
 		var tMin, tMax, hMin, hMax *float64
 		_, err = pgx.ForEachRow(rows, []any{&id, &name, &colony, &metric, &value, &tMin, &tMax, &hMin, &hMax}, func() error {
-			if line := limitText(name, metric, value, tMin, tMax, hMin, hMax); line != "" {
+			if line := limitText(r.lang, name, metric, value, tMin, tMax, hMin, hMax); line != "" {
 				key := "sensor:" + id.String() + ":" + metric
 				if due(key, p.SensorRepeatHours) && (!quiet || r.quietSensor) {
 					collect(out, colony, key, line)
@@ -468,10 +472,10 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 				return sent, err
 			}
 			out := map[uuid.UUID]*pending{}
-			for colony, text := range winter {
-				key := "winter:" + colony.String() + ":" + text
+			for colony, code := range winter {
+				key := "winter:" + colony.String() + ":" + code
 				if due(key, p.WinterRepeatHours) && !quiet {
-					collect(out, colony, key, text)
+					collect(out, colony, key, winterText(r.lang, code))
 				}
 			}
 			if err := send(out, p.WinterEmail, p.WinterNtfy, "Winterruhe", 3, []string{"snowflake"}, "winter"); err != nil {
@@ -492,24 +496,25 @@ func (s *Service) notifyUser(ctx context.Context, r recipient) (int, error) {
 	return sent, err
 }
 
-func taskLabel(t DueTask) string {
+func taskLabel(lang string, t DueTask) string {
 	if t.Title != nil && *t.Title != "" {
 		return *t.Title
 	}
-	return taskNames[t.TaskType]
+	return tl(lang, taskNames[t.TaskType])
 }
 
 // limitText describes a reading outside the sensor's limits, "" if fine.
-func limitText(sensor, metric string, v float64, tMin, tMax, hMin, hMax *float64) string {
-	lo, hi, label, unit := tMin, tMax, "Temperatur", "°C"
+func limitText(lang, sensor, metric string, v float64, tMin, tMax, hMin, hMax *float64) string {
+	lo, hi, label, unit := tMin, tMax, tl(lang, "Temperatur"), "°C"
 	if metric == "humidity" {
-		lo, hi, label, unit = hMin, hMax, "Luftfeuchtigkeit", "%"
+		lo, hi, label, unit = hMin, hMax, tl(lang, "Luftfeuchtigkeit"), "%"
 	}
+	n := func(x float64) string { return numIn(lang, x) }
 	switch {
 	case hi != nil && v > *hi:
-		return fmt.Sprintf("Sensor „%s“: %s %s %s – über dem Grenzwert %s %s", sensor, label, num(v), unit, num(*hi), unit)
+		return tl(lang, "Sensor „%s“: %s %s %s – über dem Grenzwert %s %s", sensor, label, n(v), unit, n(*hi), unit)
 	case lo != nil && v < *lo:
-		return fmt.Sprintf("Sensor „%s“: %s %s %s – unter dem Grenzwert %s %s", sensor, label, num(v), unit, num(*lo), unit)
+		return tl(lang, "Sensor „%s“: %s %s %s – unter dem Grenzwert %s %s", sensor, label, n(v), unit, n(*lo), unit)
 	}
 	return ""
 }

@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -170,12 +169,14 @@ const sensorAlertPause = 6 * time.Hour
 func (s *Service) checkSensorLimits(ctx context.Context, sensor uuid.UUID, readings []SensorReading, now time.Time) error {
 	var name string
 	var colony *uuid.UUID
+	var owner uuid.UUID
 	var tMin, tMax, hMin, hMax *float64
-	err := s.Pool.QueryRow(ctx, `SELECT name, colony_id, temp_min::float8, temp_max::float8, humidity_min::float8, humidity_max::float8
-		FROM sensors WHERE id = $1`, sensor).Scan(&name, &colony, &tMin, &tMax, &hMin, &hMax)
+	err := s.Pool.QueryRow(ctx, `SELECT name, colony_id, owner_id, temp_min::float8, temp_max::float8, humidity_min::float8, humidity_max::float8
+		FROM sensors WHERE id = $1`, sensor).Scan(&name, &colony, &owner, &tMin, &tMax, &hMin, &hMax)
 	if err != nil || colony == nil {
 		return err
 	}
+	lang := s.userLang(ctx, owner) // the timeline entry in the owner's language
 	latest := map[string]SensorReading{}
 	for _, r := range readings {
 		if l, ok := latest[r.Metric]; !ok || r.MeasuredAt.After(l.MeasuredAt) {
@@ -186,19 +187,11 @@ func (s *Service) checkSensorLimits(ctx context.Context, sensor uuid.UUID, readi
 		if now.Sub(r.MeasuredAt) > 2*time.Hour {
 			continue
 		}
-		lo, hi, label, unit := tMin, tMax, "Temperatur", "°C"
-		if metric == "humidity" {
-			lo, hi, label, unit = hMin, hMax, "Luftfeuchtigkeit", "%"
-		}
-		var note string
-		switch {
-		case hi != nil && r.Value > *hi:
-			note = fmt.Sprintf("Sensor „%s“: %s %s %s – über dem Grenzwert %s %s.", name, label, num(r.Value), unit, num(*hi), unit)
-		case lo != nil && r.Value < *lo:
-			note = fmt.Sprintf("Sensor „%s“: %s %s %s – unter dem Grenzwert %s %s.", name, label, num(r.Value), unit, num(*lo), unit)
-		default:
+		note := limitText(lang, name, metric, r.Value, tMin, tMax, hMin, hMax)
+		if note == "" {
 			continue
 		}
+		note += "."
 		// Claim the alert slot first: concurrent batches must not both alert.
 		tag, err := s.Pool.Exec(ctx, `INSERT INTO sensor_alerts (sensor_id, metric, alerted_at) VALUES ($1, $2, $3)
 			ON CONFLICT (sensor_id, metric) DO UPDATE SET alerted_at = excluded.alerted_at
@@ -219,6 +212,13 @@ func (s *Service) checkSensorLimits(ctx context.Context, sensor uuid.UUID, readi
 }
 
 // num formats like the app: one decimal, comma as separator.
-func num(v float64) string {
-	return strings.Replace(strconv.FormatFloat(v, 'f', 1, 64), ".", ",", 1)
+func num(v float64) string { return numIn("de", v) }
+
+// numIn: one decimal – comma in German, point in English.
+func numIn(lang string, v float64) string {
+	s := strconv.FormatFloat(v, 'f', 1, 64)
+	if lang == "de" {
+		s = strings.Replace(s, ".", ",", 1)
+	}
+	return s
 }

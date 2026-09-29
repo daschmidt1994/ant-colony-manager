@@ -7,6 +7,7 @@ import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../../app/i18n.dart';
 
 enum ColonyFilter { active, founding, hibernating, due, archived }
 
@@ -55,12 +56,12 @@ class _ColonyListScreenState extends ConsumerState<ColonyListScreen> {
   final _search = TextEditingController();
   final _filters = <ColonyFilter>{};
 
-  static const _labels = {
-    ColonyFilter.active: 'Aktiv',
-    ColonyFilter.founding: 'Gründung',
-    ColonyFilter.hibernating: 'Winterruhe',
-    ColonyFilter.due: 'Fällig',
-    ColonyFilter.archived: 'Archiv',
+  static Map<ColonyFilter, String> get _labels => {
+    ColonyFilter.active: tr('Aktiv'),
+    ColonyFilter.founding: tr('Gründung'),
+    ColonyFilter.hibernating: tr('Winterruhe'),
+    ColonyFilter.due: tr('Fällig'),
+    ColonyFilter.archived: tr('Archiv'),
   };
 
   @override
@@ -72,10 +73,10 @@ class _ColonyListScreenState extends ConsumerState<ColonyListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Kolonien (${colonies.length})'),
+        title: Text(tr('Kolonien ({0})', [colonies.length])),
         actions: [
           IconButton(
-            tooltip: 'Artenkatalog',
+            tooltip: tr('Artenkatalog'),
             icon: const Icon(Icons.menu_book_outlined),
             onPressed: () => context.go('/species'),
           ),
@@ -85,7 +86,7 @@ class _ColonyListScreenState extends ConsumerState<ColonyListScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/colonies/new'),
         icon: const Icon(Icons.add),
-        label: const Text('Kolonie'),
+        label: Text(tr('Kolonie')),
       ),
       body: ContentWidth(
         child: Column(
@@ -97,7 +98,7 @@ class _ColonyListScreenState extends ConsumerState<ColonyListScreen> {
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
-                  hintText: 'Name, Art, Standort, #Nummer',
+                  hintText: tr('Name, Art, Standort, #Nummer'),
                   suffixIcon: _search.text.isEmpty
                       ? null
                       : IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(_search.clear)),
@@ -126,11 +127,11 @@ class _ColonyListScreenState extends ConsumerState<ColonyListScreen> {
               child: list.isEmpty
                   ? EmptyState(
                       icon: Icons.search_off,
-                      title: colonies.isEmpty ? 'Noch keine Kolonien' : 'Keine Treffer',
+                      title: colonies.isEmpty ? tr('Noch keine Kolonien') : tr('Keine Treffer'),
                       action: colonies.isEmpty
                           ? FilledButton(
                               onPressed: () => context.go('/colonies/new'),
-                              child: const Text('Kolonie anlegen'),
+                              child: Text(tr('Kolonie anlegen')),
                             )
                           : null,
                     )

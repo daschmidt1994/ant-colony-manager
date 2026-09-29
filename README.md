@@ -2,6 +2,8 @@
 
 Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pflegealltag:
 
+**Homepage:** https://daschmidt1994.github.io/ant-colony-manager/
+
 > **SCAN → INFORMATION → AKTION → FERTIG**
 > Handy an den NFC-Tag halten oder QR-Code scannen → die Kolonie ist offen, du siehst was ansteht, und dokumentierst Fütterung, Wasser oder Reinigung mit einem Tap.
 
@@ -10,6 +12,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos, Messwerte, Sensor-Schnittstelle
 - **Benachrichtigungen per App, ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit, Ruhezeiten, „Morgen“ zum Verschieben
 - **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) – mit den eigenen Kolonien verknüpft
+- **Deutsch und Englisch** (weitere Sprachen: eine Übersetzungsdatei, [docs/21-sprachen.md](docs/21-sprachen.md)); Fotos auch aus der Galerie, mit Aufnahmedatum
 - **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie (nur eine abschaltbare Update-Prüfung gegen die öffentliche GitHub-Release-Liste, `UPDATE_CHECK=false`)
 - **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien
 

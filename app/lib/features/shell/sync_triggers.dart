@@ -14,6 +14,7 @@ import '../../data/sync/realtime.dart';
 import '../../data/sync/sync_engine.dart';
 import '../reminders/reminder_actions.dart';
 import '../reminders/reminders.dart';
+import '../../app/i18n.dart';
 
 /// Starts a sync whenever it is worth it (docs/05 §8): app back in the
 /// foreground, network back, realtime signal from the server (Android),
@@ -82,7 +83,7 @@ class _SyncTriggersState extends ConsumerState<SyncTriggers> with WidgetsBinding
     if (route != null) {
       ref.read(routerProvider).go(route);
     } else {
-      rootMessengerKey.currentState?.showSnackBar(const SnackBar(content: Text('Erledigt – gespeichert')));
+      rootMessengerKey.currentState?.showSnackBar(SnackBar(content: Text(tr('Erledigt – gespeichert'))));
     }
     _refreshReminders();
   }

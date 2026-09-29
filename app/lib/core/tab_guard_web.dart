@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import '../app/i18n.dart';
 
 import 'package:web/web.dart' as web;
 
@@ -22,7 +23,7 @@ Future<bool> otherTabActive() async {
   ch.postMessage('hello'.toJS);
   await Future<void>.delayed(const Duration(milliseconds: 400));
   _owner = !seen;
-  if (seen) web.document.title = 'Bereits geöffnet – Ant Colony Manager';
+  if (seen) web.document.title = tr('Bereits geöffnet – Ant Colony Manager');
   return seen;
 }
 

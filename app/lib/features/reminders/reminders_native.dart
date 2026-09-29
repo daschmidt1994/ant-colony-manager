@@ -13,6 +13,7 @@ import '../../data/repositories/colony_repository.dart';
 import '../../data/sync/background_sync_native.dart';
 import '../../domain/reminders.dart';
 import 'reminder_actions.dart';
+import '../../app/i18n.dart';
 
 typedef ReminderTap = void Function(String? actionId, String? payload);
 
@@ -23,55 +24,55 @@ const _groupKey = 'at.antcolony.manager.due';
 final _digestId = notificationId('digest');
 final _summaryId = notificationId('summary');
 
-const _dueDetails = NotificationDetails(
+NotificationDetails get _dueDetails => NotificationDetails(
   android: AndroidNotificationDetails(
     'due',
-    'Überfällige Pflege',
-    channelDescription: 'Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“',
+    tr('Überfällige Pflege'),
+    channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
     groupKey: _groupKey,
     actions: [
-      AndroidNotificationAction('done', 'Erledigt'),
-      AndroidNotificationAction('snooze', 'Morgen'),
-      AndroidNotificationAction('open', 'Öffnen', showsUserInterface: true),
+      AndroidNotificationAction('done', tr('Erledigt')),
+      AndroidNotificationAction('snooze', tr('Morgen')),
+      AndroidNotificationAction('open', tr('Öffnen'), showsUserInterface: true),
     ],
   ),
 );
 
 /// Winter rest plan: no „Erledigt“ (the switch is in the app), but „Morgen“.
-const _snoozeDetails = NotificationDetails(
+NotificationDetails get _snoozeDetails => NotificationDetails(
   android: AndroidNotificationDetails(
     'due',
-    'Überfällige Pflege',
-    channelDescription: 'Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“',
+    tr('Überfällige Pflege'),
+    channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
     groupKey: _groupKey,
     actions: [
-      AndroidNotificationAction('snooze', 'Morgen'),
-      AndroidNotificationAction('open', 'Öffnen', showsUserInterface: true),
+      AndroidNotificationAction('snooze', tr('Morgen')),
+      AndroidNotificationAction('open', tr('Öffnen'), showsUserInterface: true),
     ],
   ),
 );
 
-const _infoDetails = NotificationDetails(
+NotificationDetails get _infoDetails => NotificationDetails(
   android: AndroidNotificationDetails(
     'due',
-    'Überfällige Pflege',
-    channelDescription: 'Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“',
+    tr('Überfällige Pflege'),
+    channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
     groupKey: _groupKey,
   ),
 );
 
-const _summaryDetails = NotificationDetails(
-  android: AndroidNotificationDetails('due', 'Überfällige Pflege', groupKey: _groupKey, setAsGroupSummary: true),
+NotificationDetails get _summaryDetails => NotificationDetails(
+  android: AndroidNotificationDetails('due', tr('Überfällige Pflege'), groupKey: _groupKey, setAsGroupSummary: true),
 );
 
-const _digestDetails = NotificationDetails(
+NotificationDetails get _digestDetails => NotificationDetails(
   android: AndroidNotificationDetails(
     'digest',
-    'Tages-Überblick',
-    channelDescription: 'Einmal täglich: was heute ansteht',
+    tr('Tages-Überblick'),
+    channelDescription: tr('Einmal täglich: was heute ansteht'),
     category: AndroidNotificationCategory.reminder,
   ),
 );
@@ -115,6 +116,7 @@ Future<bool> requestReminderPermission() async {
 Future<void> syncReminders(ColonyRepository repo) async {
   if (!_android) return;
   await _init();
+  setLanguage(resolveLanguage(repo.settings().locale)); // also in the background isolate
   final db = repo.db;
   final shown = ((jsonDecode(db.getMeta(_shownKey) ?? '{}') as Map).cast<String, String>());
   final list = repo.reminders();
@@ -144,7 +146,7 @@ Future<void> syncReminders(ColonyRepository repo) async {
   if (shown.length > 1) {
     await _plugin.show(
       id: _summaryId,
-      title: 'Pflege überfällig',
+      title: tr('Pflege überfällig'),
       body: '${shown.length} Aufgaben',
       notificationDetails: _summaryDetails,
     );

@@ -7,6 +7,7 @@ import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../shared/widgets.dart';
+import '../../app/i18n.dart';
 
 /// Notification settings on the server (ntfy, e-mail per topic). Not synced –
 /// the ntfy token never leaves the server, so this screen needs a connection.
@@ -14,9 +15,20 @@ final notifyPrefsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((re
   return await ref.read(authProvider.notifier).api.get('/api/v1/me/notifications') as Map<String, dynamic>;
 });
 
-const overdueRepeats = {0: 'nur einmal', 6: 'alle 6 Stunden', 12: 'alle 12 Stunden', 24: 'täglich'};
-const sensorRepeats = {0: 'nur einmal', 1: 'stündlich', 6: 'alle 6 Stunden', 12: 'alle 12 Stunden', 24: 'täglich'};
-const winterRepeats = {0: 'nur einmal', 24: 'täglich'};
+Map<int, String> get overdueRepeats => {
+  0: tr('nur einmal'),
+  6: tr('alle 6 Stunden'),
+  12: tr('alle 12 Stunden'),
+  24: tr('täglich'),
+};
+Map<int, String> get sensorRepeats => {
+  0: tr('nur einmal'),
+  1: tr('stündlich'),
+  6: tr('alle 6 Stunden'),
+  12: tr('alle 12 Stunden'),
+  24: tr('täglich'),
+};
+Map<int, String> get winterRepeats => {0: tr('nur einmal'), 24: tr('täglich')};
 
 const defaultNtfyServer = 'https://ntfy.sh';
 
@@ -83,16 +95,16 @@ class NotificationsScreen extends ConsumerWidget {
       .watch(notifyPrefsProvider)
       .when(
         loading: () => Scaffold(
-          appBar: AppBar(title: const Text('Benachrichtigungen')),
+          appBar: AppBar(title: Text(tr('Benachrichtigungen'))),
           body: const Center(child: CircularProgressIndicator()),
         ),
         error: (e, _) => Scaffold(
-          appBar: AppBar(title: const Text('Benachrichtigungen')),
+          appBar: AppBar(title: Text(tr('Benachrichtigungen'))),
           body: EmptyState(
             icon: Icons.cloud_off,
-            title: 'Nur mit Verbindung zum Server',
+            title: tr('Nur mit Verbindung zum Server'),
             text: errorText(e),
-            action: FilledButton(onPressed: () => ref.invalidate(notifyPrefsProvider), child: const Text('Erneut')),
+            action: FilledButton(onPressed: () => ref.invalidate(notifyPrefsProvider), child: Text(tr('Erneut'))),
           ),
         ),
         data: (p) => _NotificationsForm(initial: p),
@@ -146,7 +158,7 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
   Future<bool> _save({bool quiet = false}) async {
     final topic = _topic.text.trim();
     if (topic.isNotEmpty && !ntfyTopicPattern.hasMatch(topic)) {
-      showError(context, 'Topic: nur Buchstaben, Ziffern, _ und - (max. 64 Zeichen)');
+      showError(context, tr('Topic: nur Buchstaben, Ziffern, _ und - (max. 64 Zeichen)'));
       return false;
     }
     setState(() => _busy = true);
@@ -164,7 +176,7 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
         _removeToken = false;
         _dirty = false;
       });
-      if (!quiet && mounted) showUndoSnack(context, 'Gespeichert');
+      if (!quiet && mounted) showUndoSnack(context, tr('Gespeichert'));
       return true;
     } catch (e) {
       if (mounted) showError(context, e);
@@ -179,7 +191,7 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
     setState(() => _busy = true);
     try {
       await ref.read(authProvider.notifier).api.post('/api/v1/me/notifications/test');
-      if (mounted) showUndoSnack(context, 'Testnachricht gesendet – schau in die ntfy-App');
+      if (mounted) showUndoSnack(context, tr('Testnachricht gesendet – schau in die ntfy-App'));
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -213,7 +225,7 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
       final app = settings?.json[appSetting] as bool? ?? true;
       final email = _emailAvailable && (emailValue ?? _p['${prefix}_email'] == true);
       final ntfy = hasNtfy && _p['${prefix}_ntfy'] == true;
-      final active = [if (app) 'App', if (email) 'E-Mail', if (ntfy) 'ntfy'];
+      final active = [if (app) tr('App'), if (email) 'E-Mail', if (ntfy) 'ntfy'];
       final on = active.isNotEmpty;
       Widget row(IconData icon, String label, bool value, ValueChanged<bool>? onChanged, String? unavailable) =>
           SwitchListTile(
@@ -245,27 +257,33 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    on ? 'Aktiv: ${active.join(', ')}' : 'Aus – keine Benachrichtigung',
+                    on ? tr('Aktiv: {0}', [active.join(', ')]) : tr('Aus – keine Benachrichtigung'),
                     style: TextStyle(fontWeight: FontWeight.w600, color: on ? context.colors.ok : context.colors.muted),
                   ),
                 ),
               ],
             ),
           ),
-          row(Icons.phone_android, 'App', app, repo == null ? null : (v) => repo.updateSettings({appSetting: v}), null),
+          row(
+            Icons.phone_android,
+            tr('App'),
+            app,
+            repo == null ? null : (v) => repo.updateSettings({appSetting: v}),
+            null,
+          ),
           row(
             Icons.mail_outline,
             'E-Mail',
             email,
             _emailAvailable ? (onEmail ?? (v) => _set('${prefix}_email', v)) : null,
-            _emailAvailable ? null : 'nicht eingerichtet (Server-Verwaltung)',
+            _emailAvailable ? null : tr('nicht eingerichtet (Server-Verwaltung)'),
           ),
           row(
             Icons.notifications_outlined,
             'ntfy',
             ntfy,
             hasNtfy ? (v) => _set('${prefix}_ntfy', v) : null,
-            hasNtfy ? null : 'oben Server und Topic eintragen',
+            hasNtfy ? null : tr('oben Server und Topic eintragen'),
           ),
         ],
       );
@@ -273,7 +291,7 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
 
     Widget repeat(String key, Map<int, String> options) => DropdownButtonFormField<int>(
       initialValue: options.containsKey(_p[key]) ? _p[key] as int : options.keys.first,
-      decoration: const InputDecoration(labelText: 'Solange es besteht, erinnern', isDense: true),
+      decoration: InputDecoration(labelText: tr('Solange es besteht, erinnern'), isDense: true),
       items: [for (final e in options.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
       onChanged: (v) => _set(key, v),
     );
@@ -308,10 +326,10 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
         final save = await showDialog<bool>(
           context: context,
           builder: (d) => AlertDialog(
-            title: const Text('Änderungen speichern?'),
+            title: Text(tr('Änderungen speichern?')),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Verwerfen')),
-              FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Speichern')),
+              TextButton(onPressed: () => Navigator.pop(d, false), child: Text(tr('Verwerfen'))),
+              FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(tr('Speichern'))),
             ],
           ),
         );
@@ -322,8 +340,8 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Benachrichtigungen'),
-          actions: [TextButton(onPressed: _busy || !_dirty ? null : _save, child: const Text('Speichern'))],
+          title: Text(tr('Benachrichtigungen')),
+          actions: [TextButton(onPressed: _busy || !_dirty ? null : _save, child: Text(tr('Speichern')))],
         ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
@@ -341,10 +359,12 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Die App „ntfy“ (F-Droid oder Play Store) installieren, dort denselben Server und '
-                            'dasselbe Topic abonnieren. Eigener ntfy-Server: seine Adresse als Server eintragen, '
-                            'dazu ein Token. Auf dem öffentlichen ntfy.sh kann jeder mitlesen, der den Topic-Namen '
-                            'kennt – dort einen schwer zu erratenden Namen wählen (Würfel).',
+                            tr(
+                              'Die App „ntfy“ (F-Droid oder Play Store) installieren, dort denselben Server und '
+                              'dasselbe Topic abonnieren. Eigener ntfy-Server: seine Adresse als Server eintragen, '
+                              'dazu ein Token. Auf dem öffentlichen ntfy.sh kann jeder mitlesen, der den Topic-Namen '
+                              'kennt – dort einen schwer zu erratenden Namen wählen (Würfel).',
+                            ),
                             style: muted,
                           ),
                           const SizedBox(height: 12),
@@ -352,10 +372,10 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                             controller: _server,
                             keyboardType: TextInputType.url,
                             autocorrect: false,
-                            decoration: const InputDecoration(
-                              labelText: 'Server',
+                            decoration: InputDecoration(
+                              labelText: tr('Server'),
                               hintText: 'https://ntfy.meinedomain.at',
-                              helperText: 'Standard: https://ntfy.sh – eigener Server: dessen Domain',
+                              helperText: tr('Standard: https://ntfy.sh – eigener Server: dessen Domain'),
                             ),
                             onChanged: (_) => _addressChanged(),
                           ),
@@ -364,13 +384,13 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                             controller: _topic,
                             autocorrect: false,
                             decoration: InputDecoration(
-                              labelText: 'Topic',
+                              labelText: tr('Topic'),
                               hintText: 'ameisen',
                               errorText: _topic.text.trim().isEmpty || ntfyTopicPattern.hasMatch(_topic.text.trim())
                                   ? null
-                                  : 'Nur Buchstaben, Ziffern, _ und - (max. 64)',
+                                  : tr('Nur Buchstaben, Ziffern, _ und - (max. 64)'),
                               suffixIcon: IconButton(
-                                tooltip: 'Zufälliger Topic-Name',
+                                tooltip: tr('Zufälliger Topic-Name'),
                                 icon: const Icon(Icons.casino_outlined),
                                 onPressed: () {
                                   _topic.text = randomTopic();
@@ -386,13 +406,13 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                             obscureText: true,
                             autocorrect: false,
                             decoration: InputDecoration(
-                              labelText: 'Token (für eigenen Server mit Zugriffsschutz)',
+                              labelText: tr('Token (für eigenen Server mit Zugriffsschutz)'),
                               hintText: _tokenSet
-                                  ? 'gespeichert – leer lassen zum Behalten'
-                                  : 'tk_… oder benutzer:passwort',
+                                  ? tr('gespeichert – leer lassen zum Behalten')
+                                  : tr('tk_… oder benutzer:passwort'),
                               suffixIcon: _tokenSet
                                   ? IconButton(
-                                      tooltip: 'Token entfernen',
+                                      tooltip: tr('Token entfernen'),
                                       icon: const Icon(Icons.delete_outline),
                                       onPressed: () => setState(() {
                                         _removeToken = true;
@@ -408,7 +428,7 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                             alignment: Alignment.centerLeft,
                             child: OutlinedButton.icon(
                               icon: const Icon(Icons.send_outlined),
-                              label: const Text('Testnachricht senden'),
+                              label: Text(tr('Testnachricht senden')),
                               onPressed: _busy || !hasNtfy ? null : _test,
                             ),
                           ),
@@ -420,17 +440,22 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'E-Mail ist nicht verfügbar: Der Server hat keinen E-Mail-Versand eingerichtet '
-                        '(Administrator: Mehr → Server-Verwaltung → E-Mail-Versand).',
+                        tr(
+                          'E-Mail ist nicht verfügbar: Der Server hat keinen E-Mail-Versand eingerichtet '
+                          '(Administrator: Mehr → Server-Verwaltung → E-Mail-Versand).',
+                        ),
                         style: muted.copyWith(fontSize: 12),
                       ),
                     ),
-                  const SectionHeader('Themen'),
+                  SectionHeader(tr('Themen')),
                   topic(
                     Icons.schedule,
-                    'Tages-Überblick',
-                    'Täglich um $digestTime: welche Kolonien heute Pflege brauchen. '
-                        'Uhrzeit unter Mehr → Erinnerungen.',
+                    tr('Tages-Überblick'),
+                    tr(
+                      'Täglich um {0}: welche Kolonien heute Pflege brauchen. '
+                      'Uhrzeit unter Mehr → Erinnerungen.',
+                      [digestTime],
+                    ),
                     [
                       channels(
                         'digest',
@@ -442,35 +467,43 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                   ),
                   topic(
                     Icons.warning_amber_rounded,
-                    'Pflege überfällig',
-                    'Sobald eine Aufgabe (Fütterung, Wasser, Reinigung …) überfällig ist. '
-                        'Mit „Erledigt“ und „Morgen“ (heute keine Zeit → um einen Tag verschieben).',
+                    tr('Pflege überfällig'),
+                    tr(
+                      'Sobald eine Aufgabe (Fütterung, Wasser, Reinigung …) überfällig ist. '
+                      'Mit „Erledigt“ und „Morgen“ (heute keine Zeit → um einen Tag verschieben).',
+                    ),
                     [channels('overdue', appSetting: 'notify_overdue'), repeat('overdue_repeat_hours', overdueRepeats)],
                   ),
                   topic(
                     Icons.thermostat,
-                    'Sensor-Alarm',
-                    'Temperatur oder Luftfeuchte außerhalb der Grenzwerte eines Sensors (Mehr → Sensoren).',
+                    tr('Sensor-Alarm'),
+                    tr('Temperatur oder Luftfeuchte außerhalb der Grenzwerte eines Sensors (Mehr → Sensoren).'),
                     [channels('sensor', appSetting: 'notify_sensor_app'), repeat('sensor_repeat_hours', sensorRepeats)],
                   ),
                   topic(
                     Icons.ac_unit,
-                    'Winterruhe',
-                    'Am geplanten Tag ab $digestTime: „Winterruhe beginnen?“ bzw. „aufwecken?“ – '
-                        'mit „Morgen“ um einen Tag verschieben.',
+                    tr('Winterruhe'),
+                    tr(
+                      'Am geplanten Tag ab {0}: „Winterruhe beginnen?“ bzw. „aufwecken?“ – '
+                      'mit „Morgen“ um einen Tag verschieben.',
+                      [digestTime],
+                    ),
                     [channels('winter', appSetting: 'notify_winter_app'), repeat('winter_repeat_hours', winterRepeats)],
                   ),
-                  const SectionHeader('Ruhezeiten'),
+                  SectionHeader(tr('Ruhezeiten')),
                   Card(
                     child: Column(
                       children: [
                         SwitchListTile(
                           secondary: const Icon(Icons.bedtime_outlined),
-                          title: const Text('Ruhezeiten'),
+                          title: Text(tr('Ruhezeiten')),
                           subtitle: Text(
                             quietOn
-                                ? 'Von ${_p['quiet_start']} bis ${_p['quiet_end']} keine Meldungen – danach kommen sie gesammelt'
-                                : 'z. B. nachts keine Meldungen',
+                                ? tr('Von {0} bis {1} keine Meldungen – danach kommen sie gesammelt', [
+                                    _p['quiet_start'],
+                                    _p['quiet_end'],
+                                  ])
+                                : tr('z. B. nachts keine Meldungen'),
                           ),
                           value: quietOn,
                           onChanged: (v) => setState(() {
@@ -482,19 +515,19 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                         if (quietOn) ...[
                           ListTile(
                             leading: const SizedBox(width: 24),
-                            title: const Text('Von'),
+                            title: Text(tr('Von')),
                             trailing: Text(_p['quiet_start'] as String, style: const TextStyle(fontSize: 16)),
                             onTap: () => _pickTime('quiet_start', '22:00'),
                           ),
                           ListTile(
                             leading: const SizedBox(width: 24),
-                            title: const Text('Bis'),
+                            title: Text(tr('Bis')),
                             trailing: Text(_p['quiet_end'] as String, style: const TextStyle(fontSize: 16)),
                             onTap: () => _pickTime('quiet_end', '07:00'),
                           ),
                           SwitchListTile(
                             secondary: const SizedBox(width: 24),
-                            title: const Text('Sensor-Alarme trotzdem melden'),
+                            title: Text(tr('Sensor-Alarme trotzdem melden')),
                             value: _p['quiet_except_sensor'] == true,
                             onChanged: (v) => _set('quiet_except_sensor', v),
                           ),
@@ -504,8 +537,10 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Die Android-App erinnert zusätzlich selbst (Mehr → Erinnerungen). ntfy und E-Mail kommen '
-                    'vom Server – auch wenn das Handy aus ist.',
+                    tr(
+                      'Die Android-App erinnert zusätzlich selbst (Mehr → Erinnerungen). ntfy und E-Mail kommen '
+                      'vom Server – auch wenn das Handy aus ist.',
+                    ),
                     style: muted.copyWith(fontSize: 12),
                   ),
                 ],

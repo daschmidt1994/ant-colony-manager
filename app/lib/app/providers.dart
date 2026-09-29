@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/session.dart';
+import 'i18n.dart';
 import '../data/repositories/colony_repository.dart';
 import '../domain/due.dart';
 import '../domain/models.dart';
@@ -92,6 +93,18 @@ final recentRoundsProvider = StreamProvider<List<RoundSummary>>(
 final colonyPhotosProvider = StreamProvider.family<List<Photo>, String>((ref, id) => _watch(ref, (r) => r.photos(id)));
 
 final settingsProvider = StreamProvider<UserSettings>((ref) => _watch(ref, (r) => r.settings()));
+
+/// Language setting of this device: the synced user setting once signed in,
+/// before that the last choice on this device ('system' = device language).
+final languageSettingProvider = Provider<String>((ref) {
+  final synced = ref.watch(settingsProvider).value?.locale;
+  return synced ?? ref.read(databaseProvider).getMeta(languageMetaKey) ?? 'system';
+});
+
+/// The language actually shown.
+final languageProvider = Provider<String>((ref) => resolveLanguage(ref.watch(languageSettingProvider)));
+
+const languageMetaKey = 'language';
 
 /// Server capabilities (e.g. whether it can send e-mail). Null when offline.
 final instanceInfoProvider = FutureProvider<Map<String, dynamic>?>((ref) async {

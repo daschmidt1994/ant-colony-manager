@@ -8,36 +8,45 @@ import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
+import '../../app/i18n.dart';
 
-const hibernationNames = {'none': 'keine', 'optional': 'kühlere Ruhephase empfohlen', 'required': 'nötig'};
-const speciesGyneNames = {
-  'monogyne': 'monogyn',
-  'oligogyne': 'oligogyn',
-  'polygyne': 'polygyn',
-  'facultative': 'fakultativ polygyn',
+Map<String, String> get hibernationNames => {
+  'none': tr('keine'),
+  'optional': tr('kühlere Ruhephase empfohlen'),
+  'required': tr('nötig'),
 };
-const foundingNames = {
-  'claustral': 'claustral – Königin gründet ohne Futter',
-  'semi_claustral': 'semi-claustral – Königin braucht Futter',
-  'parasitic': 'sozialparasitisch – braucht eine Hilfsart',
-  'dependent': 'abhängig – nur mit Arbeiterinnen',
+Map<String, String> get speciesGyneNames => {
+  'monogyne': tr('monogyn'),
+  'oligogyne': tr('oligogyn'),
+  'polygyne': tr('polygyn'),
+  'facultative': tr('fakultativ polygyn'),
 };
-const difficultyNames = {1: 'Einsteiger', 2: 'Fortgeschritten', 3: 'Experte'};
-const activityNames = {'diurnal': 'tagaktiv', 'nocturnal': 'nachtaktiv', 'both': 'tag- und nachtaktiv'};
+Map<String, String> get foundingNames => {
+  'claustral': tr('claustral – Königin gründet ohne Futter'),
+  'semi_claustral': tr('semi-claustral – Königin braucht Futter'),
+  'parasitic': tr('sozialparasitisch – braucht eine Hilfsart'),
+  'dependent': tr('abhängig – nur mit Arbeiterinnen'),
+};
+Map<int, String> get difficultyNames => {1: tr('Einsteiger'), 2: tr('Fortgeschritten'), 3: tr('Experte')};
+Map<String, String> get activityNames => {
+  'diurnal': tr('tagaktiv'),
+  'nocturnal': tr('nachtaktiv'),
+  'both': tr('tag- und nachtaktiv'),
+};
 
 /// „24–28 °C“, „ab 24 °C“, null when both are missing.
 String? rangeText(double? min, double? max, String unit) {
   String f(double v) => v == v.roundToDouble() ? v.toInt().toString() : S.decimal(v);
   if (min == null && max == null) return null;
   if (min != null && max != null) return min == max ? '${f(min)} $unit' : '${f(min)}–${f(max)} $unit';
-  return min != null ? 'ab ${f(min)} $unit' : 'bis ${f(max!)} $unit';
+  return min != null ? tr('ab {0} {1}', [f(min), unit]) : tr('bis {0} {1}', [f(max!), unit]);
 }
 
 /// One-line care summary for colony cards: nest climate, winter rest, difficulty.
 String speciesSummary(Species s) => [
-  if (rangeText(s.number('temp_nest_min'), s.number('temp_nest_max'), '°C') case final t?) 'Nest $t',
+  if (rangeText(s.number('temp_nest_min'), s.number('temp_nest_max'), '°C') case final t?) tr('Nest {0}', [t]),
   ?rangeText(s.number('humidity_nest_min'), s.number('humidity_nest_max'), '%'),
-  if (s.text('hibernation') case final w?) 'Winterruhe ${hibernationNames[w] ?? w}',
+  if (s.text('hibernation') case final w?) tr('Winterruhe {0}', [hibernationNames[w] ?? w]),
   ?difficultyNames[s.difficulty],
 ].join(' · ');
 
@@ -45,7 +54,7 @@ Future<void> _open(BuildContext context, String url) async {
   final uri = Uri.tryParse(url);
   if (uri == null || !(uri.scheme == 'https' || uri.scheme == 'http')) return;
   if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && context.mounted) {
-    showError(context, 'Link konnte nicht geöffnet werden: $url');
+    showError(context, tr('Link konnte nicht geöffnet werden: {0}', [url]));
   }
 }
 
@@ -104,10 +113,10 @@ class _SpeciesListScreenState extends ConsumerState<SpeciesListScreen> {
         .toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Artenkatalog'),
+        title: Text(tr('Artenkatalog')),
         actions: [
           IconButton(
-            tooltip: 'Futter-Ratgeber',
+            tooltip: tr('Futter-Ratgeber'),
             icon: const Icon(Icons.restaurant_outlined),
             onPressed: () => context.go('/species/food'),
           ),
@@ -116,7 +125,7 @@ class _SpeciesListScreenState extends ConsumerState<SpeciesListScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/species/new'),
         icon: const Icon(Icons.add),
-        label: const Text('Eigene Art'),
+        label: Text(tr('Eigene Art')),
       ),
       body: ContentWidth(
         child: Column(
@@ -126,9 +135,9 @@ class _SpeciesListScreenState extends ConsumerState<SpeciesListScreen> {
               child: TextField(
                 controller: _search,
                 autofocus: false,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   prefixIcon: Icon(Icons.search),
-                  hintText: 'Art, Gattung oder deutscher Name',
+                  hintText: tr('Art, Gattung oder deutscher Name'),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
@@ -148,7 +157,7 @@ class _SpeciesListScreenState extends ConsumerState<SpeciesListScreen> {
                       ),
                     ),
                   FilterChip(
-                    label: const Text('Ohne Winterruhe'),
+                    label: Text(tr('Ohne Winterruhe')),
                     selected: _noWinter,
                     onSelected: (on) => setState(() => _noWinter = on),
                   ),
@@ -159,8 +168,8 @@ class _SpeciesListScreenState extends ConsumerState<SpeciesListScreen> {
               child: list.isEmpty
                   ? EmptyState(
                       icon: Icons.search_off,
-                      title: all.isEmpty ? 'Katalog wird geladen …' : 'Keine Art gefunden',
-                      text: all.isEmpty ? null : 'Nicht dabei? Lege sie als eigene Art mit Steckbrief an.',
+                      title: all.isEmpty ? tr('Katalog wird geladen …') : tr('Keine Art gefunden'),
+                      text: all.isEmpty ? null : tr('Nicht dabei? Lege sie als eigene Art mit Steckbrief an.'),
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.only(bottom: 96),
@@ -182,7 +191,7 @@ class _SpeciesTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtitle = [?s.germanName, if (!s.isCatalog) 'eigene Art', ?s.text('distribution')].join(' · ');
+    final subtitle = [?s.germanName, if (!s.isCatalog) tr(tr('eigene Art')), ?s.text('distribution')].join(' · ');
     return ListTile(
       title: Text(s.scientificName, style: const TextStyle(fontStyle: FontStyle.italic)),
       subtitle: subtitle.isEmpty ? null : Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -205,7 +214,7 @@ class SpeciesDetailScreen extends ConsumerWidget {
     if (s == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(icon: Icons.search_off, title: 'Art nicht gefunden'),
+        body: EmptyState(icon: Icons.search_off, title: tr('Art nicht gefunden')),
       );
     }
     final colonies = (ref.watch(coloniesProvider).value ?? const <Colony>[]).where((c) => c.speciesId == s.id).toList();
@@ -221,9 +230,9 @@ class SpeciesDetailScreen extends ConsumerWidget {
           PopupMenuButton<String>(
             onSelected: (v) => _menu(context, ref, s, v),
             itemBuilder: (_) => [
-              if (!s.isCatalog) const PopupMenuItem(value: 'edit', child: Text('Bearbeiten')),
-              const PopupMenuItem(value: 'copy', child: Text('Als eigene Art kopieren')),
-              if (!s.isCatalog) const PopupMenuItem(value: 'delete', child: Text('Löschen')),
+              if (!s.isCatalog) PopupMenuItem(value: 'edit', child: Text(tr('Bearbeiten'))),
+              PopupMenuItem(value: 'copy', child: Text(tr('Als eigene Art kopieren'))),
+              if (!s.isCatalog) PopupMenuItem(value: 'delete', child: Text(tr('Löschen'))),
             ],
           ),
         ],
@@ -231,7 +240,7 @@ class SpeciesDetailScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/colonies/new?species=${s.id}'),
         icon: const Icon(Icons.add),
-        label: const Text('Kolonie dieser Art'),
+        label: Text(tr('Kolonie dieser Art')),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
@@ -252,71 +261,76 @@ class SpeciesDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   s.isCatalog
-                      ? 'Richtwerte aus Fachliteratur und Haltungspraxis – Bezugsquelle und Herkunft deiner Tiere können abweichen.'
-                      : 'Eigene Art – Werte von dir.',
+                      ? tr(
+                          'Richtwerte aus Fachliteratur und Haltungspraxis – Bezugsquelle und Herkunft deiner Tiere können abweichen.',
+                        )
+                      : tr('Eigene Art – Werte von dir.'),
                   style: muted.copyWith(fontSize: 12),
                 ),
                 if (colonies.isNotEmpty) ...[
-                  const SectionHeader('Meine Kolonien'),
+                  SectionHeader(tr('Meine Kolonien')),
                   for (final c in colonies)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.bug_report_outlined),
                       title: Text(c.name),
-                      subtitle: Text('Kolonie #${c.number}'),
+                      subtitle: Text(tr('Kolonie #{0}', [c.number])),
                       onTap: () => context.go('/colonies/${c.id}'),
                     ),
                 ],
-                _Section('Herkunft', [('Verbreitung', s.text('distribution')), ('Lebensraum', s.text('habitat'))]),
-                _Section('Aussehen', [
-                  ('Königin', s.text('queen_size')),
-                  ('Arbeiterin', s.text('worker_size')),
-                  ('Männchen', s.text('male_size')),
-                  ('Färbung', s.text('coloration')),
-                  ('Polymorph', s.polymorphic == null ? null : (s.polymorphic! ? 'ja' : 'nein')),
+                _Section(tr('Herkunft'), [
+                  (tr('Verbreitung'), s.text('distribution')),
+                  (tr('Lebensraum'), s.text('habitat')),
                 ]),
-                _Section('Klima', [
-                  ('Temperatur Nest', range('temp_nest', '°C')),
-                  ('Temperatur Arena', range('temp_arena', '°C')),
-                  ('Luftfeuchte Nest', range('humidity_nest', '%')),
-                  ('Luftfeuchte Arena', range('humidity_arena', '%')),
+                _Section(tr('Aussehen'), [
+                  (tr('Königin'), s.text('queen_size')),
+                  (tr('Arbeiterin'), s.text('worker_size')),
+                  (tr('Männchen'), s.text('male_size')),
+                  (tr('Färbung'), s.text('coloration')),
+                  (tr('Polymorph'), s.polymorphic == null ? null : (s.polymorphic! ? tr('ja') : tr('nein'))),
                 ]),
-                _Section('Winterruhe', [
-                  ('Winterruhe', hibernationNames[s.text('hibernation')]),
-                  ('Zeitraum', s.text('hibernation_period')),
-                  ('Temperatur', range('hibernation_temp', '°C')),
+                _Section(tr('Klima'), [
+                  (tr('Temperatur Nest'), range('temp_nest', '°C')),
+                  (tr('Temperatur Arena'), range('temp_arena', '°C')),
+                  (tr('Luftfeuchte Nest'), range('humidity_nest', '%')),
+                  (tr('Luftfeuchte Arena'), range('humidity_arena', '%')),
                 ]),
-                _Section('Kolonie', [
-                  ('Koloniegründung', foundingNames[s.text('founding')]),
-                  ('Königinnen', speciesGyneNames[s.text('gyne_type')]),
-                  ('Koloniegröße', s.text('colony_size')),
-                  ('Lebensdauer Königin', s.text('queen_lifespan')),
-                  ('Entwicklung', s.text('development')),
-                  ('Hochzeitsflug', s.text('nuptial_flight')),
-                  ('Aktivität', activityNames[s.text('activity')]),
+                _Section(tr('Winterruhe'), [
+                  (tr('Winterruhe'), hibernationNames[s.text('hibernation')]),
+                  (tr('Zeitraum'), s.text('hibernation_period')),
+                  (tr('Temperatur'), range('hibernation_temp', '°C')),
+                ]),
+                _Section(tr('Kolonie'), [
+                  (tr('Koloniegründung'), foundingNames[s.text('founding')]),
+                  (tr('Königinnen'), speciesGyneNames[s.text('gyne_type')]),
+                  (tr('Koloniegröße'), s.text('colony_size')),
+                  (tr('Lebensdauer Königin'), s.text('queen_lifespan')),
+                  (tr('Entwicklung'), s.text('development')),
+                  (tr('Hochzeitsflug'), s.text('nuptial_flight')),
+                  (tr('Aktivität'), activityNames[s.text('activity')]),
                 ]),
                 _Section(
-                  'Futter',
+                  tr('Futter'),
                   [
-                    ('Protein', s.text('diet_protein')),
-                    ('Kohlenhydrate', s.text('diet_carbohydrate')),
-                    ('Hinweis', s.text('diet_notes')),
+                    (tr('Protein'), s.text('diet_protein')),
+                    (tr('Kohlenhydrate'), s.text('diet_carbohydrate')),
+                    (tr('Hinweis'), s.text('diet_notes')),
                   ],
                   trailing: TextButton(
                     onPressed: () => context.go('/species/food'),
-                    child: const Text('Futter-Ratgeber'),
+                    child: Text(tr('Futter-Ratgeber')),
                   ),
                 ),
-                _Section('Haltung', [
-                  ('Nestbau in der Natur', s.text('nesting')),
-                  ('Geeignete Nester', s.text('formicarium')),
-                  ('Formicariumgröße', s.text('formicarium_size')),
-                  ('Substrat', s.text('substrate')),
+                _Section(tr('Haltung'), [
+                  (tr('Nestbau in der Natur'), s.text('nesting')),
+                  (tr('Geeignete Nester'), s.text('formicarium')),
+                  (tr('Formicariumgröße'), s.text('formicarium_size')),
+                  (tr('Substrat'), s.text('substrate')),
                 ]),
-                _Section('Rechtliches', [('Hinweis', s.text('legal_note'))]),
-                _Section('Notizen', [(null, s.text('notes'))]),
+                _Section(tr('Rechtliches'), [(tr('Hinweis'), s.text('legal_note'))]),
+                _Section(tr('Notizen'), [(null, s.text('notes'))]),
                 if (s.sources.isNotEmpty) ...[
-                  const SectionHeader('Quellen'),
+                  SectionHeader(tr('Quellen')),
                   for (final src in s.sources)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -352,16 +366,20 @@ class SpeciesDetailScreen extends ConsumerWidget {
         final ok = await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-            title: Text('${s.scientificName} löschen?'),
+            title: Text(tr('{0} löschen?', [s.scientificName])),
             content: Text(
               used == 0
-                  ? 'Die eigene Art verschwindet auf allen Geräten.'
-                  : '$used ${used == 1 ? 'Kolonie verweist' : 'Kolonien verweisen'} auf diese Art und '
-                        'verlieren den Steckbrief (der Artname bleibt erhalten).',
+                  ? tr('Die eigene Art verschwindet auf allen Geräten.')
+                  : used == 1
+                  ? tr('1 Kolonie verweist auf diese Art und verliert den Steckbrief (der Artname bleibt erhalten).')
+                  : tr(
+                      '{0} Kolonien verweisen auf diese Art und verlieren den Steckbrief (der Artname bleibt erhalten).',
+                      [used],
+                    ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Abbrechen')),
-              FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Löschen')),
+              TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Abbrechen'))),
+              FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Löschen'))),
             ],
           ),
         );
@@ -427,82 +445,82 @@ class _Section extends StatelessWidget {
 enum _Kind { text, multiline, decimal, integer }
 
 /// Editable care-sheet fields, grouped like the detail view.
-const _formGroups = <(String, List<(String, String, _Kind)>)>[
+List<(String, List<(String, String, _Kind)>)> get _formGroups => [
   (
-    'Art',
+    tr('Art'),
     [
-      ('german_name', 'Deutscher Name', _Kind.text),
-      ('genus', 'Gattung (leer = aus dem Namen)', _Kind.text),
-      ('subfamily', 'Unterfamilie', _Kind.text),
-      ('tribe', 'Tribus', _Kind.text),
+      ('german_name', tr('Deutscher Name'), _Kind.text),
+      ('genus', tr('Gattung (leer = aus dem Namen)'), _Kind.text),
+      ('subfamily', tr('Unterfamilie'), _Kind.text),
+      ('tribe', tr('Tribus'), _Kind.text),
     ],
   ),
-  ('Herkunft', [('distribution', 'Verbreitung', _Kind.text), ('habitat', 'Lebensraum', _Kind.multiline)]),
+  (tr('Herkunft'), [('distribution', tr('Verbreitung'), _Kind.text), ('habitat', tr('Lebensraum'), _Kind.multiline)]),
   (
-    'Aussehen',
+    tr('Aussehen'),
     [
-      ('queen_size', 'Größe Königin', _Kind.text),
-      ('worker_size', 'Größe Arbeiterin', _Kind.text),
-      ('male_size', 'Größe Männchen', _Kind.text),
-      ('coloration', 'Färbung', _Kind.text),
-    ],
-  ),
-  (
-    'Klima',
-    [
-      ('temp_nest_min', 'Nest min °C', _Kind.decimal),
-      ('temp_nest_max', 'Nest max °C', _Kind.decimal),
-      ('temp_arena_min', 'Arena min °C', _Kind.decimal),
-      ('temp_arena_max', 'Arena max °C', _Kind.decimal),
-      ('humidity_nest_min', 'Nest min %', _Kind.integer),
-      ('humidity_nest_max', 'Nest max %', _Kind.integer),
-      ('humidity_arena_min', 'Arena min %', _Kind.integer),
-      ('humidity_arena_max', 'Arena max %', _Kind.integer),
+      ('queen_size', tr('Größe Königin'), _Kind.text),
+      ('worker_size', tr('Größe Arbeiterin'), _Kind.text),
+      ('male_size', tr('Größe Männchen'), _Kind.text),
+      ('coloration', tr('Färbung'), _Kind.text),
     ],
   ),
   (
-    'Winterruhe',
+    tr('Klima'),
     [
-      ('hibernation_period', 'Zeitraum', _Kind.text),
+      ('temp_nest_min', tr('Nest min °C'), _Kind.decimal),
+      ('temp_nest_max', tr('Nest max °C'), _Kind.decimal),
+      ('temp_arena_min', tr('Arena min °C'), _Kind.decimal),
+      ('temp_arena_max', tr('Arena max °C'), _Kind.decimal),
+      ('humidity_nest_min', tr('Nest min %'), _Kind.integer),
+      ('humidity_nest_max', tr('Nest max %'), _Kind.integer),
+      ('humidity_arena_min', tr('Arena min %'), _Kind.integer),
+      ('humidity_arena_max', tr('Arena max %'), _Kind.integer),
+    ],
+  ),
+  (
+    tr('Winterruhe'),
+    [
+      ('hibernation_period', tr('Zeitraum'), _Kind.text),
       ('hibernation_temp_min', 'min °C', _Kind.decimal),
       ('hibernation_temp_max', 'max °C', _Kind.decimal),
     ],
   ),
   (
-    'Kolonie',
+    tr('Kolonie'),
     [
-      ('colony_size', 'Koloniegröße', _Kind.text),
-      ('queen_lifespan', 'Lebensdauer Königin', _Kind.text),
-      ('development', 'Entwicklung Ei → Arbeiterin', _Kind.text),
-      ('nuptial_flight', 'Hochzeitsflug', _Kind.text),
+      ('colony_size', tr('Koloniegröße'), _Kind.text),
+      ('queen_lifespan', tr('Lebensdauer Königin'), _Kind.text),
+      ('development', tr('Entwicklung Ei → Arbeiterin'), _Kind.text),
+      ('nuptial_flight', tr('Hochzeitsflug'), _Kind.text),
     ],
   ),
   (
-    'Futter',
+    tr('Futter'),
     [
-      ('diet_protein', 'Protein', _Kind.multiline),
-      ('diet_carbohydrate', 'Kohlenhydrate', _Kind.multiline),
-      ('diet_notes', 'Hinweis', _Kind.multiline),
+      ('diet_protein', tr('Protein'), _Kind.multiline),
+      ('diet_carbohydrate', tr('Kohlenhydrate'), _Kind.multiline),
+      ('diet_notes', tr('Hinweis'), _Kind.multiline),
     ],
   ),
   (
-    'Haltung',
+    tr('Haltung'),
     [
-      ('nesting', 'Nestbau in der Natur', _Kind.text),
-      ('formicarium', 'Geeignete Nester', _Kind.text),
-      ('formicarium_size', 'Formicariumgröße', _Kind.text),
-      ('substrate', 'Substrat', _Kind.text),
-      ('legal_note', 'Rechtlicher Hinweis', _Kind.multiline),
-      ('notes', 'Notizen', _Kind.multiline),
+      ('nesting', tr('Nestbau in der Natur'), _Kind.text),
+      ('formicarium', tr('Geeignete Nester'), _Kind.text),
+      ('formicarium_size', tr('Formicariumgröße'), _Kind.text),
+      ('substrate', tr('Substrat'), _Kind.text),
+      ('legal_note', tr('Rechtlicher Hinweis'), _Kind.multiline),
+      ('notes', tr('Notizen'), _Kind.multiline),
     ],
   ),
 ];
 
-const _choiceFields = <String, (String, Map<String, String>)>{
-  'hibernation': ('Winterruhe', hibernationNames),
-  'founding': ('Koloniegründung', foundingNames),
-  'gyne_type': ('Königinnen', speciesGyneNames),
-  'activity': ('Aktivität', activityNames),
+Map<String, (String, Map<String, String>)> get _choiceFields => {
+  'hibernation': (tr('Winterruhe'), hibernationNames),
+  'founding': (tr('Koloniegründung'), foundingNames),
+  'gyne_type': (tr('Königinnen'), speciesGyneNames),
+  'activity': (tr('Aktivität'), activityNames),
 };
 
 /// „Titel | https://…“ per line ⇄ sources list.
@@ -580,8 +598,8 @@ class _SpeciesFormScreenState extends ConsumerState<SpeciesFormScreen> {
     final isNew = widget.speciesId == null;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isNew ? 'Eigene Art' : 'Art bearbeiten'),
-        actions: [TextButton(onPressed: _save, child: const Text('Speichern'))],
+        title: Text(isNew ? tr('Eigene Art') : tr('Art bearbeiten')),
+        actions: [TextButton(onPressed: _save, child: Text(tr('Speichern')))],
       ),
       body: Form(
         key: _form,
@@ -596,16 +614,16 @@ class _SpeciesFormScreenState extends ConsumerState<SpeciesFormScreen> {
                   TextFormField(
                     controller: _name,
                     autofocus: isNew,
-                    decoration: const InputDecoration(
-                      labelText: 'Wissenschaftlicher Name *',
-                      hintText: 'Camponotus sp.',
+                    decoration: InputDecoration(
+                      labelText: tr('Wissenschaftlicher Name *'),
+                      hintText: tr('Camponotus sp.'),
                     ),
-                    validator: (v) => (v ?? '').trim().isEmpty ? 'Bitte den Namen angeben' : null,
+                    validator: (v) => (v ?? '').trim().isEmpty ? tr('Bitte den Namen angeben') : null,
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<int?>(
                     initialValue: _difficulty,
-                    decoration: const InputDecoration(labelText: 'Schwierigkeit'),
+                    decoration: InputDecoration(labelText: tr('Schwierigkeit')),
                     items: [
                       const DropdownMenuItem(value: null, child: Text('–')),
                       for (final e in difficultyNames.entries) DropdownMenuItem(value: e.key, child: Text(e.value)),
@@ -614,11 +632,11 @@ class _SpeciesFormScreenState extends ConsumerState<SpeciesFormScreen> {
                   ),
                   for (final (title, fields) in _formGroups) ...[
                     SectionHeader(title),
-                    if (title == 'Aussehen')
+                    if (title == tr('Aussehen'))
                       CheckboxListTile(
                         contentPadding: EdgeInsets.zero,
                         tristate: true,
-                        title: const Text('Polymorph (verschieden große Arbeiterinnen)'),
+                        title: Text(tr('Polymorph (verschieden große Arbeiterinnen)')),
                         value: _polymorphic,
                         onChanged: (v) => setState(() => _polymorphic = v),
                       ),
@@ -666,16 +684,16 @@ class _SpeciesFormScreenState extends ConsumerState<SpeciesFormScreen> {
                       ],
                     ),
                   ],
-                  const SectionHeader('Quellen'),
+                  SectionHeader(tr('Quellen')),
                   TextFormField(
                     controller: _sources,
                     minLines: 2,
                     maxLines: 8,
                     keyboardType: TextInputType.multiline,
-                    decoration: const InputDecoration(
-                      labelText: 'Eine Quelle pro Zeile',
+                    decoration: InputDecoration(
+                      labelText: tr('Eine Quelle pro Zeile'),
                       hintText: 'AntWiki | https://www.antwiki.org/wiki/…',
-                      helperText: 'Format: Titel | Link (Link optional)',
+                      helperText: tr('Format: Titel | Link (Link optional)'),
                     ),
                   ),
                 ],
@@ -687,7 +705,7 @@ class _SpeciesFormScreenState extends ConsumerState<SpeciesFormScreen> {
     );
   }
 
-  static String _groupOf(String choiceKey) => choiceKey == 'hibernation' ? 'Winterruhe' : 'Kolonie';
+  static String _groupOf(String choiceKey) => choiceKey == 'hibernation' ? tr('Winterruhe') : tr('Kolonie');
 
   static num? _parse(_Kind kind, String text) {
     final t = text.trim().replaceAll(',', '.');
@@ -699,24 +717,24 @@ class _SpeciesFormScreenState extends ConsumerState<SpeciesFormScreen> {
     if (kind != _Kind.decimal && kind != _Kind.integer) return null;
     if ((v ?? '').trim().isEmpty) return null;
     final n = _parse(kind, v!);
-    if (n == null) return 'Keine Zahl';
+    if (n == null) return tr('Keine Zahl');
     if (kind == _Kind.integer && (n < 0 || n > 100)) return '0–100';
     return null;
   }
 
   void _save() {
     if (!_form.currentState!.validate()) return;
-    for (final (key, label) in const [
-      ('temp_nest', 'Temperatur Nest'),
-      ('temp_arena', 'Temperatur Arena'),
-      ('humidity_nest', 'Luftfeuchte Nest'),
-      ('humidity_arena', 'Luftfeuchte Arena'),
-      ('hibernation_temp', 'Winterruhe'),
+    for (final (key, label) in [
+      ('temp_nest', tr('Temperatur Nest')),
+      ('temp_arena', tr('Temperatur Arena')),
+      ('humidity_nest', tr('Luftfeuchte Nest')),
+      ('humidity_arena', tr('Luftfeuchte Arena')),
+      ('hibernation_temp', tr('Winterruhe')),
     ]) {
       final kind = key.startsWith('humidity') ? _Kind.integer : _Kind.decimal;
       final a = _parse(kind, _ctl['${key}_min']!.text), b = _parse(kind, _ctl['${key}_max']!.text);
       if (a != null && b != null && a > b) {
-        showError(context, '$label: Minimum ist größer als Maximum.');
+        showError(context, tr('{0}: Minimum ist größer als Maximum.', [label]));
         return;
       }
     }
@@ -762,71 +780,93 @@ class _SpeciesFormScreenState extends ConsumerState<SpeciesFormScreen> {
 class FoodGuideScreen extends StatelessWidget {
   const FoodGuideScreen({super.key});
 
-  static const _sections = <(String, List<String>)>[
+  static List<(String, List<String>)> get _sections => [
     (
-      'Grundregeln',
+      tr('Grundregeln'),
       [
-        'Kohlenhydrate sind der Treibstoff der Arbeiterinnen, Protein brauchen vor allem Larven und Königin. Viel Brut → mehr Protein, wenig Brut → wenig Protein.',
-        'Zuckerwasser oder Honigwasser darf dauerhaft verfügbar sein. Protein nur so viel, wie in etwa einem Tag verbraucht wird: Zu viel Protein verkürzt die Lebensdauer der Arbeiterinnen (Dussutour & Simpson 2012).',
-        'Futterreste nach spätestens 24 Stunden entfernen – sonst drohen Schimmel und Milben.',
-        'Wasser immer anbieten, z. B. Reagenzglas mit Watte.',
+        tr(
+          'Kohlenhydrate sind der Treibstoff der Arbeiterinnen, Protein brauchen vor allem Larven und Königin. Viel Brut → mehr Protein, wenig Brut → wenig Protein.',
+        ),
+        tr(
+          'Zuckerwasser oder Honigwasser darf dauerhaft verfügbar sein. Protein nur so viel, wie in etwa einem Tag verbraucht wird: Zu viel Protein verkürzt die Lebensdauer der Arbeiterinnen (Dussutour & Simpson 2012).',
+        ),
+        tr('Futterreste nach spätestens 24 Stunden entfernen – sonst drohen Schimmel und Milben.'),
+        tr('Wasser immer anbieten, z. B. Reagenzglas mit Watte.'),
       ],
     ),
     (
-      'Protein: Futterinsekten',
+      tr('Protein: Futterinsekten'),
       [
-        'Am verlässlichsten sind Futterinsekten aus dem Zoofachhandel bzw. von Terraristik-Züchtern: Heimchen, Grillen, Schaben (z. B. Shelfordella lateralis), Fruchtfliegen und Mehlwürmer. Sie stammen aus kontrollierter Zucht und sind frei von Pestiziden.',
-        'Vor dem Verfüttern einfrieren (mind. 24 h), dann auftauen lassen. Große Tiere anschneiden oder zerteilen, damit kleine Kolonien ans Innere kommen.',
-        'Wild gefangene Insekten nur von unbehandelten Flächen – Pestizide und Parasiten sind das größte Risiko. Auch hier vorher einfrieren.',
-        'Körnersammler (Messor, Pheidole): unbehandelte Samen wie Grassamen, Chia, Mohn, Leinsamen oder Löwenzahnsamen. Kein gebeiztes Saatgut – es ist mit Fungiziden und oft Insektiziden behandelt.',
+        tr(
+          'Am verlässlichsten sind Futterinsekten aus dem Zoofachhandel bzw. von Terraristik-Züchtern: Heimchen, Grillen, Schaben (z. B. Shelfordella lateralis), Fruchtfliegen und Mehlwürmer. Sie stammen aus kontrollierter Zucht und sind frei von Pestiziden.',
+        ),
+        tr(
+          'Vor dem Verfüttern einfrieren (mind. 24 h), dann auftauen lassen. Große Tiere anschneiden oder zerteilen, damit kleine Kolonien ans Innere kommen.',
+        ),
+        tr(
+          'Wild gefangene Insekten nur von unbehandelten Flächen – Pestizide und Parasiten sind das größte Risiko. Auch hier vorher einfrieren.',
+        ),
+        tr(
+          'Körnersammler (Messor, Pheidole): unbehandelte Samen wie Grassamen, Chia, Mohn, Leinsamen oder Löwenzahnsamen. Kein gebeiztes Saatgut – es ist mit Fungiziden und oft Insektiziden behandelt.',
+        ),
       ],
     ),
     (
-      'Kohlenhydrate',
+      tr('Kohlenhydrate'),
       [
-        'Zuckerwasser (etwa 1 Teil Zucker auf 2–3 Teile Wasser) oder verdünnter Honig; alle paar Tage frisch ansetzen, da es gärt und schimmelt.',
-        'Süßes Obst in kleinen Stücken als Abwechslung.',
-        'Keine Süßstoffe: Erythrit wirkt auf Insekten giftig (Baudier et al. 2014). Nichts Gesalzenes oder Gewürztes.',
-        'Als Alternative für einen Futterbrei gibt es die Bhatkar-Diät (Ei, Honig, Vitamine, Agar), die 1970 für die Aufzucht verschiedener Ameisenarten entwickelt wurde (Bhatkar & Whitcomb 1970).',
+        tr(
+          'Zuckerwasser (etwa 1 Teil Zucker auf 2–3 Teile Wasser) oder verdünnter Honig; alle paar Tage frisch ansetzen, da es gärt und schimmelt.',
+        ),
+        tr('Süßes Obst in kleinen Stücken als Abwechslung.'),
+        tr(
+          'Keine Süßstoffe: Erythrit wirkt auf Insekten giftig (Baudier et al. 2014). Nichts Gesalzenes oder Gewürztes.',
+        ),
+        tr(
+          'Als Alternative für einen Futterbrei gibt es die Bhatkar-Diät (Ei, Honig, Vitamine, Agar), die 1970 für die Aufzucht verschiedener Ameisenarten entwickelt wurde (Bhatkar & Whitcomb 1970).',
+        ),
       ],
     ),
     (
-      'Verlässliche Informationsquellen',
+      tr('Verlässliche Informationsquellen'),
       [
-        'AntWiki (antwiki.org): Biologie, Verbreitung und Literatur zu jeder Art – wissenschaftlich gepflegt.',
-        'AntCat (antcat.org): der Katalog der gültigen Ameisennamen.',
-        'AntWeb (antweb.org): Fotos von Belegexemplaren, gut zum Bestimmen.',
-        'Seifert (2018): The Ants of Central and North Europe – das Standardwerk für heimische Arten.',
-        'Händler-Steckbriefe und Foren liefern Praxiswerte zur Haltung. Sie sind hilfreich, aber nicht immer geprüft – mehrere Quellen vergleichen.',
+        tr('AntWiki (antwiki.org): Biologie, Verbreitung und Literatur zu jeder Art – wissenschaftlich gepflegt.'),
+        tr('AntCat (antcat.org): der Katalog der gültigen Ameisennamen.'),
+        tr('AntWeb (antweb.org): Fotos von Belegexemplaren, gut zum Bestimmen.'),
+        tr('Seifert (2018): The Ants of Central and North Europe – das Standardwerk für heimische Arten.'),
+        tr(
+          'Händler-Steckbriefe und Foren liefern Praxiswerte zur Haltung. Sie sind hilfreich, aber nicht immer geprüft – mehrere Quellen vergleichen.',
+        ),
       ],
     ),
   ];
 
-  static const _papers = <(String, String)>[
+  static List<(String, String)> get _papers => [
     (
-      'Dussutour & Simpson (2012): Ant workers die young and colonies collapse when fed a high-protein diet. Proc. R. Soc. B 279',
+      tr(
+        'Dussutour & Simpson (2012): Ant workers die young and colonies collapse when fed a high-protein diet. Proc. R. Soc. B 279',
+      ),
       'https://doi.org/10.1098/rspb.2012.0051',
     ),
     (
-      'Dussutour & Simpson (2009): Communal nutrition in ants. Current Biology 19',
+      tr('Dussutour & Simpson (2009): Communal nutrition in ants. Current Biology 19'),
       'https://doi.org/10.1016/j.cub.2009.03.015',
     ),
     (
-      'Baudier et al. (2014): Erythritol … is a palatable ingested insecticide. PLoS ONE 9',
+      tr('Baudier et al. (2014): Erythritol … is a palatable ingested insecticide. PLoS ONE 9'),
       'https://doi.org/10.1371/journal.pone.0098949',
     ),
     (
-      'Bhatkar & Whitcomb (1970): Artificial diet for rearing various species of ants. Florida Entomologist 53',
+      tr('Bhatkar & Whitcomb (1970): Artificial diet for rearing various species of ants. Florida Entomologist 53'),
       'https://doi.org/10.2307/3493193',
     ),
-    ('AntWiki', 'https://www.antwiki.org'),
-    ('AntCat', 'https://www.antcat.org'),
-    ('AntWeb', 'https://www.antweb.org'),
+    (tr('AntWiki'), 'https://www.antwiki.org'),
+    (tr('AntCat'), 'https://www.antcat.org'),
+    (tr('AntWeb'), 'https://www.antweb.org'),
   ];
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Futter-Ratgeber')),
+    appBar: AppBar(title: Text(tr('Futter-Ratgeber'))),
     body: ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
       children: [
@@ -848,7 +888,7 @@ class FoodGuideScreen extends StatelessWidget {
                     ),
                   ),
               ],
-              const SectionHeader('Studien & Links'),
+              SectionHeader(tr('Studien & Links')),
               for (final (title, url) in _papers)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -942,10 +982,10 @@ class _SpeciesPickerState extends ConsumerState<_SpeciesPicker> {
             child: TextField(
               controller: _search,
               autofocus: widget.initialQuery.isEmpty,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 prefixIcon: Icon(Icons.search),
-                labelText: 'Art im Katalog suchen',
-                hintText: 'Art, Gattung oder deutscher Name',
+                labelText: tr('Art im Katalog suchen'),
+                hintText: tr('Art, Gattung oder deutscher Name'),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -955,28 +995,28 @@ class _SpeciesPickerState extends ConsumerState<_SpeciesPicker> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Meintest du …', style: TextStyle(color: context.colors.muted)),
+                child: Text(tr('Meintest du …'), style: TextStyle(color: context.colors.muted)),
               ),
             ),
           Expanded(
             child: list.isEmpty
                 ? EmptyState(
                     icon: Icons.search_off,
-                    title: 'Keine passende Art',
-                    text: 'Im Artenkatalog kannst du sie als eigene Art mit Steckbrief anlegen.',
+                    title: tr('Keine passende Art'),
+                    text: tr('Im Artenkatalog kannst du sie als eigene Art mit Steckbrief anlegen.'),
                     action: TextButton(
                       onPressed: () {
                         Navigator.pop(context);
                         context.go('/species/new');
                       },
-                      child: const Text('Eigene Art anlegen'),
+                      child: Text(tr('Eigene Art anlegen')),
                     ),
                   )
                 : ListView.builder(
                     itemCount: list.length,
                     itemBuilder: (_, i) {
                       final s = list[i];
-                      final sub = [?s.germanName, if (!s.isCatalog) 'eigene Art'].join(' · ');
+                      final sub = [?s.germanName, if (!s.isCatalog) tr('eigene Art')].join(' · ');
                       return ListTile(
                         leading: const Icon(Icons.menu_book_outlined),
                         title: Text(s.scientificName, style: const TextStyle(fontStyle: FontStyle.italic)),

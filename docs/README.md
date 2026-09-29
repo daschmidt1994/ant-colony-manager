@@ -124,6 +124,7 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 ## Anleitungen
 
 - [17-unraid-dockhand.md](17-unraid-dockhand.md) – Installation auf Unraid mit Dockhand/Portainer (fertige Compose-Datei)
+- [21-sprachen.md](21-sprachen.md) – Deutsch/Englisch umschalten, neue Sprache hinzufügen
 - [20-benachrichtigungen.md](20-benachrichtigungen.md) – Benachrichtigungen per ntfy (auch eigener Server) und E-Mail: Themen, Häufigkeit, Ruhezeiten
 - [19-testinstanz.md](19-testinstanz.md) – zweite Instanz (`edge`) und Test-App „ACM Test“ zum Ausprobieren vor einem Release
 - [18-fdroid.md](18-fdroid.md) – Android-App über ein eigenes F-Droid-Repo installieren und aktualisieren

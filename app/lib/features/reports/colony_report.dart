@@ -9,6 +9,7 @@ import '../../app/strings.dart';
 import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../domain/stats.dart';
+import '../../app/i18n.dart';
 import '../labels/labels.dart' show LabelFonts;
 
 /// Everything the colony report shows (spec §39) – collected from the local
@@ -43,9 +44,9 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
   final all = colonyStats(d.events, StatsRange.all, d.now);
   final year = colonyStats(d.events, StatsRange.year, d.now);
   final doc = pw.Document(
-    title: 'Koloniebericht ${c.name}',
+    title: tr('Koloniebericht {0}', [c.name]),
     author: d.author,
-    creator: 'Ant Colony Manager',
+    creator: tr('Ant Colony Manager'),
     theme: pw.ThemeData.withFont(base: f.regular, bold: f.bold, italic: f.italic),
   );
   final dateFmt = DateFormat('dd.MM.yyyy', 'de');
@@ -61,24 +62,30 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
 
   final founded = DateTime.tryParse(c.json['founded_on'] as String? ?? '');
   final facts = <(String, String)>[
-    ('Status', S.statusNames[c.status] ?? c.status),
-    if (founded != null) ('Gründung', '${dateFmt.format(founded)} (${_age(founded, d.now)})'),
-    if (c.origin != null && c.origin!.isNotEmpty) ('Herkunft', c.origin!),
-    if (c.locationPath != null) ('Standort', c.locationPath!),
-    if (c.queenCount != null) ('Königinnen', '${c.queenCount}'),
-    ('Arbeiterinnen', c.workerMin == null ? 'keine Angabe' : 'ca. ${S.workers(c.workerMin, c.workerMax)}'),
-    if (c.gyneType != 'unknown') ('Gynie', S.gyneNames[c.gyneType] ?? c.gyneType),
+    (tr('Status'), S.statusNames[c.status] ?? c.status),
+    if (founded != null) (tr('Gründung'), '${dateFmt.format(founded)} (${_age(founded, d.now)})'),
+    if (c.origin != null && c.origin!.isNotEmpty) (tr('Herkunft'), c.origin!),
+    if (c.locationPath != null) (tr('Standort'), c.locationPath!),
+    if (c.queenCount != null) (tr('Königinnen'), '${c.queenCount}'),
+    (
+      tr('Arbeiterinnen'),
+      c.workerMin == null ? tr('keine Angabe') : tr('ca. {0}', [S.workers(c.workerMin, c.workerMax)]),
+    ),
+    if (c.gyneType != 'unknown') (tr('Gynie'), S.gyneNames[c.gyneType] ?? c.gyneType),
     if (c.lastTemperature != null || c.lastHumidity != null)
       (
-        'Letzte Messung',
+        tr('Letzte Messung'),
         [
           if (c.lastTemperature != null) '${S.decimal(c.lastTemperature!)} °C',
           if (c.lastHumidity != null) '${c.lastHumidity!.round()} %',
         ].join(' · '),
       ),
     (
-      'Einträge',
-      '${d.events.length} (seit ${d.events.isEmpty ? '–' : dateFmt.format(d.events.last.occurredAt.toLocal())})',
+      tr('Einträge'),
+      tr('{0} (seit {1})', [
+        d.events.length,
+        d.events.isEmpty ? '–' : dateFmt.format(d.events.last.occurredAt.toLocal()),
+      ]),
     ),
   ];
 
@@ -89,8 +96,8 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
       footer: (ctx) => pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text('${c.name} · erstellt am ${dateFmt.format(d.now.toLocal())}', style: small),
-          pw.Text('Seite ${ctx.pageNumber} / ${ctx.pagesCount}', style: small),
+          pw.Text(tr('{0} · erstellt am {1}', [c.name, dateFmt.format(d.now.toLocal())]), style: small),
+          pw.Text(tr('Seite {0} / {1}', [ctx.pageNumber, ctx.pagesCount]), style: small),
         ],
       ),
       build: (ctx) => [
@@ -121,9 +128,9 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
           pw.Text(c.notes!.trim(), style: const pw.TextStyle(fontSize: 9)),
         ],
 
-        h2('Kolonieentwicklung'),
+        h2(tr('Kolonieentwicklung')),
         if (all.workers.isEmpty)
-          pw.Text('Keine Größenangaben erfasst.', style: small)
+          pw.Text(tr('Keine Größenangaben erfasst.'), style: small)
         else
           _lineChart(
             [
@@ -143,21 +150,32 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
             small: small,
           ),
 
-        h2('Fütterungen (12 Monate)'),
+        h2(tr('Fütterungen (12 Monate)')),
         pw.Text(
-          '${year.feedings} Fütterungen · Protein ${year.protein} · Kohlenhydrate ${year.carbohydrate}'
-          '${year.rated > 0 ? ' · angenommen ${(100 * year.accepted / year.rated).round()} % von ${year.rated} bewerteten' : ''}'
-          ' · Wasser ${year.water} · Reinigungen ${year.cleaning}',
+          [
+            tr('{0} Fütterungen', [year.feedings]),
+            tr('Protein {0}', [year.protein]),
+            tr('Kohlenhydrate {0}', [year.carbohydrate]),
+            if (year.rated > 0)
+              tr('angenommen {0} % von {1} bewerteten', [(100 * year.accepted / year.rated).round(), year.rated]),
+            tr('Wasser {0}', [year.water]),
+            tr('Reinigungen {0}', [year.cleaning]),
+          ].join(' · '),
         ),
         pw.SizedBox(height: 6),
         _barChart(year, small: small),
         pw.SizedBox(height: 4),
-        _legend([('Protein', _protein), ('Kohlenhydrate', _carbs), ('Sonstiges', _muted), ('Wasser', _water)], small),
+        _legend([
+          (tr('Protein'), _protein),
+          (tr('Kohlenhydrate'), _carbs),
+          (tr('Sonstiges'), _muted),
+          (tr('Wasser'), _water),
+        ], small),
 
         if (all.temperature.isNotEmpty || all.humidity.isNotEmpty) ...[
-          h2('Temperatur und Luftfeuchtigkeit'),
+          h2(tr('Temperatur und Luftfeuchtigkeit')),
           if (all.temperature.isNotEmpty) ...[
-            pw.Text('Temperatur', style: small),
+            pw.Text(tr('Temperatur'), style: small),
             _lineChart(
               [(all.temperature, _protein, false)],
               from: all.buckets.from,
@@ -168,7 +186,7 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
           ],
           if (all.humidity.isNotEmpty) ...[
             pw.SizedBox(height: 8),
-            pw.Text('Luftfeuchtigkeit', style: small),
+            pw.Text(tr('Luftfeuchtigkeit'), style: small),
             _lineChart(
               [(all.humidity, _water, false)],
               from: all.buckets.from,
@@ -180,7 +198,7 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
         ],
 
         if (all.brood.isNotEmpty) ...[
-          h2('Brut (zuletzt erfasst)'),
+          h2(tr('Brut (zuletzt erfasst)')),
           pw.Wrap(
             spacing: 14,
             children: [
@@ -194,7 +212,7 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
         ],
 
         if (d.due.isNotEmpty) ...[
-          h2('Pflegeplan'),
+          h2(tr('Pflegeplan')),
           pw.Table(
             columnWidths: const {0: pw.FixedColumnWidth(110), 1: pw.FixedColumnWidth(90), 2: pw.FlexColumnWidth()},
             children: [
@@ -203,10 +221,10 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
                   children: [
                     pw.Text(
                       t.schedule.taskType == 'custom'
-                          ? t.schedule.title ?? 'Aufgabe'
+                          ? t.schedule.title ?? tr('Aufgabe')
                           : S.taskNames[t.schedule.taskType] ?? t.schedule.taskType,
                     ),
-                    pw.Text('alle ${S.decimal(t.schedule.intervalDays)} Tage'.replaceAll(',0 ', ' ')),
+                    pw.Text(tr('alle {0} Tage', [S.decimal(t.schedule.intervalDays)]).replaceAll(',0 ', ' ')),
                     pw.Text(
                       '${t.lastDone == null ? 'noch nie' : 'zuletzt ${dateFmt.format(t.lastDone!.toLocal())}'} · ${S.dueText(t)}',
                       style: pw.TextStyle(color: t.status == DueStatus.overdue ? PdfColors.red800 : null),
@@ -217,8 +235,8 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
           ),
         ],
 
-        h2('Timeline'),
-        if (d.events.isEmpty) pw.Text('Noch keine Einträge.', style: small),
+        h2(tr('Timeline')),
+        if (d.events.isEmpty) pw.Text(tr('Noch keine Einträge.'), style: small),
         for (final e in d.events.take(60))
           pw.Padding(
             padding: const pw.EdgeInsets.only(bottom: 2),
@@ -243,10 +261,13 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
             ),
           ),
         if (d.events.length > 60)
-          pw.Text('… und ${d.events.length - 60} ältere Einträge (vollständig im JSON-/CSV-Export).', style: small),
+          pw.Text(
+            tr('… und {0} ältere Einträge (vollständig im JSON-/CSV-Export).', [d.events.length - 60]),
+            style: small,
+          ),
 
         if (d.photos.isNotEmpty) ...[
-          h2('Fotos'),
+          h2(tr('Fotos')),
           pw.Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -281,16 +302,16 @@ Future<Uint8List> buildColonyReport(ReportData d, {LabelFonts? fonts}) async {
 
 String _age(DateTime founded, DateTime now) {
   final months = (now.year - founded.year) * 12 + now.month - founded.month;
-  if (months < 1) return '${now.difference(founded).inDays} Tage';
+  if (months < 1) return tr('{0} Tage', [now.difference(founded).inDays]);
   if (months < 24) return '$months Monate';
   return '${months ~/ 12} Jahre';
 }
 
 String _broodText(double v) => switch (v) {
-  0 => 'keine',
-  1 => 'wenig',
-  2 => 'mittel',
-  3 => 'viel',
+  0 => tr('keine'),
+  1 => tr('wenig'),
+  2 => tr('mittel'),
+  3 => tr('viel'),
   _ => S.number(v.round()),
 };
 
@@ -368,7 +389,7 @@ pw.Widget _barChart(ColonyStats s, {required pw.TextStyle small}) {
       ),
       pw.Align(
         alignment: pw.Alignment.centerLeft,
-        child: pw.Text('max. ${top.round()} pro Monat', style: small),
+        child: pw.Text(tr('max. {0} pro Monat', [top.round()]), style: small),
       ),
     ],
   );
