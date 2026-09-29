@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ant Colony Manager – Ameisenkolonien verwalten, selbst gehostet</title>
+<meta name="description" content="Ameisenkolonien pflegen mit NFC und QR: scannen, sehen was ansteht, mit einem Tap dokumentieren. Android-App und Web-App, offline-fähig, selbst gehostet, Open Source.">
+<meta property="og:title" content="Ant Colony Manager">
+<meta property="og:description" content="Ameisenkolonien pflegen mit NFC und QR: scannen, sehen was ansteht, mit einem Tap dokumentieren. Android-App und Web-App, offline-fähig, selbst gehostet, Open Source.">
+<meta property="og:image" content="https://daschmidt1994.github.io/ant-colony-manager/img/icon.png">
+<meta property="og:type" content="website">
+<link rel="alternate" hreflang="de" href="https://daschmidt1994.github.io/ant-colony-manager/">
+<link rel="alternate" hreflang="en" href="https://daschmidt1994.github.io/ant-colony-manager/en/">
+<link rel="icon" href="img/icon.png">
+<meta name="theme-color" content="#111315">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href=""><svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#111315"/>
+<g fill="#7DB36F" stroke="#7DB36F" stroke-linecap="round" stroke-linejoin="round">
+<path d="M238 118 L214 74 L170 58 M274 118 L298 74 L342 58" fill="none" stroke-width="15"/>
+<path d="M236 214 L186 186 L150 128 M276 214 L326 186 L362 128" fill="none" stroke-width="17"/>
+<path d="M232 240 L168 246 L118 296 M280 240 L344 246 L394 296" fill="none" stroke-width="17"/>
+<path d="M236 266 L184 312 L166 394 M276 266 L328 312 L346 394" fill="none" stroke-width="17"/>
+<ellipse cx="256" cy="146" rx="46" ry="42" stroke="none"/><ellipse cx="256" cy="236" rx="31" ry="52" stroke="none"/>
+<circle cx="256" cy="302" r="15" stroke="none"/><ellipse cx="256" cy="382" rx="64" ry="80" stroke="none"/></g></svg><span>Ant Colony Manager</span></a>
+  <nav class="nav">
+    <a href="#features">Funktionen</a><a href="#screenshots">Screenshots</a><a href="#install">Installation</a><a href="#fdroid">F-Droid</a>
+    <a class="lang" href="en/" hreflang="en">English</a>
+  </nav>
+</div></header>
+
+<main>
+<section class="hero"><div class="wrap">
+  <div>
+    <div class="eyebrow">Selbst gehostet · Open Source · Deutsch & Englisch</div>
+    <h1>Deine Ameisenkolonien.<br>Ein Scan.</h1>
+    <p class="lead">Handy an den NFC-Tag halten oder den QR-Code scannen – die Kolonie ist offen, du siehst, was ansteht, und dokumentierst Fütterung, Wasser oder Reinigung mit einem Tap. Auch ohne Internet.</p>
+    <div class="flow"><span>SCAN</span> <i>→</i> <span>INFORMATION</span> <i>→</i> <span>AKTION</span> <i>→</i> <span>FERTIG</span></div>
+    <div class="buttons">
+      <a class="btn primary" href="#fdroid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>App über F-Droid</a>
+      <a class="btn" href="https://github.com/daschmidt1994/ant-colony-manager"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.6.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.7 9.7 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .6 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>Auf GitHub</a>
+      <a class="btn" href="#install">Server installieren</a>
+    </div>
+  </div>
+  <div class="phone"><img src="img/de/dashboard.webp" width="520" height="1126" alt="Übersicht der App: Kolonien nach Dringlichkeit"></div>
+</div></section>
+
+<section id="features"><div class="wrap">
+  <div class="eyebrow">Funktionen</div>
+  <h2>Gebaut für den echten Pflegealltag</h2>
+  <div class="grid">
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 12h8"/></svg><h3>NFC-Tags & QR-Etiketten</h3><p>Pro Kolonie ein Tag oder Etikett – scannen öffnet sie sofort. Etiketten als PDF, auch als A4-Bogen.</p></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><h3>Fälligkeiten mit Ampel</h3><p>Protein, Kohlenhydrate, Wasser, Reinigung mit eigenem Intervall. Rot, gelb, grün – und „Morgen“, wenn heute keine Zeit ist.</p></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M6 8v4a4 4 0 0 0 4 4h6"/></svg><h3>Pflege-Rundgang</h3><p>Viele Kolonien nacheinander scannen und mit 1–2 Taps dokumentieren. Am Ende siehst du, was fehlt.</p></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9a13 13 0 0 1 16 0M7 12.5a8 8 0 0 1 10 0M10 16a3 3 0 0 1 4 0"/><circle cx="12" cy="19" r=".8" fill="currentColor"/></svg><h3>Offline zuerst</h3><p>Alles wird zuerst auf dem Gerät gespeichert und im Hintergrund synchronisiert – im Keller ohne Empfang geht nichts verloren.</p></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><h3>Benachrichtigungen</h3><p>Per App, ntfy (auch eigener Server) oder E-Mail: Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe.</p></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M9 7h6"/></svg><h3>Artenkatalog</h3><p>Steckbriefe mit Klima, Winterruhe, Futter und Quellen – mit deinen Kolonien verknüpft. Dazu ein Futter-Ratgeber.</p></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14V5a2 2 0 1 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 11v5"/></svg><h3>Sensoren</h3><p>ESP32 & Co. senden Temperatur und Luftfeuchte direkt an deinen Server – mit Grenzwerten und Alarm.</p></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><h3>Statistik & Bericht</h3><p>Fütterungen, Wachstum, Klima und Brut als Diagramm; Koloniebericht als PDF.</p></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><h3>Fotos & Timeline</h3><p>Fotos aus Kamera oder Galerie – am Aufnahmetag in der Timeline. Einträge nachtragen, wischen zum Löschen.</p></div>
+  </div>
+</div></section>
+
+<section id="screenshots" class="band"><div class="wrap">
+  <div class="eyebrow">Screenshots</div>
+  <h2>So sieht es aus</h2>
+  <div class="shots">
+<figure><div class="phone"><img src="img/de/dashboard.webp" width="520" height="1126" loading="lazy" alt="Übersicht"></div><figcaption>Übersicht</figcaption></figure>
+<figure><div class="phone"><img src="img/de/colony.webp" width="520" height="1126" loading="lazy" alt="Kolonie"></div><figcaption>Kolonie</figcaption></figure>
+<figure><div class="phone"><img src="img/de/species-sheet.webp" width="520" height="1126" loading="lazy" alt="Steckbrief"></div><figcaption>Steckbrief</figcaption></figure>
+<figure><div class="phone"><img src="img/de/notifications.webp" width="520" height="1126" loading="lazy" alt="Benachrichtigungen"></div><figcaption>Benachrichtigungen</figcaption></figure>
+<figure><div class="phone"><img src="img/de/colony-stats.webp" width="520" height="1126" loading="lazy" alt="Statistik"></div><figcaption>Statistik</figcaption></figure>
+<figure><div class="phone"><img src="img/de/timeline.webp" width="520" height="1126" loading="lazy" alt="Timeline"></div><figcaption>Timeline</figcaption></figure>
+<figure><div class="phone"><img src="img/de/species-catalog.webp" width="520" height="1126" loading="lazy" alt="Artenkatalog"></div><figcaption>Artenkatalog</figcaption></figure>
+  </div>
+  <img class="desktop" src="img/de/desktop.webp" width="1400" height="875" loading="lazy" alt="Die Web-App am Desktop">
+</div></section>
+
+<section id="install"><div class="wrap">
+  <div class="eyebrow">Loslegen</div>
+  <h2>In drei Schritten</h2>
+  <div class="steps">
+<div class="card"><h3>Server starten</h3><p>Eine <code>docker compose</code>-Installation auf dem Heimserver, NAS oder Raspberry Pi – fertige Vorlage für Unraid, Synology und Portainer.</p></div>
+<div class="card"><h3>App verbinden</h3><p>Android-App aus F-Droid installieren oder einfach die Web-App im Browser öffnen. Anmelden per QR-Code aus der Web-App – ohne Passwort-Eingabe.</p></div>
+<div class="card"><h3>Kolonien markieren</h3><p>Kolonie anlegen, Etikett drucken oder NFC-Tag zuweisen – ab jetzt reicht ein Scan.</p></div>
+  </div>
+  <div class="two" style="margin-top:48px">
+    <div>
+      <h3>Installation</h3>
+      <p class="muted">Voraussetzung: Docker mit Compose v2. Die Datenbank, Backups und Schlüssel richtet der Stack selbst ein.</p>
+      <pre><code><span class="c"># herunterladen und starten</span>
+git clone https://github.com/daschmidt1994/ant-colony-manager.git
+cd ant-colony-manager
+./scripts/init-env.sh
+docker compose up -d
+
+<span class="c"># Setup-Code für das erste Konto</span>
+docker compose logs app | grep -A1 Setup-Code</code></pre>
+      <p class="muted">Danach <code>http://&lt;server&gt;:8080/setup</code> öffnen. Unraid, Synology, Portainer: <a href="https://github.com/daschmidt1994/ant-colony-manager/blob/main/docs/17-unraid-dockhand.md">fertige Compose-Datei</a> · <a href="https://github.com/daschmidt1994/ant-colony-manager#readme">ausführliche Anleitung</a></p>
+    </div>
+    <div id="fdroid">
+      <h3>Android-App über F-Droid</h3>
+      <div class="fdroid">
+        <a href="https://daschmidt1994.github.io/ant-colony-manager/fdroid/repo?fingerprint=BBCE52863C9584F4457D932A9FC0DF7EB5872B96E1940F502C747FF57EDB8863"><img class="qr" src="fdroid/repo/index.png" width="200" height="200" alt="QR Paketquelle hinzufügen"></a>
+        <ol class="muted">
+<li><a href="https://f-droid.org">F-Droid</a> installieren (oder Droid-ify / Neo Store).</li>
+<li>Einstellungen → Paketquellen → + und diesen QR-Code scannen oder den Link öffnen.</li>
+<li>„Ant Colony Manager“ suchen und installieren – Updates kommen automatisch.</li>
+        </ol>
+      </div>
+      <p style="margin-top:16px"><a class="btn" href="https://daschmidt1994.github.io/ant-colony-manager/fdroid/repo?fingerprint=BBCE52863C9584F4457D932A9FC0DF7EB5872B96E1940F502C747FF57EDB8863">Paketquelle hinzufügen</a></p>
+      <p class="fp">Fingerabdruck: BBCE52863C9584F4457D932A9FC0DF7EB5872B96E1940F502C747FF57EDB8863</p>
+      <p class="muted">Ohne F-Droid: APK direkt aus den <a href="https://github.com/daschmidt1994/ant-colony-manager/releases/latest">GitHub-Releases</a>.</p>
+    </div>
+  </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <div class="eyebrow">Deine Daten</div>
+  <h2>Selbst gehostet, ohne Umwege</h2>
+  <ul class="checks">
+<li>Läuft auf deiner Hardware – kein Konto bei uns, keine Cloud</li>
+<li>Keine Telemetrie; nur eine abschaltbare Update-Prüfung gegen GitHub</li>
+<li>Export als JSON, CSV und Fotos jederzeit</li>
+<li>Tägliche Backups als normale Dateien, Wiederherstellung per Skript</li>
+<li>Passwörter und Schlüssel verschlüsselt bzw. nur als Hash gespeichert</li>
+<li>Open Source unter AGPL-3.0</li>
+  </ul>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <span>Ant Colony Manager · Ein Hobbyprojekt für Ameisenhalter.</span>
+  <nav>
+<a href="https://github.com/daschmidt1994/ant-colony-manager">GitHub</a>
+<a href="https://github.com/daschmidt1994/ant-colony-manager/releases">Releases</a>
+<a href="https://github.com/daschmidt1994/ant-colony-manager/tree/main/docs">Dokumentation</a>
+<a href="https://github.com/daschmidt1994/ant-colony-manager/blob/main/LICENSE">Lizenz AGPL-3.0</a>
+  </nav>
+</div></footer>
+</body>
+</html>
