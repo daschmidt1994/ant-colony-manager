@@ -191,6 +191,15 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/sensors'),
               ),
             ),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.event_available),
+                title: Text(tr('Kalender & Home Assistant')),
+                subtitle: Text(tr('Fälligkeiten als Kalender-Abo, Status für Home Assistant')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/feeds'),
+              ),
+            ),
             SectionHeader(tr('Synchronisierung')),
             Card(
               child: ListTile(

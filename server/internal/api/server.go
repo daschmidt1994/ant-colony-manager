@@ -110,6 +110,9 @@ func (s *Server) Handler() *chi.Mux {
 
 		// Sensor ingest authenticates with the sensor key, not a user session.
 		r.Post("/sensors/{id}/measurements", s.ingestSensor)
+		// Calendar subscription and Home Assistant status: secret in the address.
+		r.Get("/feeds/{token}/calendar.ics", s.feedCalendar)
+		r.Get("/feeds/{token}/status.json", s.feedStatus)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.authenticated)
@@ -122,6 +125,9 @@ func (s *Server) Handler() *chi.Mux {
 			r.Get("/me/notifications", s.getNotifyPrefs)
 			r.Put("/me/notifications", s.setNotifyPrefs)
 			r.With(s.rateLimitUser(s.limScan)).Post("/me/notifications/test", s.testNotify)
+			r.Get("/me/feed", s.getFeed)
+			r.With(s.rateLimitUser(s.limSensitive)).Post("/me/feed", s.createFeed)
+			r.Delete("/me/feed", s.deleteFeed)
 			r.Put("/me/password", s.changePassword)
 			r.Delete("/me", s.deleteMe)
 
@@ -292,6 +298,8 @@ func logPath(p string) string {
 		return "/c/…"
 	case strings.HasPrefix(p, "/files/"):
 		return "/files/…"
+	case strings.HasPrefix(p, "/api/v1/feeds/"):
+		return "/api/v1/feeds/…"
 	case strings.HasPrefix(p, "/api/v1/scan/") && !strings.HasPrefix(p, "/api/v1/scan/nfc-uid"):
 		return "/api/v1/scan/…"
 	}

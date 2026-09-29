@@ -27,6 +27,8 @@ const table = <String, String>{
   'Abmelden?': 'Sign out?',
   'Absender': 'Sender',
   'Adresse': 'Address',
+  'Adresse aktiv': 'Address active',
+  'Adresse erzeugen': 'Create address',
   'Ahornsirup': 'Maple syrup',
   'Akku: keine Einschränkung': 'Battery: unrestricted',
   'Akku: optimiert': 'Battery: optimised',
@@ -59,6 +61,8 @@ const table = <String, String>{
   'Am verlässlichsten sind Futterinsekten aus dem Zoofachhandel bzw. von Terraristik-Züchtern: Heimchen, Grillen, Schaben (z. B. Shelfordella lateralis), Fruchtfliegen und Mehlwürmer. Sie stammen aus kontrollierter Zucht und sind frei von Pestiziden.':
       'Most reliable are feeder insects from pet shops or reptile breeders: house crickets, crickets, roaches (e.g. Shelfordella lateralis), fruit flies and mealworms. They come from controlled breeding and are free of pesticides.',
   'Ameisen <ameisen@example.com>': 'Ants <ants@example.com>',
+  'Ameisen heute fällig': 'Ants due today',
+  'Ameisen überfällig': 'Ants overdue',
   'Andere Art wählen': 'Choose another species',
   'Anderen Server verwenden': 'Use another server',
   'Anderen Tag verwenden': 'Use another tag',
@@ -122,6 +126,7 @@ const table = <String, String>{
   'Aus – keine Benachrichtigung': 'Off – no notifications',
   'Aus, oder zu diesem Zeitpunkt ist nichts fällig.': 'Off, or nothing is due at that time.',
   'Ausblenden': 'Hide',
+  'Ausschalten': 'Switch off',
   'Aussehen': 'Appearance',
   'Ausstehende Änderungen': 'Pending changes',
   'Auswertung': 'Insights',
@@ -192,6 +197,7 @@ const table = <String, String>{
       'The tag cannot be written. You can register it by serial number – that works while the app is open.',
   'Details': 'Details',
   'Deutscher Name': 'Common name',
+  'Die Adresse wird nur beim Erzeugen angezeigt.': 'The address is only shown when it is created.',
   'Die Android-App erinnert zusätzlich selbst (Mehr → Erinnerungen). ntfy und E-Mail kommen vom Server – auch wenn das Handy aus ist.':
       'The Android app also reminds you itself (More → Reminders). ntfy and e-mail come from the server – even when the phone is off.',
   'Die App ist bereits in einem anderen Tab geöffnet.': 'The app is already open in another tab.',
@@ -203,6 +209,10 @@ const table = <String, String>{
       'The background check may be delayed. In App info, set “Battery” to “Unrestricted”.',
   'Die Kolonie und ihre Timeline verschwinden auf allen Geräten. Archivieren behält die Daten.':
       'The colony and its timeline disappear on all devices. Archiving keeps the data.',
+  'Die Konfiguration unten in configuration.yaml einfügen (bzw. zu einem vorhandenen „rest:“ ergänzen) und Home Assistant neu starten. Dann gibt es pro Kolonie „… Winterruhe“ (an/aus) und „… überfällig“ – z. B. als Auslöser, um die Heizmatte bei Winterruhe abzuschalten. Beispiele: docs/22-kalender-home-assistant.md.':
+      'Paste the configuration below into configuration.yaml (or add it to an existing “rest:”) and restart Home Assistant. You then get “… hibernation” (on/off) and “… overdue” per colony – e.g. as a trigger to switch the heat mat off during hibernation. Examples: docs/22-kalender-home-assistant.md.',
+  'Die bisherige Adresse funktioniert danach nicht mehr – Kalender und Home Assistant brauchen die neue.':
+      'The previous address stops working – calendar and Home Assistant need the new one.',
   'Die eigene Art verschwindet auf allen Geräten.': 'The own species disappears on all devices.',
   'Die lokal gespeicherten Daten werden von diesem Gerät entfernt. Auf dem Server bleibt alles erhalten.':
       'The locally stored data is removed from this device. Everything stays on the server.',
@@ -249,6 +259,8 @@ const table = <String, String>{
   'Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“': 'One notification per overdue task – with “Done”',
   'Eine Quelle pro Zeile': 'One source per line',
   'Eine Seite pro Etikett – nur für Etikettendrucker': 'One page per label – label printers only',
+  'Eine private Adresse, über die andere Programme deine Kolonien lesen können – nur lesen, nichts ändern. Kalender-Apps zeigen damit alle Fälligkeiten, Home Assistant den Status jeder Kolonie (z. B. Winterruhe → Heizung aus).':
+      'A private address through which other programs can read your colonies – read only, no changes. Calendar apps show all due dates with it, Home Assistant the status of every colony (e.g. hibernation → heating off).',
   'Einladung erhalten? Konto erstellen': 'Got an invitation? Create account',
   'Einmal täglich: was heute ansteht': 'Once a day: what is due today',
   'Einsteiger': 'Beginner',
@@ -273,6 +285,8 @@ const table = <String, String>{
   'Erneut': 'Retry',
   'Erneut prüfen': 'Check again',
   'Erneut versuchen': 'Try again',
+  'Erst eine Adresse erzeugen – dann erscheint hier die fertige Konfiguration.':
+      'Create an address first – the ready-made configuration then appears here.',
   'Erste Kolonie anlegen': 'Create first colony',
   'Ersteinrichtung': 'First setup',
   'Etikett drucken': 'Print label',
@@ -312,6 +326,8 @@ const table = <String, String>{
   'Futterreste nach spätestens 24 Stunden entfernen – sonst drohen Schimmel und Milben.':
       'Remove leftovers after 24 hours at the latest – otherwise mould and mites threaten.',
   'Fällig': 'Due',
+  'Fälligkeiten als Kalender-Abo, Status für Home Assistant':
+      'Due dates as a calendar subscription, status for Home Assistant',
   'Färbung': 'Colouration',
   'Für diese E-Mail gibt es bereits ein Konto.': 'There is already an account for this e-mail.',
   'Für „Passwort vergessen“, den Tages-Überblick und Benachrichtigungen per E-Mail. Die Daten stehen bei deinem Mail-Anbieter (Postausgangsserver / SMTP). Bei Gmail, Outlook & Co. meist ein eigenes App-Passwort verwenden.':
@@ -346,6 +362,8 @@ const table = <String, String>{
   'Gestern Abend': 'Last night',
   'Getauscht': 'Traded',
   'Gleichzeitig geändert': 'Changed at the same time',
+  'Google Kalender: „Weitere Kalender“ → „Per URL“. Outlook: „Kalender hinzufügen“ → „Aus dem Internet“. Thunderbird, Apple: „Kalender abonnieren“. Enthält den nächsten Termin jedes Pflegeplans (überfällige heute), geplanten Beginn und Ende der Winterruhe und offene Aufgaben. Kalender-Apps aktualisieren Abos selbst – Google teils nur alle 12–24 Stunden.':
+      'Google Calendar: “Other calendars” → “From URL”. Outlook: “Add calendar” → “From the internet”. Thunderbird, Apple: “Subscribe to calendar”. Contains the next date of every care plan (overdue ones today), planned start and end of hibernation and open tasks. Calendar apps refresh subscriptions themselves – Google sometimes only every 12–24 hours.',
   'Grenzwerte': 'Limits',
   'Grille': 'Cricket',
   'Grundregeln': 'Basic rules',
@@ -378,6 +396,8 @@ const table = <String, String>{
   'Hinweis entfernen': 'Remove hint',
   'Hinweise entfernen': 'Remove hints',
   'Hochzeitsflug': 'Nuptial flight',
+  'Home Assistant': 'Home Assistant',
+  'Home Assistant (configuration.yaml)': 'Home Assistant (configuration.yaml)',
   'Honig': 'Honey',
   'Honigwasser': 'Honey water',
   'Händler-Steckbriefe und Foren liefern Praxiswerte zur Haltung. Sie sind hilfreich, aber nicht immer geprüft – mehrere Quellen vergleichen.':
@@ -402,6 +422,9 @@ const table = <String, String>{
   'Jetzt ein Foto aufnehmen': 'Take a photo now',
   'Jetzt prüfen': 'Check now',
   'Jetzt synchronisieren': 'Sync now',
+  'Kalender': 'Calendar',
+  'Kalender & Home Assistant': 'Calendar & Home Assistant',
+  'Kalender-Adresse (iCal)': 'Calendar address (iCal)',
   'Kamera': 'Camera',
   'Kamera nicht verfügbar.': 'Camera not available.',
   'Kamera nicht verfügbar: {0}': 'Camera not available: {0}',
@@ -442,6 +465,8 @@ const table = <String, String>{
   'Kolonie dieser Art': 'Colony of this species',
   'Kolonie nicht gefunden': 'Colony not found',
   'Kolonie scannen': 'Scan colony',
+  'Kolonie {0} Winterruhe': 'Colony {0} hibernation',
+  'Kolonie {0} überfällig': 'Colony {0} overdue',
   'Kolonie öffnen': 'Open colony',
   'Kolonie-Etiketten': 'Colony labels',
   'Koloniebericht': 'Colony report',
@@ -464,6 +489,7 @@ const table = <String, String>{
   'Kontrolle – alles in Ordnung': 'Inspection – all good',
   'Kontrolle: {0}': 'Inspection: {0}',
   'Kopieren': 'Copy',
+  'Kopiert': 'Copied',
   'Kritisch': 'Critical',
   'Königin': 'Queen',
   'Königinnen': 'Queens',
@@ -543,6 +569,9 @@ const table = <String, String>{
   'Nestwechsel': 'Nest move',
   'Neu generieren': 'Regenerate',
   'Neu laden': 'Reload',
+  'Neue Adresse': 'New address',
+  'Neue Adresse erzeugen': 'Create new address',
+  'Neue Adresse erzeugen?': 'Create a new address?',
   'Neue Kolonie': 'New colony',
   'Neuen Schlüssel erzeugen': 'Create new key',
   'Neuer Standort': 'New location',
@@ -572,6 +601,8 @@ const table = <String, String>{
   'Nur Buchstaben, Ziffern, _ und - (max. 64)': 'Only letters, digits, _ and - (max. 64)',
   'Nur Daten (ohne Fotos)': 'Data only (no photos)',
   'Nur Lesezugriff auf diese Kolonie.': 'Read-only access to this colony.',
+  'Nur jetzt sichtbar – kopieren und wie ein Passwort behandeln.':
+      'Only visible now – copy it and treat it like a password.',
   'Nur mit Verbindung zum Server': 'Only with a connection to the server',
   'NÄCHSTE KOLONIE': 'NEXT COLONY',
   'Nächste Aufgaben': 'Next tasks',
@@ -720,6 +751,7 @@ const table = <String, String>{
   'Statistiken': 'Statistics',
   'Status': 'Status',
   'Status geändert': 'Status changed',
+  'Status-Adresse (JSON)': 'Status address (JSON)',
   'Steckbrief aus dem Artenkatalog': 'Care sheet from the species catalogue',
   'Steckbrief aus dem Artenkatalog verknüpfen': 'Link a care sheet from the species catalogue',
   'Steckbrief öffnen': 'Open care sheet',
@@ -890,6 +922,7 @@ const table = <String, String>{
   'eine andere Kolonie': 'another colony',
   'ergänzt': 'added',
   'erscheint als Warnung im Dashboard': 'shown as a warning on the dashboard',
+  'erzeugt {0}': 'created {0}',
   'fakultativ polygyn': 'facultatively polygynous',
   'gefüttert': 'fed',
   'gereinigt': 'cleaned',
@@ -919,6 +952,7 @@ const table = <String, String>{
   'nein': 'no',
   'nicht eingerichtet (Server-Verwaltung)': 'not set up (server administration)',
   'noch keine Daten': 'no data yet',
+  'noch nicht abgerufen': 'not fetched yet',
   'noch nicht synchronisiert': 'not synced yet',
   'nur Seriennummer': 'serial number only',
   'nur einmal': 'only once',
@@ -951,6 +985,7 @@ const table = <String, String>{
   'z. B. Regal A oben': 'e.g. Shelf A top',
   'z. B. erste Larven sichtbar': 'e.g. first larvae visible',
   'z. B. nachts keine Meldungen': 'e.g. no notifications at night',
+  'zuletzt abgerufen {0}': 'last fetched {0}',
   'zuletzt {0}': 'last: {0}',
   'zuletzt {0} {1}': 'last: {0} {1}',
   '{0}\nDie Geräteliste braucht eine Verbindung zum Server.': '{0}\nThe device list needs a connection to the server.',

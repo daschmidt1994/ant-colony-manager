@@ -49,6 +49,8 @@ var enTexts = map[string]string{
 	"ntfy nicht erreichbar: %v":                                         "ntfy not reachable: %v",
 	"ntfy lehnt ab (%d) – Token oder Berechtigung für das Topic prüfen": "ntfy refuses (%d) – check the token or the permission for the topic",
 	"ntfy antwortet %d: %s":                                             "ntfy answers %d: %s",
+	// calendar subscription
+	"Ameisen": "Ants",
 	// snooze
 	"Auf morgen verschoben":              "Postponed to tomorrow",
 	"Nichts mehr fällig":                 "Nothing due any more",
