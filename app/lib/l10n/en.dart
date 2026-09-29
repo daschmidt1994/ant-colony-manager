@@ -142,6 +142,10 @@ const table = <String, String>{
   'Aussehen': 'Appearance',
   'Ausstehende Änderungen': 'Pending changes',
   'Auswertung': 'Insights',
+  'Automatisch nach jedem Backup hochladen': 'Upload automatically after every backup',
+  'Backup außer Haus': 'Off-site backup',
+  'Backup {0} · {1} übertragen · {2} neue Fotos': 'Backup {0} · {1} transferred · {2} new photos',
+  'Backups dort behalten': 'Backups to keep there',
   'Baudier et al. (2014): Erythritol … is a palatable ingested insecticide. PLoS ONE 9':
       'Baudier et al. (2014): Erythritol … is a palatable ingested insecticide. PLoS ONE 9',
   'Bearbeiten': 'Edit',
@@ -228,6 +232,8 @@ const table = <String, String>{
   'Die eigene Art verschwindet auf allen Geräten.': 'The own species disappears on all devices.',
   'Die lokal gespeicherten Daten werden von diesem Gerät entfernt. Auf dem Server bleibt alles erhalten.':
       'The locally stored data is removed from this device. Everything stays on the server.',
+  'Die unverschlüsselte Konfiguration (mit Passwörtern) wird nie hochgeladen. Wiederherstellen: Backup-Ordner und „uploads“ herunterladen und wie ein lokales Backup einspielen (Anleitung in docs/25).':
+      'The unencrypted configuration (with passwords) is never uploaded. To restore: download the backup folder and “uploads” and restore it like a local backup (instructions in docs/25).',
   'Diese Felder wurden auf zwei Geräten geändert. Die neuere Änderung wurde übernommen.':
       'These fields were changed on two devices. The newer change was kept.',
   'Diese Woche': 'This week',
@@ -313,6 +319,7 @@ const table = <String, String>{
   'Experte': 'Expert',
   'Export wird erstellt …': 'Creating export …',
   'Fehler': 'Error',
+  'Fehler ({0}): {1}': 'Error ({0}): {1}',
   'Fehler: {0}': 'Error: {0}',
   'Fertig': 'Done',
   'Feuchte max': 'Humidity max',
@@ -450,9 +457,12 @@ const table = <String, String>{
   'JSON, CSV-Tabellen für Excel und alle Fotos – deine Daten gehören dir':
       'JSON, CSV tables for Excel and all photos – your data belongs to you',
   'Ja, speichern': 'Yes, save',
+  'Jedes Backup zusätzlich in Nextcloud, auf ein NAS oder eine Storage Box (WebDAV)':
+      'Every backup also to Nextcloud, a NAS or a storage box (WebDAV)',
   'Jelly': 'Jelly',
   'Jetzt': 'Now',
   'Jetzt ein Foto aufnehmen': 'Take a photo now',
+  'Jetzt hochladen': 'Upload now',
   'Jetzt prüfen': 'Check now',
   'Jetzt synchronisieren': 'Sync now',
   'Kalender': 'Calendar',
@@ -471,6 +481,8 @@ const table = <String, String>{
       'Not a colony code of yours – or the colony is not shared with you.',
   'Kein Tages-Überblick geplant': 'No daily overview scheduled',
   'Kein aktiver QR-Code.': 'No active QR code.',
+  'Kein fertiges Backup sichtbar – ist der Backup-Ordner im App-Container eingebunden?':
+      'No complete backup visible – is the backup folder mounted into the app container?',
   'Keine': 'None',
   'Keine Art aus dem Katalog in diesem Monat.': 'No catalog species in this month.',
   'Keine Art gefunden': 'No species found',
@@ -525,6 +537,8 @@ const table = <String, String>{
   'Kontrolle: {0}': 'Inspection: {0}',
   'Kopieren': 'Copy',
   'Kopiert': 'Copied',
+  'Kopiert jedes neue nächtliche Backup zusätzlich in einen WebDAV-Ordner – z. B. Nextcloud, NAS (Synology, QNAP, Unraid) oder eine Storage Box. So bleiben die Daten erhalten, wenn der Server selbst ausfällt. Fotos werden nur einmal übertragen, danach nur neue.':
+      'Copies every new nightly backup to a WebDAV folder as well – e.g. Nextcloud, a NAS (Synology, QNAP, Unraid) or a storage box. Your data survives even if the server itself fails. Photos are transferred once, afterwards only new ones.',
   'Kritisch': 'Critical',
   'Königin': 'Queen',
   'Königinnen': 'Queens',
@@ -624,6 +638,11 @@ const table = <String, String>{
   'Neuer Eintrag': 'New entry',
   'Neuer Standort': 'New location',
   'Neues Passwort': 'New password',
+  'Neuestes Backup hier: {0}': 'Newest backup here: {0}',
+  'Nextcloud: Dateien → Einstellungen (unten links) → WebDAV, dahinter ein Ordnername':
+      'Nextcloud: Files → Settings (bottom left) → WebDAV, followed by a folder name',
+  'Nextcloud: am besten ein App-Passwort (Einstellungen → Sicherheit)':
+      'Nextcloud: preferably an app password (Settings → Security)',
   'Nicht angemeldet': 'Not signed in',
   'Nicht dabei? Lege sie als eigene Art mit Steckbrief an.':
       'Not listed? Create it as your own species with a care sheet.',
@@ -643,6 +662,7 @@ const table = <String, String>{
   'Noch keine Kolonien': 'No colonies yet',
   'Noch keine Prüfung': 'Not checked yet',
   'Noch keine Sensoren': 'No sensors yet',
+  'Noch nichts hochgeladen': 'Nothing uploaded yet',
   'Noch nie synchronisiert': 'Never synced',
   'Nochmal versuchen': 'Try again',
   'Notiz': 'Note',
@@ -884,8 +904,11 @@ const table = <String, String>{
   'Update {0} verfügbar': 'Update {0} available',
   'Update {0} verfügbar – ⚠ Breaking Change, vorher Backup': 'Update {0} available – ⚠ breaking change, back up first',
   'Update {0}: Breaking Change': 'Update {0}: breaking change',
+  'Upload gestartet – Status mit ↻ aktualisieren': 'Upload started – refresh the status with ↻',
   'Verbinde mit {0} …': 'Connecting to {0} …',
   'Verbinde …': 'Connecting …',
+  'Verbindung klappt – Ordner ist bereit': 'Connection works – folder is ready',
+  'Verbindung testen': 'Test connection',
   'Verbreitung': 'Distribution',
   'Vergleich': 'Comparison',
   'Verknüpft mit {0}': 'Linked with {0}',
@@ -926,6 +949,7 @@ const table = <String, String>{
   'Wasser {0}': 'Water {0}',
   'Wassertank aufgefüllt': 'Water tank refilled',
   'Web-Browser': 'Web browser',
+  'WebDAV-Adresse (Ordner)': 'WebDAV address (folder)',
   'Weiter': 'Continue',
   'Weiteren Tag zuweisen': 'Assign another tag',
   'Welche Kolonien?': 'Which colonies?',
@@ -950,6 +974,7 @@ const table = <String, String>{
   'Winterruhe planen': 'Plan hibernation',
   'Winterruhe {0}': 'Hibernation: {0}',
   'Winterruhe – Erinnerungen angepasst': 'Hibernation – reminders adjusted',
+  'Wird gerade hochgeladen …': 'Uploading …',
   'Wird verschlüsselt auf dem Server gespeichert und nie angezeigt': 'Stored encrypted on the server and never shown',
   'Wissenschaftlicher Name *': 'Scientific name *',
   'Wo du angemeldet bist – verlorenes Handy abmelden': 'Where you are signed in – sign out a lost phone',
@@ -972,6 +997,7 @@ const table = <String, String>{
       'Sugar water or honey water may be available all the time. Protein only as much as is used in about a day: too much protein shortens the workers\' lifespan (Dussutour & Simpson 2012).',
   'Zufälliger Topic-Name': 'Random topic name',
   'Zuletzt {0} {1}': 'Last {0} {1}',
+  'Zuletzt: {0}': 'Last: {0}',
   'Zur Anmeldung': 'To sign-in',
   'Zur Liste': 'To the list',
   'Zur Übersicht': 'To the overview',
@@ -1113,6 +1139,7 @@ const table = <String, String>{
   '{0}: Minimum ist größer als Maximum.': '{0}: minimum is greater than maximum.',
   '{0}× Winterruhe beenden?': '{0}× end hibernation?',
   '{0}× Winterruhe beginnen?': '{0}× start hibernation?',
+  'Ältere werden dort gelöscht; Fotos bleiben.': 'Older ones are deleted there; photos stay.',
   'Änderungen speichern?': 'Save changes?',
   'Öffne in der Web-App „Mehr → Android-App verbinden“ und scanne den QR-Code.':
       'In the web app open “More → Connect Android app” and scan the QR code.',

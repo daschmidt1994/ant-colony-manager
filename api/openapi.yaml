@@ -369,6 +369,25 @@ paths:
       tags: [admin]
       summary: "Send a test e-mail to the administrator"
       responses: { "204": { description: "sent" }, "502": { description: "SMTP failed (title explains)" } }
+  /api/v1/admin/offsite:
+    get:
+      tags: [admin]
+      summary: "Off-site backup (WebDAV) settings and status {enabled, url, user, password_set, keep, status{last_name, last_success, last_error, last_error_at, last_bytes, last_photos, running, local_latest}}"
+      responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save off-site backup settings; password omitted = keep, \"\" = remove; keep = remote backups to keep (1–365)"
+      responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/offsite/test:
+    post:
+      tags: [admin]
+      summary: "Check WebDAV address and login (creates the folder if missing)"
+      responses: { "204": { description: "reachable" }, "502": { description: "WebDAV failed (title explains)" } }
+  /api/v1/admin/offsite/run:
+    post:
+      tags: [admin]
+      summary: "Upload the newest local backup now (in the background; status via GET /admin/offsite)"
+      responses: { "202": { description: "started" }, "422": { description: "not set up" } }
   /api/v1/snooze:
     post:
       tags: [colonies]

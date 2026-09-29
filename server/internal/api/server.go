@@ -183,6 +183,10 @@ func (s *Server) Handler() *chi.Mux {
 				r.Get("/smtp", s.getSMTP)
 				r.Put("/smtp", s.setSMTP)
 				r.With(s.rateLimitUser(s.limScan)).Post("/smtp/test", s.testSMTP)
+				r.Get("/offsite", s.getOffsite)
+				r.Put("/offsite", s.setOffsite)
+				r.With(s.rateLimitUser(s.limScan)).Post("/offsite/test", s.testOffsite)
+				r.With(s.rateLimitUser(s.limScan)).Post("/offsite/run", s.runOffsite)
 			})
 
 			// Generic collections (locations, food-items, species, habitats, …)
