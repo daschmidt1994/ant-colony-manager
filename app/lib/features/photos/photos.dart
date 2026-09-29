@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -297,13 +298,23 @@ class GalleryScreen extends ConsumerWidget {
     final colony = ref.watch(colonyProvider(colonyId)).value;
     final photos = ref.watch(colonyPhotosProvider(colonyId)).value ?? const <Photo>[];
     final canEdit = (ref.watch(roleProvider(colonyId)).value ?? 'owner') != 'viewer';
-    final month = DateFormat('MMMM y', 'de');
+    final month = DateFormat('MMMM y', currentLanguage);
     final groups = <String, List<int>>{};
     for (var i = 0; i < photos.length; i++) {
       (groups[month.format(photos[i].takenAt.toLocal())] ??= []).add(i);
     }
     return Scaffold(
-      appBar: AppBar(title: Text(colony == null ? tr('Fotos') : tr('Fotos · {0}', [colony.name]))),
+      appBar: AppBar(
+        title: Text(colony == null ? tr('Fotos') : tr('Fotos · {0}', [colony.name])),
+        actions: [
+          if (photos.length >= 2)
+            IconButton(
+              tooltip: tr('Wachstum im Vergleich'),
+              icon: const Icon(Icons.compare),
+              onPressed: () => context.go('/colonies/$colonyId/photos/compare'),
+            ),
+        ],
+      ),
       floatingActionButton: canEdit && colony != null
           ? FloatingActionButton.extended(
               onPressed: () => addPhotos(context, ref, colony),

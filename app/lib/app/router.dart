@@ -10,6 +10,7 @@ import '../features/colonies/colony_list_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/labels/labels_screen.dart';
 import '../features/nfc/nfc_screens.dart';
+import '../features/photos/compare_screen.dart';
 import '../features/photos/photos.dart';
 import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
@@ -109,6 +110,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'photos',
                         builder: (_, s) => GalleryScreen(colonyId: s.pathParameters['id']!),
+                        routes: [
+                          GoRoute(
+                            path: 'compare',
+                            builder: (_, s) => PhotoCompareScreen(colonyId: s.pathParameters['id']!),
+                          ),
+                        ],
                       ),
                       GoRoute(
                         path: 'nfc',
