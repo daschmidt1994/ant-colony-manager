@@ -144,6 +144,25 @@ class ColonyRepository {
 
   void deleteSpecies(String id) => _write(() => _delete('species', id));
 
+  /// Links a colony to a species care sheet; the species name follows the
+  /// catalog spelling. Returns the previous fields (for „Rückgängig“).
+  Map<String, dynamic> linkSpecies(String colonyId, Species s) =>
+      _setSpecies(colonyId, {'species_id': s.id, 'species_text': s.scientificName});
+
+  /// Removes the link; the name stays as text.
+  Map<String, dynamic> unlinkSpecies(String colonyId) {
+    final c = colony(colonyId);
+    return _setSpecies(colonyId, {'species_id': null, 'species_text': c?.species ?? ''});
+  }
+
+  Map<String, dynamic> _setSpecies(String colonyId, Map<String, dynamic> patch) => _write(() {
+    final rec = db.record('colonies', colonyId);
+    if (rec == null) return const <String, dynamic>{};
+    final previous = {'species_id': rec.json['species_id'], 'species_text': rec.json['species_text']};
+    _update('colonies', colonyId, patch);
+    return previous;
+  });
+
   List<Location> locations() => _locations().values.toList()..sort((a, b) => a.path.compareTo(b.path));
 
   List<ScanLink> scanLinks(String colonyId) =>

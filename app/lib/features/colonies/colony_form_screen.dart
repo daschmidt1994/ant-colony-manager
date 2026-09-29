@@ -38,6 +38,9 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
   String? _origin;
   String? _locationId;
   String? _speciesId;
+
+  /// Switched off on purpose: no automatic link by exact name on save.
+  bool _unlinked = false;
   (int, int?)? _workers;
   DateTime? _founded;
   bool _loaded = false;
@@ -189,26 +192,36 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
-                    child: Row(
-                      children: [
-                        Icon(
-                          linked != null ? Icons.check_circle_outline : Icons.info_outline,
-                          size: 16,
-                          color: linked != null ? context.colors.ok : context.colors.muted,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            linked != null
-                                ? 'Steckbrief verknüpft${speciesSummary(linked).isEmpty ? '' : ': ${speciesSummary(linked)}'}'
-                                : 'Art aus der Liste wählen, um den Steckbrief zu verknüpfen.',
-                            style: TextStyle(fontSize: 12, color: context.colors.muted),
-                          ),
-                        ),
-                      ],
+                  // Explicit switch: on = care sheet linked (search opens), off = unlink.
+                  SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    secondary: Icon(
+                      Icons.menu_book_outlined,
+                      color: linked != null ? context.colors.ok : context.colors.muted,
                     ),
+                    title: const Text('Steckbrief aus dem Artenkatalog'),
+                    subtitle: Text(
+                      linked != null
+                          ? '${linked.scientificName}${speciesSummary(linked).isEmpty ? '' : ' · ${speciesSummary(linked)}'}'
+                          : 'Aus – einschalten, um eine Art aus dem Katalog zu wählen',
+                    ),
+                    value: linked != null,
+                    onChanged: (on) async {
+                      if (!on) {
+                        setState(() {
+                          _speciesId = null;
+                          _unlinked = true;
+                        });
+                        return;
+                      }
+                      final s = await pickSpecies(context, initialQuery: _species.text);
+                      if (s == null || !mounted) return;
+                      _species.text = s.scientificName;
+                      setState(() {
+                        _speciesId = s.id;
+                        _unlinked = false;
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -430,7 +443,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
     String? v(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
     final fields = <String, dynamic>{
       'name': _name.text.trim(),
-      'species_id': _speciesId ?? _catalogMatch(repo, _species.text),
+      'species_id': _speciesId ?? (_unlinked ? null : _catalogMatch(repo, _species.text)),
       'species_text': _species.text.trim(),
       'internal_code': v(_code),
       'location_id': _locationId,
