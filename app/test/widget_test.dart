@@ -243,4 +243,37 @@ void main() {
     expect(find.text('Nur Buchstaben, Ziffern, _ und - (max. 64)'), findsOneWidget);
     db.dispose();
   });
+
+  testWidgets('colony page: link a care sheet via search (typo), then unlink', (tester) async {
+    final db = memoryDb();
+    final repo = ColonyRepository(db, userId: 'u1', onChanged: () {});
+    db.putRecord('species', {
+      'id': 'n',
+      'owner_id': null,
+      'scientific_name': 'Lasius niger',
+      'genus': 'Lasius',
+      'hibernation': 'required',
+      'difficulty': 1,
+    });
+    final id = repo.createColony({'name': 'Lassius #2', 'species_text': 'Lassius niger'});
+    await tester.binding.setSurfaceSize(const Size(430, 1600));
+    await tester.pumpWidget(_app(db, ColonyDetailScreen(colonyId: id)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Steckbrief aus dem Artenkatalog verknüpfen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Meintest du …'), findsOneWidget);
+    await tester.tap(find.text('Lasius niger').last);
+    await tester.pumpAndSettle();
+    expect(repo.colony(id)!.speciesId, 'n');
+    expect(find.text('Steckbrief: Lasius niger'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Verknüpfung'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Verknüpfung lösen'));
+    await tester.pumpAndSettle();
+    expect(repo.colony(id)!.speciesId, isNull);
+    expect(find.text('Steckbrief aus dem Artenkatalog verknüpfen'), findsOneWidget);
+    db.dispose();
+  });
 }

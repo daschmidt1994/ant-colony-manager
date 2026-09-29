@@ -864,3 +864,131 @@ class FoodGuideScreen extends StatelessWidget {
     ),
   );
 }
+
+// -----------------------------------------------------------------------------
+// Picker: link a colony to a catalog species (tolerant of typos)
+
+/// Edit distance (Levenshtein) – „Lassius niger“ is 1 away from „Lasius niger“.
+int editDistance(String a, String b) {
+  if (a == b) return 0;
+  var prev = List<int>.generate(b.length + 1, (i) => i);
+  for (var i = 1; i <= a.length; i++) {
+    final cur = List<int>.filled(b.length + 1, 0)..[0] = i;
+    for (var j = 1; j <= b.length; j++) {
+      final cost = a.codeUnitAt(i - 1) == b.codeUnitAt(j - 1) ? 0 : 1;
+      cur[j] = [prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost].reduce((x, y) => x < y ? x : y);
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/// Search results: exact/partial matches first, then close spellings
+/// (typos); empty query = everything alphabetically.
+List<Species> speciesSuggestions(List<Species> all, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return all;
+  final exact = [
+    for (final s in all)
+      if (s.matches(q)) s,
+  ];
+  int distance(Species s) => [
+    editDistance(q, s.scientificName.toLowerCase()),
+    if (s.germanName != null) editDistance(q, s.germanName!.toLowerCase()),
+  ].reduce((a, b) => a < b ? a : b);
+  final limit = (q.length * 0.3).ceil().clamp(2, 6);
+  final close = [
+    for (final s in all)
+      if (!exact.contains(s) && distance(s) <= limit) s,
+  ]..sort((a, b) => distance(a).compareTo(distance(b)));
+  return [...exact, ...close];
+}
+
+/// Bottom sheet: search the catalog (prefilled with [initialQuery]).
+Future<Species?> pickSpecies(BuildContext context, {String initialQuery = ''}) => showModalBottomSheet<Species>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  builder: (_) => _SpeciesPicker(initialQuery: initialQuery),
+);
+
+class _SpeciesPicker extends ConsumerStatefulWidget {
+  const _SpeciesPicker({required this.initialQuery});
+  final String initialQuery;
+  @override
+  ConsumerState<_SpeciesPicker> createState() => _SpeciesPickerState();
+}
+
+class _SpeciesPickerState extends ConsumerState<_SpeciesPicker> {
+  late final _search = TextEditingController(text: widget.initialQuery);
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final all = ref.watch(speciesListProvider).value ?? const <Species>[];
+    final list = speciesSuggestions(all, _search.text);
+    final typo = list.isNotEmpty && !list.first.matches(_search.text) && _search.text.trim().isNotEmpty;
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * .8,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: TextField(
+              controller: _search,
+              autofocus: widget.initialQuery.isEmpty,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                labelText: 'Art im Katalog suchen',
+                hintText: 'Art, Gattung oder deutscher Name',
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+          if (typo)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Meintest du …', style: TextStyle(color: context.colors.muted)),
+              ),
+            ),
+          Expanded(
+            child: list.isEmpty
+                ? EmptyState(
+                    icon: Icons.search_off,
+                    title: 'Keine passende Art',
+                    text: 'Im Artenkatalog kannst du sie als eigene Art mit Steckbrief anlegen.',
+                    action: TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context.go('/species/new');
+                      },
+                      child: const Text('Eigene Art anlegen'),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: list.length,
+                    itemBuilder: (_, i) {
+                      final s = list[i];
+                      final sub = [?s.germanName, if (!s.isCatalog) 'eigene Art'].join(' · ');
+                      return ListTile(
+                        leading: const Icon(Icons.menu_book_outlined),
+                        title: Text(s.scientificName, style: const TextStyle(fontStyle: FontStyle.italic)),
+                        subtitle: sub.isEmpty ? null : Text(sub),
+                        trailing: s.difficulty == null ? null : _DifficultyChip(s.difficulty!),
+                        onTap: () => Navigator.pop(context, s),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
