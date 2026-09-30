@@ -1,10 +1,12 @@
 #!/bin/sh
 # Update service (optional, COMPOSE_PROFILES=updater): carries out an update
-# that an administrator starts in the app (Mehr → Version → „Jetzt
+# that an administrator starts in the app (Mehr → Server → „Jetzt
 # aktualisieren“). The app only drops a request file into /data/update – it
-# never talks to Docker itself. Steps like scripts/update.sh: backup, pull
-# the images, restart, wait until healthy. Needs the Docker socket and the
-# project folder at the same path as on the host (ACM_PROJECT_DIR).
+# never talks to Docker itself. Steps: pull the images (does not disturb the
+# running stack), and only if one of them is newer: backup, restart, wait
+# until healthy. Without a newer image nothing else happens. Needs the Docker
+# socket and the project folder at the same path as on the host
+# (ACM_PROJECT_DIR).
 set -u
 dir=${UPDATE_DIR:-/data/update}
 cd "${ACM_PROJECT_DIR:?ACM_PROJECT_DIR fehlt in .env}" || exit 1
@@ -29,14 +31,34 @@ healthy() { # service – waits up to 5 minutes
   return 1
 }
 
+# newer: prints the services whose pulled image differs from the running one
+newer() {
+  for svc in "$@"; do
+    id=$(docker compose ps -q "$svc" | head -1)
+    [ -n "$id" ] || continue
+    running=$(docker inspect -f '{{.Image}}' "$id")
+    ref=$(docker inspect -f '{{.Config.Image}}' "$id")
+    latest=$(docker image inspect -f '{{.Id}}' "$ref" 2>/dev/null)
+    [ -n "$latest" ] && [ "$latest" != "$running" ] && echo "$svc"
+  done
+  return 0
+}
+
 update() {
-  echo "== $(date) Update gestartet"
-  status running "Backup vor dem Update …"
-  docker compose exec -T backup /app/entrypoint.sh backup --tag pre-update || echo "Backup fehlgeschlagen – fahre fort"
+  echo "== $(date) Update angefordert"
   list=$(services)
-  status running "Neue Images holen …"
+  status running "Suche nach neuen Images …"
   # shellcheck disable=SC2086 # one service per word
   docker compose pull --ignore-buildable --quiet $list || return 1
+  # shellcheck disable=SC2086
+  changed=$(newer $list)
+  if [ -z "$changed" ]; then
+    echo "Alle Images sind aktuell – kein Backup, kein Neustart."
+    return 3
+  fi
+  echo "Neue Images für: $(echo "$changed" | tr '\n' ' ')"
+  status running "Backup vor dem Update …"
+  docker compose exec -T backup /app/entrypoint.sh backup --tag pre-update || echo "Backup fehlgeschlagen – fahre fort"
   status running "Neu starten …"
   # shellcheck disable=SC2086
   docker compose up -d --no-build $list || return 1
@@ -50,11 +72,12 @@ while :; do
   date -u +%s > "$dir/heartbeat"
   if [ -f "$dir/request" ]; then
     rm -f "$dir/request"
-    if update > "$dir/update.log" 2>&1; then
-      status "done" "Update abgeschlossen"
-    else
-      status failed "Update fehlgeschlagen – Protokoll: data/update/update.log; zurück: ./scripts/restore.sh <pre-update-Backup>"
-    fi
+    update > "$dir/update.log" 2>&1
+    case $? in
+      0) status "done" "Update abgeschlossen" ;;
+      3) status current "Bereits aktuell – kein Update nötig" ;;
+      *) status failed "Update fehlgeschlagen – Protokoll: data/update/update.log; zurück: ./scripts/restore.sh <pre-update-Backup>" ;;
+    esac
     docker image prune -f > /dev/null 2>&1 || true
   fi
   sleep 5

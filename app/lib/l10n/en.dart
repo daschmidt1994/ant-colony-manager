@@ -52,6 +52,7 @@ const table = <String, String>{
   'Aktiv: {0}': 'Active: {0}',
   'Aktivität': 'Activity',
   'Aktualisieren': 'Refresh',
+  'Aktuell – keine neuere Version': 'Up to date – no newer version',
   'Alle': 'All',
   'Alle Einträge werden zuerst auf diesem Gerät gespeichert und im Hintergrund übertragen – auch ohne Internet geht nichts verloren.':
       'Every entry is saved on this device first and sent in the background – nothing gets lost without internet.',
@@ -178,6 +179,7 @@ const table = <String, String>{
   'Benachrichtigungen blockiert': 'Notifications blocked',
   'Benachrichtigungen erlaubt': 'Notifications allowed',
   'Benutzer': 'User',
+  'Bereits aktuell – kein Update nötig': 'Already up to date – no update needed',
   'Bereits geöffnet – Ant Colony Manager': 'Already open – Ant Colony Manager',
   'Bericht als PDF': 'Report as PDF',
   'Bericht wird erstellt …': 'Creating report …',
