@@ -15,6 +15,7 @@ import '../../data/sync/sync_engine.dart';
 import '../../data/sync/upload_policy.dart';
 import '../../shared/widgets.dart';
 import 'mqtt_screen.dart';
+import 'server_clock.dart';
 import 'updates.dart';
 import '../../app/i18n.dart';
 
@@ -363,6 +364,7 @@ class SettingsScreen extends ConsumerWidget {
                       );
                     },
                   ),
+                  const ServerClockTile(),
                   if (auth.user.isAdmin) const UpdateNowTile(),
                   if (!kIsWeb)
                     ListTile(

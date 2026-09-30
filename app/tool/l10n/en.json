@@ -1134,5 +1134,12 @@
  "Die KI hat zu lange gebraucht – weniger Fotos wählen": "The AI took too long – choose fewer photos",
  "Die KI ist nicht erreichbar": "The AI is not reachable",
  "Zählt … {0} s": "Counting … {0} s",
- "Noch nicht eingerichtet: in der .env COMPOSE_PROFILES=updater und ACM_PROJECT_DIR setzen, dann „docker compose up -d“. Danach geht das Update hier per Knopf.": "Not set up yet: set COMPOSE_PROFILES=updater and ACM_PROJECT_DIR in the .env, then “docker compose up -d”. After that the update works here with a button."
+ "Noch nicht eingerichtet: in der .env COMPOSE_PROFILES=updater und ACM_PROJECT_DIR setzen, dann „docker compose up -d“. Danach geht das Update hier per Knopf.": "Not set up yet: set COMPOSE_PROFILES=updater and ACM_PROJECT_DIR in the .env, then “docker compose up -d”. After that the update works here with a button.",
+ "Serverzeit: {0}": "Server time: {0}",
+ "Zeitzone des Servers: {0}": "Server time zone: {0}",
+ "{0} Min.": "{0} min",
+ "{0} Std.": "{0} h",
+ "{0} Std. {1} Min.": "{0} h {1} min",
+ "⚠ Die Uhr dieses Geräts geht {0} nach – Uhrzeit prüfen": "⚠ This device's clock is {0} behind – check the time",
+ "⚠ Die Uhr dieses Geräts geht {0} vor – Uhrzeit prüfen": "⚠ This device's clock is {0} ahead – check the time"
 }

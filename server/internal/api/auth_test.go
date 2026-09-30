@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -16,6 +17,10 @@ func TestSetupRequiresTokenAndRunsOnce(t *testing.T) {
 	inst := anon.Do("GET", "/api/v1/instance", nil).Must(t, 200).JSON()
 	if inst["setup_required"] != true {
 		t.Fatalf("fresh instance should require setup: %v", inst)
+	}
+	if at, err := time.Parse(time.RFC3339Nano, fmt.Sprint(inst["server_time"])); err != nil || at.Sub(env.Clock.Now()).Abs() > time.Second ||
+		inst["time_zone"] == "" {
+		t.Fatalf("server time: %v %v (%v)", inst["server_time"], inst["time_zone"], err)
 	}
 	// Registration is impossible before setup.
 	r := anon.Do("POST", "/api/v1/auth/register", map[string]any{"email": "x@ants.test", "password": "Messor-barbarus-12"})
