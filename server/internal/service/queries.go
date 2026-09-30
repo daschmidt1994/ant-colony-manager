@@ -721,6 +721,12 @@ func (s *Service) RemoveMember(ctx context.Context, actor Actor, colony, user uu
 		if acc.Role != RoleOwner && user != actor.UserID {
 			return ErrForbidden
 		}
+		// removed by hand from a colony of a care cover: take the colony out
+		// of the cover, so that it is not handed over again
+		if _, err := tx.Exec(ctx, `DELETE FROM care_cover_colonies cc USING care_covers c
+			WHERE cc.cover_id = c.id AND cc.colony_id = $1 AND c.user_id = $2`, colony, user); err != nil {
+			return err
+		}
 		tag, err := tx.Exec(ctx, `UPDATE colony_members SET deleted_at = now()
 			WHERE colony_id = $1 AND user_id = $2 AND deleted_at IS NULL AND role <> 'owner'`, colony, user)
 		if err != nil {

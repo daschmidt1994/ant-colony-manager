@@ -434,6 +434,42 @@ paths:
       parameters:
         - { name: job, in: path, required: true, schema: { type: string, format: uuid } }
       responses: { "200": { description: "job" }, "404": { description: "unknown job" } }
+  /api/v1/care-covers:
+    get:
+      tags: [colonies]
+      summary: "Care covers (Pflegevertretung) I set up and those I stand in for: [{id, owner_name, user_name, user_email (owner only), starts_on, ends_on, instructions, state planned|active|ended, mine, colonies[{colony_id, name, number, instructions}]}]"
+      responses: { "200": { description: "list" } }
+    post:
+      tags: [colonies]
+      summary: "Hand own colonies to a person with an account for a period {email, starts_on, ends_on, instructions?, colonies[{colony_id, instructions?}]}; during it the person is a carer (editor)"
+      responses: { "201": { description: "cover" }, "422": { description: "invalid (unknown e-mail, dates, foreign colony)" } }
+  /api/v1/care-covers/{id}:
+    get:
+      tags: [colonies]
+      summary: "One cover with done[{colony_id, type, occurred_at, note}] – the care the substitute documented during it"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "cover" }, "404": { description: "not found" } }
+    patch:
+      tags: [colonies]
+      summary: "Change starts_on, ends_on, instructions or colonies (owner, not after the end)"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "cover" }, "404": { description: "not found" }, "422": { description: "invalid" } }
+  /api/v1/care-covers/{id}/end:
+    post:
+      tags: [colonies]
+      summary: "End a cover now (owner or substitute); a cover that has not started is removed"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "204": { description: "ended" }, "404": { description: "not found" } }
+  /api/v1/colonies/{id}/care-instructions:
+    get:
+      tags: [colonies]
+      summary: "Running and planned covers of this colony that concern me, with the general and this colony's instructions"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "list" }, "404": { description: "colony not found" } }
   /api/v1/admin/home-assistant/test:
     post:
       tags: [admin]

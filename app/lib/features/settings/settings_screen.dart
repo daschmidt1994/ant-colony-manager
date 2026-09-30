@@ -211,6 +211,15 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/feeds'),
               ),
             ),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.volunteer_activism_outlined),
+                title: Text(tr('Pflegevertretung')),
+                subtitle: Text(tr('Kolonien für den Urlaub an jemanden abgeben – mit Pflegeanweisungen')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/care-covers'),
+              ),
+            ),
             const HomeAssistantMeTile(),
             SectionHeader(tr('Synchronisierung')),
             Card(

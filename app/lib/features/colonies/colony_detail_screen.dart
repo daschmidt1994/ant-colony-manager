@@ -16,6 +16,7 @@ import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../actions/actions.dart';
 import '../actions/defer.dart';
+import '../care_cover/care_cover_screen.dart';
 import '../photos/photos.dart';
 import '../reports/report_action.dart';
 import '../species/species_screens.dart';
@@ -116,6 +117,7 @@ class _ColonyPage extends ConsumerWidget {
               children: [
                 _Header(colony: colony),
                 _SpeciesCard(colony: colony, canEdit: canEdit),
+                CareCoverBanner(colonyId: colony.id),
                 if (colony.archived)
                   _Banner(icon: Icons.archive_outlined, text: tr('Archiviert'), color: context.colors.muted),
                 if (!(canEdit && colony.isCareActive) && colony.status == 'hibernating')

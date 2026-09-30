@@ -178,8 +178,9 @@ func serve() error {
 		}
 	}()
 
-	// Daily digest (e-mail/ntfy, once per day at each user's time) and
-	// notifications (overdue, sensor alarm, winter rest): checked every minute.
+	// Daily digest (e-mail/ntfy, once per day at each user's time),
+	// notifications (overdue, sensor alarm, winter rest) and care covers:
+	// checked every minute.
 	go func() {
 		t := time.NewTicker(time.Minute)
 		defer t.Stop()
@@ -193,6 +194,10 @@ func serve() error {
 				log.Error("digest failed", "err", err)
 			} else if n > 0 {
 				log.Info("digest sent", "count", n)
+			}
+			// care covers start and end at midnight (server date)
+			if err := svc.ApplyCareCovers(ctx); err != nil && ctx.Err() == nil {
+				log.Error("care covers failed", "err", err)
 			}
 			if n, err := svc.SendNotifications(ctx); err != nil && ctx.Err() == nil {
 				log.Error("notifications failed", "err", err)

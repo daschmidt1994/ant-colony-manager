@@ -521,3 +521,89 @@ func (s *Server) aiCountJob(w http.ResponseWriter, r *http.Request) {
 	}
 	s.writeJSON(w, http.StatusOK, job)
 }
+
+// ---------------------------------------------------------------------------
+// Care covers (Pflegevertretung)
+
+func (s *Server) listCareCovers(w http.ResponseWriter, r *http.Request) {
+	list, err := s.svc.CareCovers(r.Context(), actorOf(r))
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, list)
+}
+
+func (s *Server) createCareCover(w http.ResponseWriter, r *http.Request) {
+	var in service.CareCoverInput
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	c, err := s.svc.CreateCareCover(r.Context(), actorOf(r), in, service.ClientMeta{IP: clientIP(r)})
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusCreated, c)
+}
+
+func (s *Server) getCareCover(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	c, err := s.svc.CareCover(r.Context(), actorOf(r), id)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, c)
+}
+
+func (s *Server) updateCareCover(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	var in service.CareCoverInput
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	c, err := s.svc.UpdateCareCover(r.Context(), actorOf(r), id, in)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, c)
+}
+
+func (s *Server) endCareCover(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	if err := s.svc.EndCareCover(r.Context(), actorOf(r), id, service.ClientMeta{IP: clientIP(r)}); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) careInstructions(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	list, err := s.svc.CareInstructions(r.Context(), actorOf(r), id)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, list)
+}
