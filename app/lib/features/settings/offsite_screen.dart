@@ -8,7 +8,8 @@ import '../../core/session.dart';
 import '../../shared/widgets.dart';
 
 /// Off-site backup for administrators: each new nightly backup is copied to
-/// a WebDAV folder (Nextcloud, NAS, storage box) – docs/25-backup-ausser-haus.md.
+/// a WebDAV folder (Nextcloud, NAS, storage box), an SMB share or a folder
+/// mounted into the container (NFS, USB disk) – docs/25-backup-ausser-haus.md.
 final offsiteProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   return await ref.read(authProvider.notifier).api.get('/api/v1/admin/offsite') as Map<String, dynamic>;
 });
@@ -16,6 +17,7 @@ final offsiteProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) a
 /// Request body; the password only when typed or removed.
 Map<String, dynamic> offsiteBody({
   required bool enabled,
+  String type = 'webdav',
   required String url,
   required String user,
   required String keep,
@@ -23,10 +25,33 @@ Map<String, dynamic> offsiteBody({
   bool removePassword = false,
 }) => {
   'enabled': enabled,
+  'type': type,
   'url': url.trim(),
-  'user': user.trim(),
+  if (type != 'folder') 'user': user.trim(),
   'keep': int.tryParse(keep.trim()) ?? 0,
   if (removePassword) 'password': '' else if (password.isNotEmpty) 'password': password,
+};
+
+/// Label, example and help for the address field of each target type.
+(String, String, String) offsiteAddress(String type) => switch (type) {
+  'smb' => (
+    tr('SMB-Freigabe (Ordner)'),
+    'smb://nas/backup/acm',
+    tr('smb://Server/Freigabe/Ordner – Windows, Synology, QNAP, Unraid. Benutzer ggf. als DOMÄNE\\name.'),
+  ),
+  'folder' => (
+    tr('Ordner im Container'),
+    '/offsite',
+    tr(
+      'Für NFS oder eine USB-Platte: Docker bindet die Freigabe als Volume unter diesem Pfad ein '
+      '(Beispiel für compose.yml in docs/25). Der Ordner muss existieren.',
+    ),
+  ),
+  _ => (
+    tr('WebDAV-Adresse (Ordner)'),
+    'https://cloud.example.com/remote.php/dav/files/NAME/acm-backups',
+    tr('Nextcloud: Dateien → Einstellungen (unten links) → WebDAV, dahinter ein Ordnername'),
+  ),
 };
 
 String _size(num bytes) {
@@ -73,6 +98,7 @@ class _OffsiteForm extends ConsumerStatefulWidget {
 class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
   late Map<String, dynamic> _s = widget.initial;
   late bool _enabled = _s['enabled'] == true;
+  late String _type = _s['type'] as String? ?? 'webdav';
   late final _url = TextEditingController(text: _s['url'] as String? ?? '');
   late final _user = TextEditingController(text: _s['user'] as String? ?? '');
   late final _keep = TextEditingController(text: '${_s['keep'] ?? 7}');
@@ -98,6 +124,7 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
             '/api/v1/admin/offsite',
             offsiteBody(
               enabled: _enabled,
+              type: _type,
               url: _url.text,
               user: _user.text,
               keep: _keep.text,
@@ -157,9 +184,10 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
               children: [
                 Text(
                   tr(
-                    'Kopiert jedes neue nächtliche Backup zusätzlich in einen WebDAV-Ordner – z. B. Nextcloud, '
-                    'NAS (Synology, QNAP, Unraid) oder eine Storage Box. So bleiben die Daten erhalten, wenn der '
-                    'Server selbst ausfällt. Fotos werden nur einmal übertragen, danach nur neue.',
+                    'Kopiert jedes neue nächtliche Backup zusätzlich an einen anderen Ort – per WebDAV (Nextcloud, '
+                    'Storage Box), auf eine SMB-Freigabe (Windows, NAS) oder in einen per NFS eingebundenen Ordner. '
+                    'So bleiben die Daten erhalten, wenn der Server selbst ausfällt. Fotos werden nur einmal '
+                    'übertragen, danach nur neue.',
                   ),
                   style: muted,
                 ),
@@ -206,43 +234,59 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
                   value: _enabled,
                   onChanged: (v) => setState(() => _enabled = v),
                 ),
+                SegmentedButton<String>(
+                  segments: [
+                    const ButtonSegment(value: 'webdav', label: Text('WebDAV'), icon: Icon(Icons.cloud_outlined)),
+                    const ButtonSegment(value: 'smb', label: Text('SMB'), icon: Icon(Icons.dns_outlined)),
+                    ButtonSegment(
+                      value: 'folder',
+                      label: Text(tr('NFS / Ordner')),
+                      icon: const Icon(Icons.folder_outlined),
+                    ),
+                  ],
+                  selected: {_type},
+                  onSelectionChanged: (v) => setState(() => _type = v.first),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _url,
                   keyboardType: TextInputType.url,
                   autocorrect: false,
                   decoration: InputDecoration(
-                    labelText: tr('WebDAV-Adresse (Ordner)'),
-                    hintText: 'https://cloud.example.com/remote.php/dav/files/NAME/acm-backups',
-                    helperText: tr(
-                      'Nextcloud: Dateien → Einstellungen (unten links) → WebDAV, dahinter ein Ordnername',
-                    ),
+                    labelText: offsiteAddress(_type).$1,
+                    hintText: offsiteAddress(_type).$2,
+                    helperText: offsiteAddress(_type).$3,
                     helperMaxLines: 3,
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _user,
-                  autocorrect: false,
-                  decoration: InputDecoration(labelText: tr('Benutzer')),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _password,
-                  obscureText: true,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                    labelText: tr('Passwort'),
-                    hintText: passwordSet ? tr('gespeichert – leer lassen zum Behalten') : null,
-                    helperText: tr('Nextcloud: am besten ein App-Passwort (Einstellungen → Sicherheit)'),
-                    suffixIcon: passwordSet
-                        ? IconButton(
-                            tooltip: tr('Passwort entfernen'),
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => setState(() => _removePassword = true),
-                          )
-                        : null,
+                if (_type != 'folder') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _user,
+                    autocorrect: false,
+                    decoration: InputDecoration(labelText: tr('Benutzer')),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _password,
+                    obscureText: true,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      labelText: tr('Passwort'),
+                      hintText: passwordSet ? tr('gespeichert – leer lassen zum Behalten') : null,
+                      helperText: _type == 'webdav'
+                          ? tr('Nextcloud: am besten ein App-Passwort (Einstellungen → Sicherheit)')
+                          : null,
+                      suffixIcon: passwordSet
+                          ? IconButton(
+                              tooltip: tr('Passwort entfernen'),
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => setState(() => _removePassword = true),
+                            )
+                          : null,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextField(
                   controller: _keep,

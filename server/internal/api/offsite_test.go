@@ -85,7 +85,7 @@ func TestOffsiteBackupToWebDAV(t *testing.T) {
 	got := admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{
 		"enabled": true, "url": srv.URL + "/dav/acm-backups", "user": "ameisen", "password": "app-passwort", "keep": 2,
 	}).Must(t, 200).JSON()
-	if got["password_set"] != true || got["password"] != nil {
+	if got["password_set"] != true || got["password"] != nil || got["type"] != "webdav" {
 		t.Fatalf("settings: %v", got)
 	}
 	admin.Do("POST", "/api/v1/admin/offsite/test", nil).Must(t, 204)
@@ -150,5 +150,54 @@ func TestOffsiteBackupToWebDAV(t *testing.T) {
 	st = admin.Do("GET", "/api/v1/admin/offsite", nil).Must(t, 200).JSON()["status"].(map[string]any)
 	if !strings.Contains(fmt.Sprint(st["last_error"]), "user and password") {
 		t.Fatalf("status after error: %v", st)
+	}
+}
+
+// A folder mounted into the container (NFS, USB disk) as the target.
+func TestOffsiteBackupToFolder(t *testing.T) {
+	backups := t.TempDir()
+	target := t.TempDir()
+	env := testenv.New(t, testenv.Options{Env: map[string]string{"BACKUP_STATUS_DIR": backups}})
+	admin := env.Admin(t)
+	ctx := context.Background()
+	put := func(url string, status int) map[string]any {
+		return admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{"enabled": true, "type": "folder", "url": url, "keep": 1}).
+			Must(t, status).JSON()
+	}
+
+	// never the local backups themselves (retention would delete them), only absolute paths
+	put(backups, 422)
+	put(filepath.Join(backups, "sub"), 422)
+	put(filepath.Dir(backups), 422)
+	put("offsite", 422)
+	admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{"enabled": true, "type": "ftp", "url": "/x", "keep": 1}).Must(t, 422)
+
+	// a missing mount is reported, not silently created
+	put(filepath.Join(target, "fehlt"), 200)
+	if r := admin.Do("POST", "/api/v1/admin/offsite/test", nil).Must(t, 502); !strings.Contains(string(r.Body), "mounted") {
+		t.Fatalf("missing folder: %s", r.Body)
+	}
+
+	if s := put(target, 200); s["type"] != "folder" || s["url"] != target {
+		t.Fatalf("settings: %v", s)
+	}
+	admin.Do("POST", "/api/v1/admin/offsite/test", nil).Must(t, 204)
+
+	exists := func(p string) bool { _, err := os.Stat(filepath.Join(target, p)); return err == nil }
+	writeBackup(t, backups, "2026-09-27T0300", map[string]string{"c1/a.jpg": "A"})
+	if did, err := env.Svc.OffsiteSync(ctx, false); err != nil || !did {
+		t.Fatalf("first: %v %v", did, err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(target, "uploads/c1/a.jpg")); string(b) != "A" ||
+		!exists("2026-09-27T0300/OK") || exists("2026-09-27T0300/env") || exists("2026-09-27T0300/OK.part") ||
+		exists(".acm-write-test") {
+		t.Fatal("first upload wrong")
+	}
+	writeBackup(t, backups, "2026-09-28T0300", map[string]string{"c1/a.jpg": "A"})
+	if _, err := env.Svc.OffsiteSync(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	if exists("2026-09-27T0300") || !exists("2026-09-28T0300/db.dump") || !exists("uploads/c1/a.jpg") {
+		t.Fatal("retention wrong")
 	}
 }

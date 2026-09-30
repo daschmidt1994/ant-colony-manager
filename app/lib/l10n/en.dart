@@ -274,6 +274,7 @@ const table = <String, String>{
   'Eigene Art': 'Own species',
   'Eigene Art anlegen': 'Create own species',
   'Eigene Art – Werte von dir.': 'Own species – your values.',
+  'Eigene Pflegepläne': 'Custom care plans',
   'Eigene Zucht': 'Own breeding',
   'Ein ESP32 oder ein anderer WLAN-Sensor kann Temperatur und Luftfeuchtigkeit direkt an deinen Server senden. Die Werte erscheinen in der Statistik der Kolonie.':
       'An ESP32 or another Wi-Fi sensor can send temperature and humidity directly to your server. The values appear in the colony statistics.',
@@ -286,6 +287,7 @@ const table = <String, String>{
   'Einheit': 'Unit',
   'Einladung erhalten? Konto erstellen': 'Got an invitation? Create account',
   'Einmal täglich: was heute ansteht': 'Once a day: what is due today',
+  'Einmalige Aufgaben': 'One-off tasks',
   'Einsteiger': 'Beginner',
   'Eintrag': 'Entry',
   'Eintrag bearbeiten': 'Edit entry',
@@ -361,6 +363,8 @@ const table = <String, String>{
   'Fälligkeiten in Google Kalender, Outlook oder Home Assistant':
       'Due dates in Google Calendar, Outlook or Home Assistant',
   'Färbung': 'Colouration',
+  'Für NFS oder eine USB-Platte: Docker bindet die Freigabe als Volume unter diesem Pfad ein (Beispiel für compose.yml in docs/25). Der Ordner muss existieren.':
+      'For NFS or a USB disk: Docker mounts the share as a volume at this path (compose.yml example in docs/25). The folder must exist.',
   'Für diese E-Mail gibt es bereits ein Konto.': 'There is already an account for this e-mail.',
   'Für „Passwort vergessen“, den Tages-Überblick und Benachrichtigungen per E-Mail. Die Daten stehen bei deinem Mail-Anbieter (Postausgangsserver / SMTP). Bei Gmail, Outlook & Co. meist ein eigenes App-Passwort verwenden.':
       'For “Forgot password”, the daily overview and e-mail notifications. You get the details from your mail provider (outgoing mail server / SMTP). With Gmail, Outlook & co. usually use a separate app password.',
@@ -399,6 +403,8 @@ const table = <String, String>{
   'Gestern Abend': 'Last night',
   'Getauscht': 'Traded',
   'Geöffnet / angesetzt am': 'Opened / made on',
+  'Gilt sofort für die bestehende Adresse – Kalender-Apps zeigen es beim nächsten Abruf.':
+      'Applies to the existing address at once – calendar apps show it on their next refresh.',
   'Gleichzeitig geändert': 'Changed at the same time',
   'Google Kalender: „Weitere Kalender“ → „Per URL“. Outlook: „Kalender hinzufügen“ → „Aus dem Internet“. Thunderbird, Apple: „Kalender abonnieren“. Enthält den nächsten Termin jedes Pflegeplans (überfällige heute), geplanten Beginn und Ende der Winterruhe und offene Aufgaben. Kalender-Apps aktualisieren Abos selbst – Google teils nur alle 12–24 Stunden.':
       'Google Calendar: “Other calendars” → “From URL”. Outlook: “Add calendar” → “From the internet”. Thunderbird, Apple: “Subscribe to calendar”. Contains the next date of every care plan (overdue ones today), planned start and end of hibernation and open tasks. Calendar apps refresh subscriptions themselves – Google sometimes only every 12–24 hours.',
@@ -446,6 +452,7 @@ const table = <String, String>{
   'Im Artenkatalog kannst du sie als eigene Art mit Steckbrief anlegen.':
       'In the species catalogue you can create it as your own species with a care sheet.',
   'Im Heimnetz z. B. http://192.168.1.50:8080': 'On the home network e.g. http://192.168.1.50:8080',
+  'Im Kalender anzeigen': 'Show in the calendar',
   'In der App öffnen': 'Open in the app',
   'In der App „QR-Code aus Web-App scannen“ wählen. Der Code ist 2 Minuten gültig und nur einmal verwendbar.':
       'In the app choose “Scan QR code from web app”. The code is valid for 2 minutes and can be used once.',
@@ -465,8 +472,8 @@ const table = <String, String>{
       'Every colony as a device in Home Assistant – new ones are added automatically',
   'Jede Kolonie erscheint in Home Assistant als eigenes Gerät – mit Winterruhe (an/aus), überfälliger und heute fälliger Pflege, nächster Pflege und letztem Messwert. Neue Kolonien kommen von selbst dazu, archivierte oder abgegebene verschwinden wieder. Voraussetzung: die MQTT-Integration in Home Assistant (z. B. mit dem Mosquitto-Add-on).':
       'Every colony appears in Home Assistant as its own device – with hibernation (on/off), overdue care and care due today, next care and the latest measurement. New colonies are added automatically, archived or handed-over ones disappear. Requirement: the MQTT integration in Home Assistant (e.g. with the Mosquitto add-on).',
-  'Jedes Backup zusätzlich in Nextcloud, auf ein NAS oder eine Storage Box (WebDAV)':
-      'Every backup also to Nextcloud, a NAS or a storage box (WebDAV)',
+  'Jedes Backup zusätzlich in Nextcloud, auf ein NAS oder eine Storage Box (WebDAV, SMB, NFS)':
+      'Every backup also to Nextcloud, a NAS or a storage box (WebDAV, SMB, NFS)',
   'Jelly': 'Jelly',
   'Jetzt': 'Now',
   'Jetzt ein Foto aufnehmen': 'Take a photo now',
@@ -544,8 +551,8 @@ const table = <String, String>{
   'Kontrolle: {0}': 'Inspection: {0}',
   'Kopieren': 'Copy',
   'Kopiert': 'Copied',
-  'Kopiert jedes neue nächtliche Backup zusätzlich in einen WebDAV-Ordner – z. B. Nextcloud, NAS (Synology, QNAP, Unraid) oder eine Storage Box. So bleiben die Daten erhalten, wenn der Server selbst ausfällt. Fotos werden nur einmal übertragen, danach nur neue.':
-      'Copies every new nightly backup to a WebDAV folder as well – e.g. Nextcloud, a NAS (Synology, QNAP, Unraid) or a storage box. Your data survives even if the server itself fails. Photos are transferred once, afterwards only new ones.',
+  'Kopiert jedes neue nächtliche Backup zusätzlich an einen anderen Ort – per WebDAV (Nextcloud, Storage Box), auf eine SMB-Freigabe (Windows, NAS) oder in einen per NFS eingebundenen Ordner. So bleiben die Daten erhalten, wenn der Server selbst ausfällt. Fotos werden nur einmal übertragen, danach nur neue.':
+      'Copies every new nightly backup to another place as well – via WebDAV (Nextcloud, storage box), to an SMB share (Windows, NAS) or into a folder mounted via NFS. So the data survives if the server itself fails. Photos are transferred only once, afterwards only new ones.',
   'Kritisch': 'Critical',
   'Königin': 'Queen',
   'Königinnen': 'Queens',
@@ -597,6 +604,7 @@ const table = <String, String>{
   'Messungen und Sensor': 'Measurements and sensor',
   'Messwerte (optional)': 'Readings (optional)',
   'Mindestens 10 Zeichen': 'At least 10 characters',
+  'Mindestens eine Art muss ausgewählt bleiben': 'At least one kind must stay selected',
   'Mindestens zwei Fotos nötig': 'At least two photos needed',
   'Mindesthaltbarkeit': 'Best before',
   'Mindesthaltbarkeit abgelaufen ({0})': 'Best-before date passed ({0})',
@@ -616,6 +624,7 @@ const table = <String, String>{
   'NFC-Tag zuweisen': 'Assign NFC tag',
   'NFC-Tags ({0})': 'NFC tags ({0})',
   'NFC-Tags werden mit der Android-App zugewiesen.': 'NFC tags are assigned with the Android app.',
+  'NFS / Ordner': 'NFS / folder',
   'Nach Art': 'By species',
   'Nach Gattung': 'By genus',
   'Nach Standort': 'By location',
@@ -698,6 +707,7 @@ const table = <String, String>{
   'Offline · {0} Änderung(en) warten': 'Offline · {0} change(s) waiting',
   'Offline – Foto noch nicht geladen': 'Offline – photo not loaded yet',
   'Ohne Winterruhe': 'No hibernation',
+  'Ordner im Container': 'Folder in the container',
   'PDF für {0} Etikett(en)': 'PDF for {0} label(s)',
   'PDF heruntergeladen – im PDF-Programm mit 100 % Skalierung drucken.':
       'PDF downloaded – print from your PDF app at 100 % scale.',
@@ -769,6 +779,7 @@ const table = <String, String>{
   'Rückgängig': 'Undo',
   'Rückseite, meist oben in der Mitte. Ruhig halten, bis es vibriert.':
       'Back of the phone, usually top centre. Hold still until it vibrates.',
+  'SMB-Freigabe (Ordner)': 'SMB share (folder)',
   'Safari': 'Safari',
   'Samen': 'Seeds',
   'Scanne die Kolonien nacheinander und dokumentiere mit 1–2 Taps. Am Ende siehst du, was erledigt ist und welche Kolonien fehlen.':
@@ -1087,6 +1098,8 @@ const table = <String, String>{
   'seit {0} Tagen offen': 'open for {0} days',
   'seit {0} Tagen überfällig': 'overdue for {0} days',
   'semi-claustral – Königin braucht Futter': 'semi-claustral – queen needs food',
+  'smb://Server/Freigabe/Ordner – Windows, Synology, QNAP, Unraid. Benutzer ggf. als DOMÄNE\\name.':
+      'smb://server/share/folder – Windows, Synology, QNAP, Unraid. User as DOMAIN\\name if needed.',
   'sozialparasitisch – braucht eine Hilfsart': 'socially parasitic – needs a host species',
   'stündlich': 'hourly',
   'tag- und nachtaktiv': 'diurnal and nocturnal',

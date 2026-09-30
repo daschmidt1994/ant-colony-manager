@@ -1,0 +1,32 @@
+import 'package:ant_colony_manager/features/settings/feeds_screen.dart';
+import 'package:ant_colony_manager/features/settings/offsite_screen.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('calendar filter: from everything to one type and back', () {
+    final all = calendarTypes.keys.toList();
+    final noWinter = toggleCalendarType(null, 'winter')!;
+    expect(noWinter, isNot(contains('winter')));
+    expect(noWinter.length, all.length - 1);
+    expect(toggleCalendarType(noWinter, 'winter'), isNull); // everything again
+
+    var only = <String>['winter'];
+    expect(toggleCalendarType(only, 'winter'), same(only)); // never empty
+    only = toggleCalendarType(only, 'feeding')!;
+    expect(only, ['feeding', 'winter']); // fixed order
+  });
+
+  test('off-site body: type, no user for a mounted folder', () {
+    expect(offsiteBody(enabled: true, type: 'folder', url: ' /offsite ', user: 'x', keep: '7'), {
+      'enabled': true,
+      'type': 'folder',
+      'url': '/offsite',
+      'keep': 7,
+    });
+    final smb = offsiteBody(enabled: true, type: 'smb', url: 'smb://nas/b', user: ' anna ', keep: '3', password: 'pw');
+    expect(smb['user'], 'anna');
+    expect(smb['password'], 'pw');
+    expect(offsiteAddress('smb').$2, startsWith('smb://'));
+    expect(offsiteAddress('folder').$2, '/offsite');
+  });
+}

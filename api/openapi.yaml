@@ -372,7 +372,7 @@ paths:
   /api/v1/admin/offsite:
     get:
       tags: [admin]
-      summary: "Off-site backup (WebDAV) settings and status {enabled, url, user, password_set, keep, status{last_name, last_success, last_error, last_error_at, last_bytes, last_photos, running, local_latest}}"
+      summary: "Off-site backup settings and status {enabled, type (webdav | smb | folder), url (WebDAV address, smb://server/share/folder or a folder in the container), user, password_set, keep, status{last_name, last_success, last_error, last_error_at, last_bytes, last_photos, running, local_latest}}"
       responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
     put:
       tags: [admin]
@@ -381,8 +381,8 @@ paths:
   /api/v1/admin/offsite/test:
     post:
       tags: [admin]
-      summary: "Check WebDAV address and login (creates the folder if missing)"
-      responses: { "204": { description: "reachable" }, "502": { description: "WebDAV failed (title explains)" } }
+      summary: "Check the target: address, login and write access (creates the folder if missing; a mounted folder must exist)"
+      responses: { "204": { description: "reachable" }, "502": { description: "target failed (title explains)" } }
   /api/v1/admin/offsite/run:
     post:
       tags: [admin]
@@ -416,8 +416,12 @@ paths:
   /api/v1/me/feed:
     get:
       tags: [auth]
-      summary: "Whether a calendar address exists ({active, created_at, last_used_at}); never the token"
+      summary: "Whether a calendar address exists ({active, created_at, last_used_at, calendar_types}); never the token. calendar_types null = everything"
       responses: { "200": { description: "info" } }
+    patch:
+      tags: [auth]
+      summary: "Choose what the calendar shows: {calendar_types: [protein, carbohydrate, feeding, water, cleaning, check, custom, winter, tasks]} (null = everything); applies to the existing address at once"
+      responses: { "200": { description: "info" }, "404": { description: "no calendar address" }, "422": { description: "unknown or no type" } }
     post:
       tags: [auth]
       summary: "Create a new calendar address; an existing one stops working. The token is returned only here"

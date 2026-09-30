@@ -20,6 +20,8 @@ Die Adresse enthält nur Lesezugriff auf die Kolonien, die du pflegst (Besitzer 
 | ☀ Winterruhe beenden? | geplantes Ende einer laufenden oder geplanten Winterruhe |
 | 📋 *Aufgabe* | offene einmalige Aufgaben mit Termin (30 Minuten) |
 
+**Was im Kalender steht, wählst du selbst:** unter „Im Kalender anzeigen“ die Arten an- oder abwählen – Fütterung, Proteinfütterung, Kohlenhydratfütterung, Wasser, Reinigung, Kontrolle, eigene Pflegepläne, Winterruhe, einmalige Aufgaben. Z. B. nur „Winterruhe“ oder nur die Fütterungen. Die Auswahl gilt sofort für die bestehende Adresse (Kalender-Apps zeigen es beim nächsten Abruf) und bleibt beim Erzeugen einer neuen Adresse erhalten.
+
 Pflege-Termine sind ganztägig und „frei“ (blockieren keine Zeit). Jeder Eintrag verlinkt auf die Kolonie in der Web-App. Kalender-Apps laden Abos selbst neu – Home Assistant und Thunderbird nach Einstellung, **Google teils nur alle 12–24 Stunden**.
 
 **Home Assistant:** Einstellungen → Geräte & Dienste → Integration hinzufügen → **„Remote Calendar“** → Kalender-Adresse eintragen.

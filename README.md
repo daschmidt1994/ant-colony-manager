@@ -17,7 +17,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) auf Deutsch und Englisch – mit den eigenen Kolonien verknüpft, Warnung bei EU-verbotenen Arten, Schwarmflug-Kalender mit Erinnerung
 - **Deutsch und Englisch** (weitere Sprachen: eine Übersetzungsdatei, [docs/21-sprachen.md](docs/21-sprachen.md)); Fotos auch aus der Galerie, mit Aufnahmedatum
 - **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie (nur eine abschaltbare Update-Prüfung gegen die öffentliche GitHub-Release-Liste, `UPDATE_CHECK=false`)
-- **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien, auf Wunsch zusätzlich außer Haus (WebDAV: Nextcloud, NAS)
+- **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien, auf Wunsch zusätzlich außer Haus (WebDAV, SMB, NFS: Nextcloud, NAS)
 
 ## Screenshots
 

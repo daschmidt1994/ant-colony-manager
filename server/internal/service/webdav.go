@@ -185,6 +185,8 @@ func (d *webdav) folders(ctx context.Context, p string) ([]string, error) {
 	return out, nil
 }
 
+func (d *webdav) close() {}
+
 // check verifies address and login and creates the base folder if needed.
 func (d *webdav) check(ctx context.Context) error {
 	resp, err := d.do(ctx, "PROPFIND", "", strings.NewReader(davPropfind), int64(len(davPropfind)),

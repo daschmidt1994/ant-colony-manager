@@ -15,6 +15,32 @@ final feedInfoProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) 
   return await ref.read(authProvider.notifier).api.get('/api/v1/me/feed') as Map<String, dynamic>;
 });
 
+/// What the calendar can show: care task types, winter rest, one-off tasks.
+Map<String, String> get calendarTypes => {
+  'feeding': tr('Fütterung'),
+  'protein': tr('Proteinfütterung'),
+  'carbohydrate': tr('Kohlenhydratfütterung'),
+  'water': tr('Wasser'),
+  'cleaning': tr('Reinigung'),
+  'check': tr('Kontrolle'),
+  'custom': tr('Eigene Pflegepläne'),
+  'winter': tr('Winterruhe'),
+  'tasks': tr('Einmalige Aufgaben'),
+};
+
+/// The selection after tapping [type]; null = everything. Never empty.
+List<String>? toggleCalendarType(List<String>? current, String type) {
+  final all = calendarTypes.keys.toList();
+  final set = {...current ?? all};
+  if (!set.remove(type)) set.add(type);
+  if (set.isEmpty) return current;
+  if (set.length == all.length) return null;
+  return [
+    for (final t in all)
+      if (set.contains(t)) t,
+  ];
+}
+
 class FeedsScreen extends ConsumerStatefulWidget {
   const FeedsScreen({super.key});
   @override
@@ -44,6 +70,23 @@ class _FeedsScreenState extends ConsumerState<FeedsScreen> {
     try {
       final r = await ref.read(authProvider.notifier).api.post('/api/v1/me/feed') as Map<String, dynamic>;
       setState(() => _created = r);
+      ref.invalidate(feedInfoProvider);
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _filter(List<String>? current, String type) async {
+    final next = toggleCalendarType(current, type);
+    if (next == current) {
+      showUndoSnack(context, tr('Mindestens eine Art muss ausgewählt bleiben'));
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ref.read(authProvider.notifier).api.patch('/api/v1/me/feed', {'calendar_types': next});
       ref.invalidate(feedInfoProvider);
     } catch (e) {
       if (mounted) showError(context, e);
@@ -83,6 +126,7 @@ class _FeedsScreenState extends ConsumerState<FeedsScreen> {
           final active = i['active'] == true;
           final created = DateTime.tryParse(i['created_at'] as String? ?? '');
           final used = DateTime.tryParse(i['last_used_at'] as String? ?? '');
+          final types = (i['calendar_types'] as List?)?.cast<String>();
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
@@ -136,6 +180,26 @@ class _FeedsScreenState extends ConsumerState<FeedsScreen> {
                           ),
                       ],
                     ),
+                    if (active || _created != null) ...[
+                      SectionHeader(tr('Im Kalender anzeigen')),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final MapEntry(key: type, value: label) in calendarTypes.entries)
+                            FilterChip(
+                              label: Text(label),
+                              selected: types == null || types.contains(type),
+                              onSelected: _busy ? null : (_) => _filter(types, type),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tr('Gilt sofort für die bestehende Adresse – Kalender-Apps zeigen es beim nächsten Abruf.'),
+                        style: muted.copyWith(fontSize: 12),
+                      ),
+                    ],
                     SectionHeader(tr('Kalender')),
                     Text(
                       tr(

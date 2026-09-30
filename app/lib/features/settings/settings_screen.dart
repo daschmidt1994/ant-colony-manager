@@ -255,7 +255,7 @@ class SettingsScreen extends ConsumerWidget {
                   leading: const Icon(Icons.cloud_upload_outlined),
                   title: Text(tr('Backup außer Haus')),
                   subtitle: Text(
-                    tr('Jedes Backup zusätzlich in Nextcloud, auf ein NAS oder eine Storage Box (WebDAV)'),
+                    tr('Jedes Backup zusätzlich in Nextcloud, auf ein NAS oder eine Storage Box (WebDAV, SMB, NFS)'),
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/settings/offsite'),

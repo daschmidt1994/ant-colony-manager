@@ -36,6 +36,23 @@ func (s *Server) createFeed(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// setFeedFilter chooses what the calendar shows.
+func (s *Server) setFeedFilter(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		CalendarTypes []string `json:"calendar_types"`
+	}
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	info, err := s.svc.SetCalendarTypes(r.Context(), actorOf(r), in.CalendarTypes)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, info)
+}
+
 func (s *Server) deleteFeed(w http.ResponseWriter, r *http.Request) {
 	if err := s.svc.DeleteFeedToken(r.Context(), actorOf(r)); err != nil {
 		s.problem(w, r, err)
