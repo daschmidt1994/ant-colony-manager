@@ -10,7 +10,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Feeds: calendar subscription (iCal) and status for Home Assistant
+// Feeds: calendar subscription (iCal)
 
 func (s *Server) getFeed(w http.ResponseWriter, r *http.Request) {
 	info, err := s.svc.FeedInfo(r.Context(), actorOf(r))
@@ -33,7 +33,6 @@ func (s *Server) createFeed(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusCreated, map[string]string{
 		"token":        tok,
 		"calendar_url": base + "/calendar.ics",
-		"status_url":   base + "/status.json",
 	})
 }
 
@@ -43,20 +42,6 @@ func (s *Server) deleteFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (s *Server) feedStatus(w http.ResponseWriter, r *http.Request) {
-	user, ok := s.feedUser(w, r)
-	if !ok {
-		return
-	}
-	st, err := s.svc.FeedStatus(r.Context(), user)
-	if err != nil {
-		s.problem(w, r, err)
-		return
-	}
-	w.Header().Set("Cache-Control", "no-store")
-	s.writeJSON(w, http.StatusOK, st)
 }
 
 func (s *Server) feedCalendar(w http.ResponseWriter, r *http.Request) {

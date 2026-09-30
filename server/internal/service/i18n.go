@@ -49,8 +49,15 @@ var enTexts = map[string]string{
 	"ntfy nicht erreichbar: %v":                                         "ntfy not reachable: %v",
 	"ntfy lehnt ab (%d) – Token oder Berechtigung für das Topic prüfen": "ntfy refuses (%d) – check the token or the permission for the topic",
 	"ntfy antwortet %d: %s":                                             "ntfy answers %d: %s",
-	// calendar subscription
-	"Ameisen": "Ants",
+	// calendar subscription, Home Assistant (MQTT)
+	"Ameisen":         "Ants",
+	"Überfällig":      "Overdue",
+	"Heute fällig":    "Due today",
+	"In Winterruhe":   "Hibernating",
+	"Kolonien":        "Colonies",
+	"Nächste Pflege":  "Next care",
+	"Nächste Aufgabe": "Next task",
+	"Ameisenkolonie":  "Ant colony",
 	// snooze
 	"Auf morgen verschoben":              "Postponed to tomorrow",
 	"Nichts mehr fällig":                 "Nothing due any more",

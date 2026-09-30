@@ -3,52 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/i18n.dart';
-import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
-import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 
-/// Calendar subscription (iCal) and status for Home Assistant: one secret,
-/// read-only address per user. The token is shown only right after creation.
+/// Calendar subscription (iCal): one secret, read-only address per user. The
+/// token is shown only right after creation. Home Assistant gets the colonies
+/// via MQTT instead (mqtt_screen.dart).
 final feedInfoProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   return await ref.read(authProvider.notifier).api.get('/api/v1/me/feed') as Map<String, dynamic>;
 });
-
-/// Home Assistant `rest:` configuration for the status address – totals plus
-/// „overdue“ and „hibernating“ per colony (entity IDs from the colony number).
-String homeAssistantYaml(String statusUrl, List<Colony> colonies) {
-  final b = StringBuffer()
-    ..writeln('rest:')
-    ..writeln('  - resource: "$statusUrl"')
-    ..writeln('    scan_interval: 300')
-    ..writeln('    sensor:')
-    ..writeln('      - name: "${tr('Ameisen überfällig')}"')
-    ..writeln('        unique_id: acm_overdue')
-    ..writeln('        icon: mdi:ant')
-    ..writeln('        value_template: "{{ value_json.overdue }}"')
-    ..writeln('      - name: "${tr('Ameisen heute fällig')}"')
-    ..writeln('        unique_id: acm_due_today')
-    ..writeln('        icon: mdi:ant')
-    ..writeln('        value_template: "{{ value_json.due_today }}"');
-  for (final c in colonies) {
-    b
-      ..writeln('      - name: "${tr('Kolonie {0} überfällig', [c.number])}"')
-      ..writeln('        unique_id: acm_colony_${c.number}_overdue')
-      ..writeln('        icon: mdi:ant')
-      ..writeln("        value_template: \"{{ value_json.by_number['${c.number}'].overdue | default(0) }}\"");
-  }
-  if (colonies.isNotEmpty) b.writeln('    binary_sensor:');
-  for (final c in colonies) {
-    b
-      ..writeln('      - name: "${tr('Kolonie {0} Winterruhe', [c.number])}"')
-      ..writeln('        unique_id: acm_colony_${c.number}_hibernating')
-      ..writeln('        icon: mdi:snowflake')
-      ..writeln("        value_template: \"{{ value_json.by_number['${c.number}'].hibernating | default(false) }}\"");
-  }
-  return b.toString();
-}
 
 class FeedsScreen extends ConsumerStatefulWidget {
   const FeedsScreen({super.key});
@@ -57,7 +22,7 @@ class FeedsScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedsScreenState extends ConsumerState<FeedsScreen> {
-  Map<String, dynamic>? _created; // {token, calendar_url, status_url} – only until the screen closes
+  Map<String, dynamic>? _created; // {token, calendar_url} – only until the screen closes
   bool _busy = false;
 
   Future<void> _create({required bool replace}) async {
@@ -66,9 +31,7 @@ class _FeedsScreenState extends ConsumerState<FeedsScreen> {
         context: context,
         builder: (d) => AlertDialog(
           title: Text(tr('Neue Adresse erzeugen?')),
-          content: Text(
-            tr('Die bisherige Adresse funktioniert danach nicht mehr – Kalender und Home Assistant brauchen die neue.'),
-          ),
+          content: Text(tr('Die bisherige Adresse funktioniert danach nicht mehr – der Kalender braucht die neue.')),
           actions: [
             TextButton(onPressed: () => Navigator.pop(d, false), child: Text(tr('Abbrechen'))),
             FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(tr('Neue Adresse'))),
@@ -107,7 +70,7 @@ class _FeedsScreenState extends ConsumerState<FeedsScreen> {
     final info = ref.watch(feedInfoProvider);
     final muted = TextStyle(color: context.colors.muted);
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Kalender & Home Assistant'))),
+      appBar: AppBar(title: Text(tr('Kalender-Abo'))),
       body: info.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(
@@ -130,9 +93,8 @@ class _FeedsScreenState extends ConsumerState<FeedsScreen> {
                   children: [
                     Text(
                       tr(
-                        'Eine private Adresse, über die andere Programme deine Kolonien lesen können – nur lesen, '
-                        'nichts ändern. Kalender-Apps zeigen damit alle Fälligkeiten, Home Assistant den Status '
-                        'jeder Kolonie (z. B. Winterruhe → Heizung aus).',
+                        'Eine private Adresse, über die Kalender-Apps alle Fälligkeiten deiner Kolonien zeigen – '
+                        'nur lesen, nichts ändern.',
                       ),
                       style: muted,
                     ),
@@ -184,22 +146,15 @@ class _FeedsScreenState extends ConsumerState<FeedsScreen> {
                       ),
                       style: muted,
                     ),
-                    SectionHeader(tr('Home Assistant')),
+                    const SizedBox(height: 8),
                     Text(
                       tr(
-                        'Die Konfiguration unten in configuration.yaml einfügen (bzw. zu einem vorhandenen „rest:“ ergänzen) '
-                        'und Home Assistant neu starten. Dann gibt es pro Kolonie „… Winterruhe“ (an/aus) und „… überfällig“ '
-                        '– z. B. als Auslöser, um die Heizmatte bei Winterruhe abzuschalten. Beispiele: docs/22-kalender-home-assistant.md.',
+                        'Home Assistant: Integration „Remote Calendar“ mit der Kalender-Adresse. Den Status jeder '
+                        'Kolonie (z. B. Winterruhe → Heizung aus) bekommt Home Assistant über MQTT – einzurichten '
+                        'vom Administrator unter Mehr → Server-Verwaltung → Home Assistant (MQTT).',
                       ),
                       style: muted,
                     ),
-                    if (_created == null && !active) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        tr('Erst eine Adresse erzeugen – dann erscheint hier die fertige Konfiguration.'),
-                        style: muted,
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -211,14 +166,12 @@ class _FeedsScreenState extends ConsumerState<FeedsScreen> {
   }
 }
 
-class _Created extends ConsumerWidget {
+class _Created extends StatelessWidget {
   const _Created({required this.created});
   final Map<String, dynamic> created;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colonies = ref.read(repositoryProvider)?.colonies().where((c) => c.isCareActive).toList() ?? const <Colony>[];
-    final statusUrl = created['status_url'] as String;
+  Widget build(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -239,8 +192,6 @@ class _Created extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             _Copyable(label: tr('Kalender-Adresse (iCal)'), value: created['calendar_url'] as String),
-            _Copyable(label: tr('Status-Adresse (JSON)'), value: statusUrl),
-            _Copyable(label: tr('Home Assistant (configuration.yaml)'), value: homeAssistantYaml(statusUrl, colonies)),
           ],
         ),
       ),

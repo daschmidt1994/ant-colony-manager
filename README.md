@@ -11,7 +11,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **NFC-Tags und QR-Etiketten** pro Kolonie, Pflege-Rundgang für viele Kolonien
 - **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos mit Wachstumsvergleich und Zeitraffer, Messwerte, Sensor-Schnittstelle
 - **Widget für den Startbildschirm** (Android) – überfällig/heute fällig auf einen Blick, Tippen öffnet den Rundgang
-- **Kalender-Abo und Home Assistant** – Fälligkeiten in jedem Kalender, Status pro Kolonie für Automationen ([docs/22](docs/22-kalender-home-assistant.md))
+- **Kalender-Abo und Home Assistant** – Fälligkeiten in jedem Kalender; jede Kolonie als Gerät in Home Assistant per MQTT Discovery, neue kommen von selbst dazu ([docs/22](docs/22-kalender-home-assistant.md))
 - **Benachrichtigungen per App, ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit, Ruhezeiten, „Morgen“ zum Verschieben
 - **Futtervorrat** – Futtertiere, Zuckerwasser und Zuchten mit Haltbarkeit, Nachbestell- und Versorgungs-Hinweisen
 - **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) auf Deutsch und Englisch – mit den eigenen Kolonien verknüpft, Warnung bei EU-verbotenen Arten, Schwarmflug-Kalender mit Erinnerung

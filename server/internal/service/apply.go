@@ -116,6 +116,7 @@ func (s *Service) ApplyOp(ctx context.Context, actor Actor, op Op) (OpResult, er
 		return s.recordResult(ctx, tx, actor, &op, res)
 	})
 	if err == nil {
+		s.mqttKick() // Home Assistant sees a new colony within seconds
 		return res, nil
 	}
 	if db.PgCode(err) == db.CodeUniqueViolation && strings.Contains(err.Error(), "applied_ops") {
