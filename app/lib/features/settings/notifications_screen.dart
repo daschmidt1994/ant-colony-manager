@@ -696,6 +696,15 @@ class _DeviceNotificationsCardState extends ConsumerState<DeviceNotificationsCar
                   line: (ok, title, detail) => line(ok, title, detail),
                 ),
                 line(
+                  st.planned > 0 ? true : null,
+                  st.planned == 0
+                      ? tr('Keine Erinnerung vorgeplant')
+                      : tr('{0} Erinnerungen vorgeplant – nächste: {1}', [st.planned, when(st.nextPlanned!)]),
+                  tr(
+                    'Überfällige Pflege wird um 8 Uhr beim Android-Wecker vorgemerkt und erscheint auch bei geschlossener App.',
+                  ),
+                ),
+                line(
                   null,
                   st.digestAt == null
                       ? tr('Kein Tages-Überblick geplant')

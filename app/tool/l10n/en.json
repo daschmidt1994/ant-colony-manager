@@ -1193,5 +1193,8 @@
  "{0} vertritt dich": "{0} stands in for you",
  "{0} vertritt dich: {1}": "{0} stands in for you: {1}",
  "Bereits aktuell – kein Update nötig": "Already up to date – no update needed",
- "Aktuell – keine neuere Version": "Up to date – no newer version"
+ "Aktuell – keine neuere Version": "Up to date – no newer version",
+ "Keine Erinnerung vorgeplant": "No reminder planned",
+ "{0} Erinnerungen vorgeplant – nächste: {1}": "{0} reminders planned – next: {1}",
+ "Überfällige Pflege wird um 8 Uhr beim Android-Wecker vorgemerkt und erscheint auch bei geschlossener App.": "Overdue care is handed to Android's alarm clock for 8 o'clock and appears also with the app closed."
 }

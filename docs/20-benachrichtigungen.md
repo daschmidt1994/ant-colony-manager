@@ -67,6 +67,7 @@ Die Android-App berechnet Erinnerungen selbst aus den lokalen Daten (auch offlin
 |---|---|
 | Benachrichtigungen blockiert | Android-Berechtigung fehlt → „Erlauben“ (öffnet sonst die System-Einstellungen) |
 | Akku: optimiert | Die stündliche Hintergrund-Prüfung kann ausfallen → App-Infos → Akku „Nicht eingeschränkt“. **Xiaomi/Redmi/POCO:** zusätzlich „Autostart“ an; die App nicht aus der Liste der letzten Apps wegwischen (das beendet sie samt geplanten Erinnerungen) |
+| Erinnerungen vorgeplant | Überfällige Pflege der nächsten 7 Tage ist beim Android-Wecker vorgemerkt (um 8 Uhr am ersten überfälligen Tag) – sie erscheint auch bei geschlossener App, ohne dass die Hintergrund-Prüfung laufen muss. Neu geplant wird bei jedem Öffnen und jeder Synchronisierung |
 | Letzte Prüfung / Fehler | Wann die App zuletzt geprüft hat und ein etwaiger Fehler; „Jetzt prüfen“ führt die Prüfung sofort aus |
 | Nächster Tages-Überblick | Wann der nächste Überblick geplant ist – keiner, wenn aus oder zu diesem Zeitpunkt nichts fällig ist |
 | Test-Benachrichtigung | Zeigt sofort eine Benachrichtigung – kommt sie nicht, liegt es an Android (Berechtigung, Kanal in den System-Einstellungen aus) |

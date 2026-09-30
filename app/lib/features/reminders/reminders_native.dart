@@ -14,6 +14,7 @@ import '../../data/repositories/colony_repository.dart';
 import '../../data/sync/background_sync_native.dart';
 import '../../domain/reminders.dart';
 import '../widget/home_widget.dart';
+import 'plan.dart';
 import 'reminder_actions.dart';
 import '../../app/i18n.dart';
 
@@ -27,6 +28,7 @@ const _shownKey = 'reminders_shown';
 const _lastRunKey = 'reminders_last_run';
 const _errorKey = 'reminders_error';
 const _digestAtKey = 'reminders_digest_at';
+const _plannedKey = 'reminders_planned'; // slot → "<at ISO>|<key>" handed to the alarm clock
 const _groupKey = 'at.antcolony.manager.due';
 final _digestId = notificationId('digest');
 final _summaryId = notificationId('summary');
@@ -171,6 +173,20 @@ Future<void> _syncReminders(ColonyRepository repo) async {
   final list = repo.reminders();
   final active = {for (final r in list) r.slot: r};
 
+  // Reminders planned last time: those whose time has come were shown by
+  // Android (also with the app closed) – count them as shown, so they do not
+  // pop up a second time. The others are planned anew below.
+  final planned = ((jsonDecode(db.getMeta(_plannedKey) ?? '{}') as Map).cast<String, String>());
+  final now = repo.now();
+  for (final MapEntry(key: slot, value: v) in planned.entries) {
+    final (at, key) = (DateTime.tryParse(v.split('|').first), v.split('|').last);
+    if (at != null && !at.isAfter(now)) {
+      shown[slot] = key;
+    } else {
+      await _plugin.cancel(id: notificationId(slot));
+    }
+  }
+
   for (final slot in shown.keys.where((s) => !active.containsKey(s)).toList()) {
     await _plugin.cancel(id: notificationId(slot));
     shown.remove(slot);
@@ -205,7 +221,28 @@ Future<void> _syncReminders(ColonyRepository repo) async {
     await _plugin.cancel(id: _summaryId);
   }
   db.setMeta(_shownKey, jsonEncode(shown));
+  await _planAhead(repo, active.keys.toSet());
   await _scheduleDigest(repo);
+}
+
+/// Hands the care reminders of the next days to Android's alarm clock – they
+/// appear on time also when the app is closed and background work does not
+/// run (Xiaomi, Samsung …). Replaced on every run.
+Future<void> _planAhead(ColonyRepository repo, Set<String> activeSlots) async {
+  final plan = <String, String>{};
+  for (final (:at, :reminder) in planCareReminders(repo, activeSlots: activeSlots)) {
+    await _plugin.zonedSchedule(
+      id: notificationId(reminder.slot), // the same id as when shown live: never twice
+      scheduledDate: tz.TZDateTime.from(at, tz.UTC),
+      notificationDetails: _dueDetails,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      title: reminder.title,
+      body: reminder.body,
+      payload: reminder.payloadJson,
+    );
+    plan[reminder.slot] = '${at.toUtc().toIso8601String()}|${reminder.key}';
+  }
+  repo.db.setMeta(_plannedKey, jsonEncode(plan));
 }
 
 Future<void> _scheduleDigest(ColonyRepository repo) async {
@@ -251,11 +288,16 @@ class ReminderStatus {
     this.lastRun,
     this.error,
     this.digestAt,
+    this.planned = 0,
+    this.nextPlanned,
   });
   final bool allowed;
   final bool? batteryUnrestricted;
   final String manufacturer;
-  final DateTime? lastRun, digestAt;
+  final DateTime? lastRun, digestAt, nextPlanned;
+
+  /// Care reminders handed to the alarm clock (appear also with the app closed).
+  final int planned;
   final String? error;
 }
 
@@ -272,6 +314,11 @@ Future<ReminderStatus?> reminderStatus(AppDatabase db) async {
   }
 
   DateTime? at(String key) => DateTime.tryParse(db.getMeta(key) ?? '')?.toLocal();
+  final now = DateTime.now();
+  final plannedAt = [
+    for (final v in ((jsonDecode(db.getMeta(_plannedKey) ?? '{}') as Map).values))
+      ?DateTime.tryParse((v as String).split('|').first)?.toLocal(),
+  ].where((t) => t.isAfter(now)).toList()..sort();
   return ReminderStatus(
     allowed: await impl?.areNotificationsEnabled() ?? false,
     batteryUnrestricted: await sys<bool>('batteryUnrestricted'),
@@ -279,6 +326,8 @@ Future<ReminderStatus?> reminderStatus(AppDatabase db) async {
     lastRun: at(_lastRunKey),
     error: db.getMeta(_errorKey),
     digestAt: at(_digestAtKey),
+    planned: plannedAt.length,
+    nextPlanned: plannedAt.firstOrNull,
   );
 }
 

@@ -17,11 +17,14 @@ class ReminderStatus {
     this.lastRun,
     this.error,
     this.digestAt,
+    this.planned = 0,
+    this.nextPlanned,
   });
   final bool allowed;
   final bool? batteryUnrestricted;
   final String manufacturer;
-  final DateTime? lastRun, digestAt;
+  final DateTime? lastRun, digestAt, nextPlanned;
+  final int planned;
   final String? error;
 }
 
