@@ -164,6 +164,7 @@ func (s *Server) Handler() *chi.Mux {
 			r.Post("/colonies/{id}/feedings/repeat-last", s.repeatLastFeeding)
 			r.With(s.rateLimitUser(s.limScan)).Post("/colonies/{id}/ai-count", s.aiCount)
 			r.Get("/ai", s.aiInfo)
+			r.Get("/ai-count/{job}", s.aiCountJob)
 			r.Get("/colonies/{id}/members", s.listMembers)
 			r.Post("/colonies/{id}/members", s.setMember)
 			r.Delete("/colonies/{id}/members/{userId}", s.removeMember)

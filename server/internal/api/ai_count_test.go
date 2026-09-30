@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -160,10 +161,12 @@ func TestAICountOpenAICompatible(t *testing.T) {
 	var lastReq map[string]any
 	var lastAuth, lastTitle string
 	status := http.StatusOK
+	var delay atomic.Int64 // ms – a thinking model that takes its time
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/chat/completions" {
 			t.Errorf("path %s", r.URL.Path)
 		}
+		time.Sleep(time.Duration(delay.Load()) * time.Millisecond)
 		lastAuth, lastTitle = r.Header.Get("Authorization"), r.Header.Get("X-Title")
 		b, _ := io.ReadAll(r.Body)
 		lastReq = map[string]any{}
@@ -238,4 +241,38 @@ func TestAICountOpenAICompatible(t *testing.T) {
 	if lastAuth != "Bearer sk-openai" || lastTitle != "" {
 		t.Fatalf("openai request: %s %q", lastAuth, lastTitle)
 	}
+
+	// in the background: answered at once, the result comes later
+	delay.Store(800)
+	start := time.Now()
+	job := anna.Do("POST", "/api/v1/colonies/"+colony.String()+"/ai-count", map[string]any{"photo_ids": []any{photo}, "async": true}).Must(t, 202).JSON()
+	if job["state"] != "running" || time.Since(start) > 500*time.Millisecond {
+		t.Fatalf("not started in the background: %v after %v", job, time.Since(start))
+	}
+	id := job["id"].(string)
+	env.User(t, "Ben").Do("GET", "/api/v1/ai-count/"+id, nil).Must(t, 404) // only for Anna
+	poll := func() map[string]any {
+		t.Helper()
+		for i := 0; i < 100; i++ {
+			j := anna.Do("GET", "/api/v1/ai-count/"+id, nil).Must(t, 200).JSON()
+			if j["state"] != "running" {
+				return j
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+		t.Fatal("job never finished")
+		return nil
+	}
+	if j := poll(); j["state"] != "done" || j["result"].(map[string]any)["total"] != float64(42) {
+		t.Fatalf("job: %v", j)
+	}
+	// mistakes in the request are answered right away, AI errors via the job
+	anna.Do("POST", "/api/v1/colonies/"+colony.String()+"/ai-count", map[string]any{"photo_ids": []any{testenv.NewID()}, "async": true}).Must(t, 422)
+	delay.Store(0)
+	status = http.StatusPaymentRequired
+	id = anna.Do("POST", "/api/v1/colonies/"+colony.String()+"/ai-count", map[string]any{"photo_ids": []any{photo}, "async": true}).Must(t, 202).JSON()["id"].(string)
+	if j := poll(); j["state"] != "failed" || !strings.Contains(j["error"].(map[string]any)["title"].(string), "Guthaben") {
+		t.Fatalf("failed job: %v", j)
+	}
+	anna.Do("GET", "/api/v1/ai-count/"+testenv.NewID().String(), nil).Must(t, 404)
 }

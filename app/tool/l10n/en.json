@@ -1097,7 +1097,6 @@
  "alle Kolonien": "all colonies",
  "alles": "everything",
  "{0} Kolonien": "{0} colonies",
- "Den Dienst „updater“ einschalten (COMPOSE_PROFILES=updater), dann geht das Update hier per Knopf.": "Switch on the “updater” service (COMPOSE_PROFILES=updater), then the update works here with a button.",
  "Der Server macht ein Backup, holt die neuen Images und startet neu – die App ist dabei etwa eine Minute nicht erreichbar.": "The server makes a backup, pulls the new images and restarts – the app is unreachable for about a minute.",
  "Jetzt aktualisieren": "Update now",
  "Jetzt aktualisieren?": "Update now?",
@@ -1122,7 +1121,6 @@
  "Standard: claude-opus-5-5 (am genauesten). Günstiger: claude-sonnet-5-5.": "Default: claude-opus-5-5 (most accurate). Cheaper: claude-sonnet-5-5.",
  "Zusammen: {0}": "Together: {0}",
  "Zählen mit KI anbieten": "Offer counting with AI",
- "Zählt … (bis zu einer Minute)": "Counting … (up to a minute)",
  "{0} Ameisen": "{0} ants",
  "{0} Fotos zählen": "Count {0} photos",
  "Übernehmen": "Apply",
@@ -1132,5 +1130,9 @@
  "Ein Modell, das Bilder versteht – Liste: platform.openai.com/docs/models": "A model that understands images – list: platform.openai.com/docs/models",
  "Fotos wählen (bis zu {0}) – z. B. Vorder- und Rückseite des Nests. Jedes Foto wird einzeln gezählt, die Zahlen werden addiert. Die Fotos werden dafür an die KI ({1}) geschickt.": "Choose photos (up to {0}) – e.g. front and back of the nest. Each photo is counted on its own, the numbers are added up. The photos are sent to the AI ({1}) for this.",
  "Modell-ID aus openrouter.ai/models mit Eingabe „image“, z. B. anthropic/… oder openai/… – OpenRouter leitet an viele Anbieter weiter.": "Model ID from openrouter.ai/models with input “image”, e.g. anthropic/… or openai/… – OpenRouter forwards to many providers.",
- "KI-Anbieter": "AI provider"
+ "KI-Anbieter": "AI provider",
+ "Die KI hat zu lange gebraucht – weniger Fotos wählen": "The AI took too long – choose fewer photos",
+ "Die KI ist nicht erreichbar": "The AI is not reachable",
+ "Zählt … {0} s": "Counting … {0} s",
+ "Noch nicht eingerichtet: in der .env COMPOSE_PROFILES=updater und ACM_PROJECT_DIR setzen, dann „docker compose up -d“. Danach geht das Update hier per Knopf.": "Not set up yet: set COMPOSE_PROFILES=updater and ACM_PROJECT_DIR in the .env, then “docker compose up -d”. After that the update works here with a button."
 }

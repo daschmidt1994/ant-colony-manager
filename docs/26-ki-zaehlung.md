@@ -18,7 +18,7 @@ Die Kosten gehen auf das Konto beim Anbieter – je nach Modell und Anzahl der F
 
 ## Zählen
 
-**Kolonie → Größe & Brut → „Mit KI zählen“** → bis zu 6 hochgeladene Fotos antippen (die Zahl zeigt die Reihenfolge) → „Fotos zählen“. Nach bis zu einer Minute:
+**Kolonie → Größe & Brut → „Mit KI zählen“** → bis zu 6 hochgeladene Fotos antippen (die Zahl zeigt die Reihenfolge) → „Fotos zählen“. Das Zählen läuft auf dem Server im Hintergrund, die App zeigt die Sekunden mit – Claude braucht meist unter einer Minute, nachdenkende Modelle (z. B. über OpenRouter) auch mehrere; nach 4 Minuten bricht der Server ab. Danach:
 
 - pro Foto die geschätzte Zahl mit Spanne, z. B. **120 (100–140)**, erkannte Königinnen und ein Hinweis, was das Zählen erschwert hat;
 - **zusammen** die Summe mit Spanne;
@@ -34,7 +34,7 @@ Nur die ausgewählten Fotos (in der 2048-px-Anzeigefassung, ohne Metadaten) gehe
 
 ## Schnittstelle
 
-`POST /api/v1/colonies/{id}/ai-count` mit `{"photo_ids": [...]}` (1–6, hochgeladen, von dieser Kolonie; Bearbeitungsrecht nötig):
+`POST /api/v1/colonies/{id}/ai-count` mit `{"photo_ids": [...], "async": true}` (1–6, hochgeladen, von dieser Kolonie; Bearbeitungsrecht nötig) antwortet sofort `202 {"id": "…", "state": "running"}`; `GET /api/v1/ai-count/{id}` liefert dann `{"state": "running" | "done" | "failed", "result": …, "error": {…}}`. Ohne `async` wartet die Anfrage selbst auf das Ergebnis (höchstens 100 Sekunden – hinter einem Reverse Proxy oft zu kurz). Das Ergebnis:
 
 ```json
 {
