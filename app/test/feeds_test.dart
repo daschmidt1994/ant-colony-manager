@@ -39,6 +39,11 @@ void main() {
     expect(updaterStateText({'state': 'idle'}), isNull);
     expect(updaterStateText({'state': 'running', 'message': 'Neue Images holen …'}), contains('Neue Images holen'));
     expect(updaterStateText({'state': 'failed'}), contains('fehlgeschlagen'));
+    expect(updaterStateText({'state': 'current'}), contains('Bereits aktuell'));
+    expect(updateOffered({'enabled': true, 'update_available': false}), isFalse);
+    expect(updateOffered({'enabled': true, 'update_available': true}), isTrue);
+    expect(updateOffered({'enabled': false}), isTrue); // server does not check – the updater decides
+    expect(updateOffered(null), isTrue);
   });
 
   test('off-site body: type, no user for a mounted folder', () {

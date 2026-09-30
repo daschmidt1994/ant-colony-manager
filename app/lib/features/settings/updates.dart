@@ -124,9 +124,16 @@ String? updaterStateText(Map<String, dynamic>? st) => switch (st?['state']) {
   'requested' => tr('Update angefordert …'),
   'running' => tr('Update läuft: {0}', [st?['message'] ?? '']),
   'done' => tr('Letztes Update abgeschlossen'),
+  'current' => tr('Bereits aktuell – kein Update nötig'),
   'failed' => tr('Letztes Update fehlgeschlagen – Protokoll antippen'),
   _ => null,
 };
+
+/// Whether to offer „Jetzt aktualisieren“: only when a newer version is
+/// known – or when the server does not check (then the updater decides; it
+/// only backs up and restarts when there are newer images).
+bool updateOffered(Map<String, dynamic>? updates) =>
+    updates == null || updates['enabled'] == false || updates['update_available'] == true;
 
 /// „Jetzt aktualisieren“ in Mehr → Server: shown to administrators when the
 /// updater service runs. While an update runs, the status is polled – the
@@ -226,6 +233,14 @@ class _UpdateNowTileState extends ConsumerState<UpdateNowTile> {
     }
     final at = DateTime.tryParse(st['at'] as String? ?? '');
     final text = updaterStateText(st);
+    if (!busy && state != 'failed' && !updateOffered(updates)) {
+      // nothing newer: no button, no backup, no restart
+      return ListTile(
+        leading: Icon(Icons.verified_outlined, color: context.colors.ok),
+        title: Text(tr('Aktuell – keine neuere Version')),
+        subtitle: text == null ? null : Text(at == null ? text : '$text · ${S.dateTime(at)}'),
+      );
+    }
     return ListTile(
       leading: busy
           ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))

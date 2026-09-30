@@ -1191,5 +1191,7 @@
  "läuft": "running",
  "z. B. Proteinfutter nur jeden zweiten Tag, Honigwasser nachfüllen": "e.g. protein only every other day, refill honey water",
  "{0} vertritt dich": "{0} stands in for you",
- "{0} vertritt dich: {1}": "{0} stands in for you: {1}"
+ "{0} vertritt dich: {1}": "{0} stands in for you: {1}",
+ "Bereits aktuell – kein Update nötig": "Already up to date – no update needed",
+ "Aktuell – keine neuere Version": "Up to date – no newer version"
 }
