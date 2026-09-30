@@ -71,7 +71,7 @@ paths:
     get:
       tags: [system]
       security: []
-      summary: "Public instance information (used by the app when connecting)"
+      summary: "Public instance information (used by the app when connecting), also server_time (UTC) and time_zone (TZ of the server)"
       responses:
         "200":
           description: "ok"

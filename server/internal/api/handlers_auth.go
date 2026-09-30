@@ -53,6 +53,10 @@ func (s *Server) instance(w http.ResponseWriter, r *http.Request) {
 		"registration_mode": s.cfg.RegistrationMode,
 		"setup_required":    setup,
 		"password_reset":    s.svc.Mail.Enabled(),
+		// server clock and time zone (TZ) – the app shows them and warns when
+		// the device clock is off
+		"server_time": s.svc.Now().UTC(),
+		"time_zone":   time.Local.String(),
 	})
 }
 
