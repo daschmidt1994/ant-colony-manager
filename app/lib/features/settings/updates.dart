@@ -211,13 +211,16 @@ class _UpdateNowTileState extends ConsumerState<UpdateNowTile> {
     if (st == null) return const SizedBox.shrink();
     final state = st['state'] as String?;
     final busy = state == 'requested' || state == 'running';
+    // always visible for administrators – otherwise nobody finds the option
     if (st['available'] != true && !busy) {
-      if (updates?['update_available'] != true) return const SizedBox.shrink();
       return ListTile(
         leading: const Icon(Icons.system_update_alt),
         title: Text(tr('Update mit Knopf')),
         subtitle: Text(
-          tr('Den Dienst „updater“ einschalten (COMPOSE_PROFILES=updater), dann geht das Update hier per Knopf.'),
+          tr(
+            'Noch nicht eingerichtet: in der .env COMPOSE_PROFILES=updater und ACM_PROJECT_DIR setzen, dann '
+            '„docker compose up -d“. Danach geht das Update hier per Knopf.',
+          ),
         ),
       );
     }

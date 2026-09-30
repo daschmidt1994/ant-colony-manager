@@ -204,8 +204,32 @@ var aiCountSchema = map[string]any{
 	"additionalProperties": false,
 }
 
-// AICount counts the ants on 1–6 photos of a colony.
+// aiRequest is a checked counting request with the photos loaded.
+type aiRequest struct {
+	actor  Actor
+	colony uuid.UUID
+	photos []uuid.UUID
+	lang   string
+	st     storedAI
+	key    string
+	images [][]byte
+	meta   ClientMeta
+}
+
+// AICount counts the ants on 1–6 photos of a colony and waits for the answer.
 func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, photos []uuid.UUID, meta ClientMeta) (*AICountResult, error) {
+	req, err := s.aiPrepare(ctx, actor, colony, photos, meta)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 100*time.Second)
+	defer cancel()
+	return s.aiRun(ctx, req)
+}
+
+// aiPrepare checks rights, setup and photos and loads them – quick, so that
+// mistakes are answered right away also for background counting.
+func (s *Service) aiPrepare(ctx context.Context, actor Actor, colony uuid.UUID, photos []uuid.UUID, meta ClientMeta) (*aiRequest, error) {
 	if _, err := requireColony(ctx, s.Pool, actor, colony, RoleEditor); err != nil {
 		return nil, err
 	}
@@ -248,11 +272,15 @@ func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, ph
 		}
 		images = append(images, b)
 	}
+	return &aiRequest{actor: actor, colony: colony, photos: photos, lang: lang, st: st, key: key, images: images, meta: meta}, nil
+}
+
+// aiRun asks the AI and adds up the photos.
+func (s *Service) aiRun(ctx context.Context, r *aiRequest) (*AICountResult, error) {
+	st, key, lang, images, photos := r.st, r.key, r.lang, r.images, r.photos
 	language := map[string]string{"de": "German", "en": "English"}[lang]
 	ask := fmt.Sprintf("Count the ants on each of the %d photos. The user's language is %s.", len(photos), language)
-
-	ctx, cancel := context.WithTimeout(ctx, 100*time.Second)
-	defer cancel()
+	var err error
 	var text, model string
 	if st.provider() == aiAnthropic {
 		text, model, err = s.askClaude(ctx, st, key, lang, images, ask)
@@ -290,8 +318,93 @@ func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, ph
 	if len(res.Photos) != len(photos) {
 		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: tl(lang, "Die KI hat nicht jedes Foto gezählt – bitte noch einmal")}
 	}
-	s.Audit(ctx, &actor.UserID, "ai_count", colony.String(), map[string]any{"photos": len(photos), "total": res.Total}, meta.IP)
+	s.Audit(ctx, &r.actor.UserID, "ai_count", r.colony.String(), map[string]any{"photos": len(photos), "total": res.Total}, r.meta.IP)
 	return res, nil
+}
+
+// ---------------------------------------------------------------------------
+// Counting in the background: thinking models may need minutes – longer than
+// apps and reverse proxies wait for one request. The app starts the job and
+// asks for the result every few seconds.
+
+const (
+	aiJobTimeout = 4 * time.Minute
+	aiJobKeep    = 15 * time.Minute
+)
+
+type aiJob struct {
+	user    uuid.UUID
+	started time.Time
+	done    bool
+	result  *AICountResult
+	err     *Problem
+}
+
+// AIJob is what the app polls.
+type AIJob struct {
+	ID     uuid.UUID      `json:"id"`
+	State  string         `json:"state"` // running | done | failed
+	Result *AICountResult `json:"result,omitempty"`
+	Error  *Problem       `json:"error,omitempty"`
+}
+
+// StartAICount checks the request and counts in the background.
+func (s *Service) StartAICount(ctx context.Context, actor Actor, colony uuid.UUID, photos []uuid.UUID, meta ClientMeta) (*AIJob, error) {
+	req, err := s.aiPrepare(ctx, actor, colony, photos, meta)
+	if err != nil {
+		return nil, err
+	}
+	id := uuid.Must(uuid.NewV7())
+	job := &aiJob{user: actor.UserID, started: s.Now()}
+	s.aiJobsMu.Lock()
+	if s.aiJobs == nil {
+		s.aiJobs = map[uuid.UUID]*aiJob{}
+	}
+	for k, j := range s.aiJobs { // forget old ones
+		if s.Now().Sub(j.started) > aiJobKeep {
+			delete(s.aiJobs, k)
+		}
+	}
+	s.aiJobs[id] = job
+	s.aiJobsMu.Unlock()
+
+	go func() {
+		bg, cancel := context.WithTimeout(context.WithoutCancel(ctx), aiJobTimeout)
+		defer cancel()
+		res, err := s.aiRun(bg, req)
+		var p *Problem
+		if err != nil {
+			if !errors.As(err, &p) {
+				s.Log.Error("ai count failed", "err", err)
+				p = &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: tl(req.lang, "Die KI ist nicht erreichbar")}
+			}
+			if errors.Is(err, context.DeadlineExceeded) {
+				p = &Problem{Status: http.StatusGatewayTimeout, Code: "ai.timeout", Title: tl(req.lang, "Die KI hat zu lange gebraucht – weniger Fotos wählen")}
+			}
+		}
+		s.aiJobsMu.Lock()
+		job.done, job.result, job.err = true, res, p
+		s.aiJobsMu.Unlock()
+	}()
+	return &AIJob{ID: id, State: "running"}, nil
+}
+
+// AICountJob: state and, when finished, the result of a counting job.
+func (s *Service) AICountJob(ctx context.Context, actor Actor, id uuid.UUID) (*AIJob, error) {
+	s.aiJobsMu.Lock()
+	defer s.aiJobsMu.Unlock()
+	j, ok := s.aiJobs[id]
+	if !ok || j.user != actor.UserID {
+		return nil, NotFound("ai_job")
+	}
+	out := &AIJob{ID: id, State: "running"}
+	switch {
+	case j.done && j.err != nil:
+		out.State, out.Error = "failed", j.err
+	case j.done:
+		out.State, out.Result = "done", j.result
+	}
+	return out, nil
 }
 
 // askClaude asks Anthropic's Claude (official Go SDK) and returns the JSON text.

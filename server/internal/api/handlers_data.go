@@ -480,9 +480,19 @@ func (s *Server) aiCount(w http.ResponseWriter, r *http.Request) {
 	}
 	var in struct {
 		PhotoIDs []uuid.UUID `json:"photo_ids"`
+		Async    bool        `json:"async"` // count in the background, poll /ai-count/{job}
 	}
 	if err := decode(r, &in); err != nil {
 		s.problem(w, r, err)
+		return
+	}
+	if in.Async {
+		job, err := s.svc.StartAICount(r.Context(), actorOf(r), colony, in.PhotoIDs, service.ClientMeta{IP: clientIP(r)})
+		if err != nil {
+			s.problem(w, r, err)
+			return
+		}
+		s.writeJSON(w, http.StatusAccepted, job)
 		return
 	}
 	res, err := s.svc.AICount(r.Context(), actorOf(r), colony, in.PhotoIDs, service.ClientMeta{IP: clientIP(r)})
@@ -496,4 +506,18 @@ func (s *Server) aiCount(w http.ResponseWriter, r *http.Request) {
 func (s *Server) aiInfo(w http.ResponseWriter, r *http.Request) {
 	ok, provider := s.svc.AIAvailable(r.Context())
 	s.writeJSON(w, http.StatusOK, map[string]any{"available": ok, "provider": provider})
+}
+
+func (s *Server) aiCountJob(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "job")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	job, err := s.svc.AICountJob(r.Context(), actorOf(r), id)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, job)
 }

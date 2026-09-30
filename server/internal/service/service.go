@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/netip"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,6 +33,8 @@ type Service struct {
 	AIBaseURL string
 
 	mqtt       mqttState
+	aiJobsMu   sync.Mutex
+	aiJobs     map[uuid.UUID]*aiJob
 	columns    map[string]map[string]bool // table -> column set (loaded at start)
 	setupToken string
 	imageSem   chan struct{}

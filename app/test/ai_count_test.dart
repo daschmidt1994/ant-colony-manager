@@ -1,3 +1,4 @@
+import 'package:ant_colony_manager/core/api_client.dart';
 import 'package:ant_colony_manager/features/ai/ai_count.dart';
 import 'package:ant_colony_manager/features/settings/ai_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,24 @@ void main() {
     expect(aiCensus({'total': 12, 'min': 12, 'max': 12}).exact, isTrue);
     expect(aiCountText({'count': 120, 'min': 100, 'max': 140}), '120 (100–140)');
     expect(aiCountText({'total': 7, 'min': 7, 'max': 7}), '7');
+  });
+
+  test('AI job: result, error or a direct answer of an older server', () {
+    expect(
+      aiJobResult({
+        'state': 'done',
+        'result': {'total': 5},
+      })['total'],
+      5,
+    );
+    expect(aiJobResult({'total': 7, 'min': 7, 'max': 7})['total'], 7);
+    expect(
+      () => aiJobResult({
+        'state': 'failed',
+        'error': {'status': 502, 'code': 'ai.credit', 'title': 'Kein Guthaben'},
+      }),
+      throwsA(isA<ApiException>().having((e) => e.title, 'title', 'Kein Guthaben')),
+    );
   });
 
   test('AI settings body: key only when typed or removed', () {

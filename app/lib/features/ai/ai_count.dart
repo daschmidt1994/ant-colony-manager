@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/i18n.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
+import '../../core/api_client.dart';
 import '../../core/session.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
@@ -29,6 +30,24 @@ final aiAvailableProvider = FutureProvider.autoDispose<bool>(
 const aiProviders = {'anthropic': 'Anthropic Claude', 'openai': 'OpenAI ChatGPT', 'openrouter': 'OpenRouter'};
 
 const aiMaxPhotos = 6;
+
+/// How long the app waits for a counting job (the server gives up after 4 minutes).
+const aiWaitAtMost = Duration(minutes: 5);
+
+/// The result of a finished job; a failed job becomes the server's error.
+/// A server without background counting answers with the result directly.
+Map<String, dynamic> aiJobResult(Map<String, dynamic> job) {
+  if (job.containsKey('total')) return job;
+  if (job['state'] == 'failed') {
+    final e = (job['error'] as Map?)?.cast<String, dynamic>() ?? const {};
+    throw ApiException(
+      (e['status'] as num?)?.toInt() ?? 502,
+      e['code'] as String? ?? 'ai.failed',
+      e['title'] as String? ?? tr('Die KI ist nicht erreichbar'),
+    );
+  }
+  return (job['result'] as Map).cast<String, dynamic>();
+}
 
 /// What to take over into the colony size: exact when the range is closed.
 ({int total, int min, int max, bool exact}) aiCensus(Map<String, dynamic> result) {
@@ -64,17 +83,37 @@ class _AiCountSheet extends ConsumerStatefulWidget {
 class _AiCountSheetState extends ConsumerState<_AiCountSheet> {
   final _chosen = <String>[];
   bool _busy = false;
+  int _seconds = 0;
   Map<String, dynamic>? _result;
 
+  /// Counting runs on the server in the background – thinking models may need
+  /// minutes, longer than one request may take. Asks every 2 seconds.
   Future<void> _count() async {
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _seconds = 0;
+    });
+    final api = ref.read(authProvider.notifier).api;
     try {
-      final r =
-          await ref.read(authProvider.notifier).api.post('/api/v1/colonies/${widget.colony.id}/ai-count', {
-                'photo_ids': _chosen,
-              })
+      var job =
+          await api.post('/api/v1/colonies/${widget.colony.id}/ai-count', {'photo_ids': _chosen, 'async': true})
               as Map<String, dynamic>;
-      setState(() => _result = r);
+      final started = DateTime.now();
+      while (job['state'] == 'running') {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
+        final waited = DateTime.now().difference(started);
+        if (waited > aiWaitAtMost) {
+          throw ApiException(504, 'ai.timeout', tr('Die KI hat zu lange gebraucht – weniger Fotos wählen'));
+        }
+        setState(() => _seconds = waited.inSeconds);
+        try {
+          job = await api.get('/api/v1/ai-count/${job['id']}') as Map<String, dynamic>;
+        } on NetworkException {
+          continue; // a short gap in the connection – keep asking
+        }
+      }
+      setState(() => _result = aiJobResult(job));
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -152,7 +191,7 @@ class _AiCountSheetState extends ConsumerState<_AiCountSheet> {
                   : const Icon(Icons.auto_awesome),
               label: Text(
                 _busy
-                    ? tr('Zählt … (bis zu einer Minute)')
+                    ? tr('Zählt … {0} s', [_seconds])
                     : _chosen.isEmpty
                     ? tr('Fotos antippen')
                     : tr('{0} Fotos zählen', [_chosen.length]),

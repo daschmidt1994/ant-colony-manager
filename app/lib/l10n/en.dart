@@ -215,8 +215,6 @@ const table = <String, String>{
   'Datum/Uhrzeit wählen …': 'Choose date/time …',
   'Deaktivierte Sensoren werden abgewiesen': 'Disabled sensors are rejected',
   'Deine Kolonien. Ein Scan.': 'Your colonies. One scan.',
-  'Den Dienst „updater“ einschalten (COMPOSE_PROFILES=updater), dann geht das Update hier per Knopf.':
-      'Switch on the “updater” service (COMPOSE_PROFILES=updater), then the update works here with a button.',
   'Den Kamera-Scan gibt es in der Android-App.': 'Camera scanning is available in the Android app.',
   'Der Schlüssel wird nur jetzt angezeigt. Trage ihn im Sensor ein – geht er verloren, erzeugst du einfach einen neuen.':
       'The key is shown only now. Enter it in the sensor – if it gets lost, just create a new one.',
@@ -245,6 +243,8 @@ const table = <String, String>{
       'Install the “ntfy” app (F-Droid or Play Store) and subscribe to the same server and topic there. Own ntfy server: enter its address as server, plus a token. On the public ntfy.sh anyone who knows the topic name can read along – choose a name that is hard to guess there (dice).',
   'Die Hintergrund-Prüfung kann sich verzögern. In den App-Infos bei „Akku“ „Nicht eingeschränkt“ wählen.':
       'The background check may be delayed. In App info, set “Battery” to “Unrestricted”.',
+  'Die KI hat zu lange gebraucht – weniger Fotos wählen': 'The AI took too long – choose fewer photos',
+  'Die KI ist nicht erreichbar': 'The AI is not reachable',
   'Die Kolonie und ihre Timeline verschwinden auf allen Geräten. Archivieren behält die Daten.':
       'The colony and its timeline disappear on all devices. Archiving keeps the data.',
   'Die bisherige Adresse funktioniert danach nicht mehr – der Kalender braucht die neue.':
@@ -740,6 +740,8 @@ const table = <String, String>{
   'Noch keine Prüfung': 'Not checked yet',
   'Noch keine Sensoren': 'No sensors yet',
   'Noch keine hochgeladenen Fotos dieser Kolonie.': 'No uploaded photos of this colony yet.',
+  'Noch nicht eingerichtet: in der .env COMPOSE_PROFILES=updater und ACM_PROJECT_DIR setzen, dann „docker compose up -d“. Danach geht das Update hier per Knopf.':
+      'Not set up yet: set COMPOSE_PROFILES=updater and ACM_PROJECT_DIR in the .env, then “docker compose up -d”. After that the update works here with a button.',
   'Noch nichts hochgeladen': 'Nothing uploaded yet',
   'Noch nie synchronisiert': 'Never synced',
   'Nochmal versuchen': 'Try again',
@@ -1108,7 +1110,7 @@ const table = <String, String>{
   'Zur Übersicht': 'To the overview',
   'Zusammen: {0}': 'Together: {0}',
   'Zählen mit KI anbieten': 'Offer counting with AI',
-  'Zählt … (bis zu einer Minute)': 'Counting … (up to a minute)',
+  'Zählt … {0} s': 'Counting … {0} s',
   'ab {0} {1}': 'from {0} {1}',
   'abgegeben': 'given away',
   'abgelehnt': 'rejected',

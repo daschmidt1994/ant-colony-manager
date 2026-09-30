@@ -423,10 +423,17 @@ paths:
   /api/v1/colonies/{id}/ai-count:
     post:
       tags: [colonies]
-      summary: "Count the ants on 1–6 uploaded photos of the colony with AI {photo_ids}: {photos[{photo_id, count, min, max, queens, note}], total, min, max, overlap, note, model} – the photos are sent to the provider chosen by the administrator"
+      summary: "Count the ants on 1–6 uploaded photos of the colony with AI {photo_ids, async?}. With async: true 202 {id, state} at once – poll /ai-count/{job}; otherwise waits for {photos[{photo_id, count, min, max, queens, note}], total, min, max, overlap, note, model} – the photos are sent to the provider chosen by the administrator"
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses: { "200": { description: "counts" }, "409": { description: "not set up" }, "422": { description: "invalid photos" }, "502": { description: "AI failed (title explains)" } }
+  /api/v1/ai-count/{job}:
+    get:
+      tags: [colonies]
+      summary: "State of a counting job started with {async: true}: {id, state running|done|failed, result?, error?} – only for the user who started it; kept 15 minutes"
+      parameters:
+        - { name: job, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "job" }, "404": { description: "unknown job" } }
   /api/v1/admin/home-assistant/test:
     post:
       tags: [admin]
