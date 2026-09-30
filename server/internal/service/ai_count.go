@@ -170,12 +170,13 @@ func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, ph
 	if _, err := requireColony(ctx, s.Pool, actor, colony, RoleEditor); err != nil {
 		return nil, err
 	}
+	lang := s.userLang(ctx, actor.UserID)
 	st, err := s.loadAI(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if !st.Enabled || st.APIKeyEnc == "" {
-		return nil, &Problem{Status: http.StatusConflict, Code: "ai.not_set_up", Title: "counting with AI is not set up (administrator: Server-Verwaltung → KI-Zählung)"}
+		return nil, &Problem{Status: http.StatusConflict, Code: "ai.not_set_up", Title: tl(lang, "Zählen mit KI ist nicht eingerichtet (Administrator: Server-Verwaltung → KI-Zählung)")}
 	}
 	if len(photos) == 0 || len(photos) > aiMaxPhotos {
 		return nil, Invalid("photo_ids", "choose 1–%d photos", aiMaxPhotos)
@@ -184,7 +185,6 @@ func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, ph
 	if err != nil {
 		return nil, fmt.Errorf("stored AI key cannot be decrypted (INSTANCE_SECRET changed?): %w", err)
 	}
-	lang := s.userLang(ctx, actor.UserID)
 
 	// the photos, in the chosen order
 	content := []anthropic.BetaContentBlockParamUnion{}
@@ -224,7 +224,7 @@ func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, ph
 	client := anthropic.NewClient(opts...)
 	ctx, cancel := context.WithTimeout(ctx, 100*time.Second)
 	defer cancel()
-	resp, err := client.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
+	params := anthropic.BetaMessageNewParams{
 		Model:     anthropic.Model(st.Model),
 		MaxTokens: 16000,
 		System:    []anthropic.BetaTextBlockParam{{Text: aiCountSystem}},
@@ -235,15 +235,23 @@ func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, ph
 		// a safety classifier decline is answered by a suitable fallback model
 		Fallbacks: anthropic.BetaFallbacksParamUnion{OfDefault: constant.ValueOf[constant.Default]()},
 		Betas:     []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01},
-	})
+	}
+	resp, err := client.Beta.Messages.New(ctx, params)
+	if msg := aiErrorMessage(err); msg != "" && strings.Contains(strings.ToLower(msg), "fallback") {
+		// the account or model does not offer fallbacks – count without
+		s.Log.Info("ai count: retrying without fallbacks", "reason", msg)
+		params.Fallbacks, params.Betas = anthropic.BetaFallbacksParamUnion{}, nil
+		resp, err = client.Beta.Messages.New(ctx, params)
+	}
 	if err != nil {
-		return nil, aiError(err)
+		s.Log.Warn("ai count failed", "model", st.Model, "err", err)
+		return nil, aiError(lang, err)
 	}
 	switch resp.StopReason {
 	case anthropic.BetaStopReasonRefusal:
-		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.refused", Title: "the AI declined to count these photos"}
+		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.refused", Title: tl(lang, "Die KI hat das Zählen dieser Fotos abgelehnt")}
 	case anthropic.BetaStopReasonMaxTokens:
-		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: "the AI answer was cut off – try fewer photos"}
+		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: tl(lang, "Die Antwort der KI wurde abgeschnitten – weniger Fotos wählen")}
 	}
 	var text strings.Builder
 	for _, b := range resp.Content {
@@ -260,7 +268,7 @@ func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, ph
 		Note    string `json:"note"`
 	}
 	if err := json.Unmarshal([]byte(text.String()), &out); err != nil {
-		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: "unreadable answer from the AI"}
+		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: tl(lang, "Unlesbare Antwort der KI – bitte noch einmal")}
 	}
 	res := &AICountResult{Photos: []AICountPhoto{}, Overlap: out.Overlap, Note: strings.TrimSpace(out.Note), Model: string(resp.Model)}
 	for _, p := range out.Photos {
@@ -277,30 +285,57 @@ func (s *Service) AICount(ctx context.Context, actor Actor, colony uuid.UUID, ph
 		res.Max += c.Max
 	}
 	if len(res.Photos) != len(photos) {
-		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: "the AI did not count every photo – please try again"}
+		return nil, &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: tl(lang, "Die KI hat nicht jedes Foto gezählt – bitte noch einmal")}
 	}
 	s.Audit(ctx, &actor.UserID, "ai_count", colony.String(), map[string]any{"photos": len(photos), "total": res.Total}, meta.IP)
 	return res, nil
 }
 
-// aiError turns API errors into messages the user can act on.
-func aiError(err error) error {
+// aiErrorMessage: the message Anthropic sent with an error ("" if none).
+func aiErrorMessage(err error) string {
+	var apiErr *anthropic.Error
+	if !errors.As(err, &apiErr) {
+		return ""
+	}
+	var body struct {
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if json.Unmarshal([]byte(apiErr.RawJSON()), &body) == nil {
+		return strings.TrimSpace(body.Error.Message)
+	}
+	return ""
+}
+
+// aiError turns API errors into messages the user can act on – in the
+// user's language, with Anthropic's own reason where it helps.
+func aiError(lang string, err error) error {
+	fail := func(code, de string, args ...any) error {
+		return &Problem{Status: http.StatusBadGateway, Code: code, Title: tl(lang, de, args...)}
+	}
 	var apiErr *anthropic.Error
 	if errors.As(err, &apiErr) {
+		msg := aiErrorMessage(err)
+		low := strings.ToLower(msg)
 		switch {
+		case strings.Contains(low, "credit balance"):
+			return fail("ai.credit", "Kein Guthaben bei Anthropic – unter console.anthropic.com → Billing aufladen")
 		case apiErr.StatusCode == http.StatusUnauthorized || apiErr.StatusCode == http.StatusForbidden:
-			return &Problem{Status: http.StatusBadGateway, Code: "ai.key", Title: "the AI refuses the API key – check it in Server-Verwaltung → KI-Zählung"}
+			return fail("ai.key", "Die KI lehnt den API-Schlüssel ab – in Server-Verwaltung → KI-Zählung prüfen")
 		case apiErr.StatusCode == http.StatusNotFound:
-			return &Problem{Status: http.StatusBadGateway, Code: "ai.model", Title: "unknown AI model – check it in Server-Verwaltung → KI-Zählung"}
-		case apiErr.StatusCode == http.StatusTooManyRequests:
-			return &Problem{Status: http.StatusBadGateway, Code: "ai.busy", Title: "the AI is busy or the credit is used up – try again later"}
-		case apiErr.StatusCode == http.StatusBadRequest || apiErr.StatusCode == http.StatusRequestEntityTooLarge:
-			return &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: "the AI could not process the photos – try fewer photos"}
+			return fail("ai.model", "Unbekanntes KI-Modell – in Server-Verwaltung → KI-Zählung prüfen")
+		case apiErr.StatusCode == http.StatusTooManyRequests || apiErr.StatusCode == 529:
+			return fail("ai.busy", "Die KI ist gerade ausgelastet – bitte später noch einmal")
+		case apiErr.StatusCode == http.StatusRequestEntityTooLarge:
+			return fail("ai.failed", "Die Fotos sind zu groß für die KI – weniger Fotos wählen")
+		case msg != "":
+			return fail("ai.failed", "Die KI meldet: %s", msg)
 		}
-		return &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: fmt.Sprintf("the AI answers HTTP %d – try again later", apiErr.StatusCode)}
+		return fail("ai.failed", "Die KI antwortet mit HTTP %d – bitte später noch einmal", apiErr.StatusCode)
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return &Problem{Status: http.StatusGatewayTimeout, Code: "ai.timeout", Title: "the AI took too long – try fewer photos"}
+		return &Problem{Status: http.StatusGatewayTimeout, Code: "ai.timeout", Title: tl(lang, "Die KI hat zu lange gebraucht – weniger Fotos wählen")}
 	}
-	return &Problem{Status: http.StatusBadGateway, Code: "ai.failed", Title: "the AI is not reachable"}
+	return fail("ai.failed", "Die KI ist nicht erreichbar")
 }

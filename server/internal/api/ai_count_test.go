@@ -24,21 +24,25 @@ func TestAICount(t *testing.T) {
 	answer := `{"photos":[{"photo":1,"count":120,"min":100,"max":140,"queens":1,"note":""},` +
 		`{"photo":2,"count":80,"min":70,"max":95,"queens":0,"note":"Viele Ameisen verdeckt"}],"overlap":false,"note":""}`
 	status := http.StatusOK
+	errBody := `{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}`
+	rejectFallbacks := false
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		if r.URL.Path != "/v1/messages" || r.Header.Get("X-Api-Key") != "sk-ant-test" {
 			t.Errorf("request %s key %q", r.URL.Path, r.Header.Get("X-Api-Key"))
 		}
-		if !strings.Contains(r.Header.Get("Anthropic-Beta"), "server-side-fallback-2026-07-01") {
-			t.Errorf("fallback beta missing: %q", r.Header.Get("Anthropic-Beta"))
-		}
 		b, _ := io.ReadAll(r.Body)
 		lastReq = map[string]any{}
 		json.Unmarshal(b, &lastReq)
 		w.Header().Set("Content-Type", "application/json")
+		if rejectFallbacks && lastReq["fallbacks"] != nil {
+			w.WriteHeader(400)
+			w.Write([]byte(`{"type":"error","error":{"type":"invalid_request_error","message":"fallbacks: not available for this organization"}}`))
+			return
+		}
 		if status != http.StatusOK {
 			w.WriteHeader(status)
-			w.Write([]byte(`{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}`))
+			w.Write([]byte(errBody))
 			return
 		}
 		msg, _ := json.Marshal(map[string]any{"id": "msg_1", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
@@ -114,13 +118,31 @@ func TestAICount(t *testing.T) {
 
 	// the AI sends nonsense or refuses the key
 	answer = `{"photos":[{"photo":1,"count":5,"min":9,"max":3,"queens":0,"note":""}],"overlap":false,"note":""}`
-	if r := count(anna, photos, 502); !strings.Contains(r["title"].(string), "every photo") {
+	if r := count(anna, photos, 502); !strings.Contains(r["title"].(string), "nicht jedes Foto") {
 		t.Fatalf("incomplete answer: %v", r)
 	}
 	status = http.StatusUnauthorized
-	if r := count(anna, photos, 502); !strings.Contains(r["title"].(string), "API key") {
+	if r := count(anna, photos, 502); !strings.Contains(r["title"].(string), "API-Schlüssel") {
 		t.Fatalf("bad key: %v", r)
 	}
+	// no credit – Anthropic answers 400
+	status = http.StatusBadRequest
+	errBody = `{"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}`
+	if r := count(anna, photos, 502); !strings.Contains(r["title"].(string), "Guthaben") {
+		t.Fatalf("no credit: %v", r)
+	}
+	// any other reason is shown as Anthropic sent it
+	errBody = `{"type":"error","error":{"type":"invalid_request_error","message":"image exceeds 5 MB maximum"}}`
+	if r := count(anna, photos, 502); !strings.Contains(r["title"].(string), "image exceeds 5 MB maximum") {
+		t.Fatalf("reason: %v", r)
+	}
+	// fallbacks not available: counted again without them
+	status, rejectFallbacks = http.StatusOK, true
+	answer = `{"photos":[{"photo":1,"count":3,"min":3,"max":3,"queens":0,"note":""},{"photo":2,"count":4,"min":4,"max":4,"queens":0,"note":""}],"overlap":false,"note":""}`
+	if r := count(anna, photos, 200); r["total"] != float64(7) {
+		t.Fatalf("retry without fallbacks: %v", r)
+	}
+	rejectFallbacks = false
 	n := calls.Load()
 	status = http.StatusOK
 	answer = `{"photos":[{"photo":1,"count":5,"min":9,"max":3,"queens":0,"note":""}],"overlap":false,"note":""}`
