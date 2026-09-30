@@ -272,6 +272,15 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => context.push('/settings/mqtt'),
                 ),
               ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.auto_awesome),
+                  title: Text(tr('KI-Zählung')),
+                  subtitle: Text(tr('Ameisen auf Fotos zählen lassen (Anthropic Claude)')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/ai'),
+                ),
+              ),
             ],
             SectionHeader(tr('Etiketten')),
             Card(

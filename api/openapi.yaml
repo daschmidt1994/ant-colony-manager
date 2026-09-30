@@ -406,6 +406,27 @@ paths:
       tags: [admin]
       summary: "Update now: the optional updater service backs up, pulls the images and restarts (like scripts/update.sh)"
       responses: { "202": { description: "requested" }, "409": { description: "no updater or already running" } }
+  /api/v1/admin/ai:
+    get:
+      tags: [admin]
+      summary: "Counting ants with AI (Claude): {enabled, api_key_set, model}"
+      responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save {enabled, api_key (omitted = keep, \"\" = remove), model (default claude-opus-5-5)}"
+      responses: { "200": { description: "settings" }, "422": { description: "invalid" } }
+  /api/v1/ai:
+    get:
+      tags: [colonies]
+      summary: "Whether counting with AI is set up: {available}"
+      responses: { "200": { description: "info" } }
+  /api/v1/colonies/{id}/ai-count:
+    post:
+      tags: [colonies]
+      summary: "Count the ants on 1–6 uploaded photos of the colony with AI {photo_ids}: {photos[{photo_id, count, min, max, queens, note}], total, min, max, overlap, note, model} – the photos are sent to Anthropic"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "counts" }, "409": { description: "not set up" }, "422": { description: "invalid photos" }, "502": { description: "AI failed (title explains)" } }
   /api/v1/admin/home-assistant/test:
     post:
       tags: [admin]

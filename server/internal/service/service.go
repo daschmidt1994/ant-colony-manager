@@ -28,6 +28,8 @@ type Service struct {
 	Now    func() time.Time
 	// MQTTDial connects to the MQTT broker (Home Assistant); tests replace it.
 	MQTTDial func(context.Context, MQTTOptions) (MQTTConn, error)
+	// AIBaseURL overrides the Anthropic API address (tests).
+	AIBaseURL string
 
 	mqtt       mqttState
 	columns    map[string]map[string]bool // table -> column set (loaded at start)

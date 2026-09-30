@@ -162,6 +162,8 @@ func (s *Server) Handler() *chi.Mux {
 			r.Get("/colonies/{id}/timeline", s.timeline)
 			r.Get("/colonies/{id}/due", s.colonyDue)
 			r.Post("/colonies/{id}/feedings/repeat-last", s.repeatLastFeeding)
+			r.With(s.rateLimitUser(s.limScan)).Post("/colonies/{id}/ai-count", s.aiCount)
+			r.Get("/ai", s.aiInfo)
 			r.Get("/colonies/{id}/members", s.listMembers)
 			r.Post("/colonies/{id}/members", s.setMember)
 			r.Delete("/colonies/{id}/members/{userId}", s.removeMember)
@@ -199,6 +201,8 @@ func (s *Server) Handler() *chi.Mux {
 				r.With(s.rateLimitUser(s.limScan)).Post("/mqtt/test", s.testMQTT)
 				r.With(s.rateLimitUser(s.limScan)).Post("/home-assistant/test", s.testHomeAssistant)
 				r.Get("/update", s.getUpdater)
+				r.Get("/ai", s.getAI)
+				r.Put("/ai", s.setAI)
 				r.With(s.rateLimitUser(s.limSensitive)).Post("/update", s.startUpdate)
 			})
 
