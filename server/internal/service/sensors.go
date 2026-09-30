@@ -57,6 +57,12 @@ func (s *Service) IngestSensor(ctx context.Context, apiKey string, sensorID uuid
 	if subtle.ConstantTimeCompare(auth.HashToken(secret), hash) != 1 || id != sensorID || !active {
 		return 0, errBadSensorKey
 	}
+	return s.storeReadings(ctx, id, lastSeen, readings)
+}
+
+// storeReadings validates and stores readings of a sensor, checks its limits
+// and updates last_seen_at (at most every 10 minutes).
+func (s *Service) storeReadings(ctx context.Context, id uuid.UUID, lastSeen *time.Time, readings []SensorReading) (int, error) {
 	if len(readings) == 0 || len(readings) > maxSensorBatch {
 		return 0, Invalid("readings", "send 1–%d readings", maxSensorBatch)
 	}

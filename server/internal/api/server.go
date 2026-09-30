@@ -127,6 +127,8 @@ func (s *Server) Handler() *chi.Mux {
 			r.Get("/me/feed", s.getFeed)
 			r.With(s.rateLimitUser(s.limSensitive)).Post("/me/feed", s.createFeed)
 			r.Patch("/me/feed", s.setFeedFilter)
+			r.Get("/me/home-assistant", s.getHomeAssistantMe)
+			r.Put("/me/home-assistant", s.setHomeAssistantMe)
 			r.Delete("/me/feed", s.deleteFeed)
 			r.Put("/me/password", s.changePassword)
 			r.Delete("/me", s.deleteMe)
@@ -190,6 +192,7 @@ func (s *Server) Handler() *chi.Mux {
 				r.Get("/mqtt", s.getMQTT)
 				r.Put("/mqtt", s.setMQTT)
 				r.With(s.rateLimitUser(s.limScan)).Post("/mqtt/test", s.testMQTT)
+				r.With(s.rateLimitUser(s.limScan)).Post("/home-assistant/test", s.testHomeAssistant)
 			})
 
 			// Generic collections (locations, food-items, species, habitats, …)

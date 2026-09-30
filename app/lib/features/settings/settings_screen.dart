@@ -14,6 +14,7 @@ import '../../core/web_meta.dart';
 import '../../data/sync/sync_engine.dart';
 import '../../data/sync/upload_policy.dart';
 import '../../shared/widgets.dart';
+import 'mqtt_screen.dart';
 import 'updates.dart';
 import '../../app/i18n.dart';
 
@@ -209,6 +210,7 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/feeds'),
               ),
             ),
+            const HomeAssistantMeTile(),
             SectionHeader(tr('Synchronisierung')),
             Card(
               child: ListTile(

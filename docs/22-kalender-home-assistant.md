@@ -40,7 +40,7 @@ Der ACM-Server meldet die Kolonien per **MQTT Discovery** bei Home Assistant an 
    - „Kolonien an Home Assistant senden“ einschalten, **Speichern**, **Verbindung testen**.
 3. In Home Assistant erscheinen unter **Einstellungen → Geräte & Dienste → MQTT** das Gerät „Ameisen“ (Summen) und je Kolonie ein Gerät „Name (#Nr)“.
 
-Gesendet werden die Kolonien des Administrators, der die Einstellungen gespeichert hat (Besitzer oder Pfleger – wie beim Kalender). Der ACM-Server muss den Broker im Netz erreichen (bei Docker: `192.168.x.x`, nicht `localhost`).
+Gesendet werden die Kolonien des Administrators, der die Einstellungen gespeichert hat (Besitzer oder Pfleger – wie beim Kalender). **Andere Benutzer** schalten es für sich unter **Mehr → „Meine Kolonien an Home Assistant senden“** ein; ihre Entitäten tragen ihren Namen, z. B. `sensor.acm_anna_colony_2_overdue` (Kolonie-Nummern zählt jeder Benutzer für sich). Der ACM-Server muss den Broker im Netz erreichen (bei Docker: `192.168.x.x`, nicht `localhost`).
 
 **Ausschalten** entfernt alle ACM-Geräte wieder aus Home Assistant. Ist ACM gestoppt, zeigen die Entitäten „nicht verfügbar“ (Last Will).
 
@@ -57,9 +57,36 @@ Pro Kolonie (`3` = Kolonie-Nummer):
 | `sensor.acm_colony_3_next_task` | Name der nächsten Pflege, z. B. „Proteinfütterung“ |
 | `sensor.acm_colony_3_temperature`, `…_humidity` | letzter Messwert – nur, wenn die Kolonie Messwerte hat |
 
+**Aus Home Assistant heraus steuern:**
+
+| Entität | Wirkung in ACM |
+|---|---|
+| `button.acm_colony_3_water_done` (je Pflegeplan: `feeding`, `protein`, `carbohydrate`, `water`, `cleaning`, `check`, eigene: `custom_…`) | trägt die Pflege als erledigt ein – wie „Erledigt“ in der App: Wasser/Reinigung mit den zuletzt verwendeten Arten, Fütterungen wiederholen die letzte passende Fütterung |
+| `switch.acm_colony_3_hibernation` | Winterruhe heute beginnen (eine geplante wird gestartet) bzw. heute beenden |
+
+Ausgeführt wird das als ein sendender Benutzer, der die Kolonie bearbeiten darf. Wer auf dem Broker schreiben darf, kann diese Aktionen auslösen – den Broker also nicht offen ins Internet stellen.
+
 Summen (Gerät „Ameisen“): `sensor.acm_overdue`, `sensor.acm_due_today`, `sensor.acm_hibernating`, `sensor.acm_colonies`.
 
 Die Geräte hängen an der Kolonie, nicht an der Nummer: Umbenennen ändert nur den Anzeigenamen, die Entitäten bleiben. Entitäts-IDs kannst du in Home Assistant jederzeit selbst ändern.
+
+### Knopf am Formicarium: „Gefüttert“
+
+Ein Zigbee-Taster neben dem Formicarium trägt die Proteinfütterung ein:
+
+```yaml
+automation:
+  - alias: Taster – Messor gefüttert
+    triggers:
+      - trigger: device
+        domain: zha            # bzw. mqtt/deconz – wie der Taster eingebunden ist
+        device_id: …
+        type: remote_button_short_press
+    actions:
+      - action: button.press
+        target:
+          entity_id: button.acm_colony_3_protein_done
+```
 
 ### Heizmatte in der Winterruhe aus
 
@@ -116,6 +143,8 @@ Alle Nachrichten sind *retained* (QoS 1):
 | `ant-colony-manager/colony/<kolonie-id>/state` | Zustand einer Kolonie |
 | `ant-colony-manager/state` | Summen `{overdue, due_today, hibernating, colonies}` |
 | `ant-colony-manager/status` | `online` / `offline` |
+| `ant-colony-manager/colony/<kolonie-id>/done` | ← Pflegeplan-ID: Pflege erledigt |
+| `ant-colony-manager/colony/<kolonie-id>/hibernation/set` | ← `ON` / `OFF`: Winterruhe beginnen/beenden |
 
 Zustand einer Kolonie:
 

@@ -150,6 +150,9 @@ type FeedColony struct {
 	Temperature *float64     `json:"temperature"`
 	Humidity    *float64     `json:"humidity"`
 	MeasuredAt  *time.Time   `json:"measured_at"`
+
+	OwnerID uuid.UUID `json:"-"`
+	Care    []DueTask `json:"-"` // active care plans (Home Assistant buttons)
 }
 
 type FeedStatus struct {
@@ -180,7 +183,7 @@ type feedTask struct {
 func (s *Service) feedLoad(ctx context.Context, user uuid.UUID) (*feedData, error) {
 	d := &feedData{lang: s.userLang(ctx, user), prefs: s.userPrefs(ctx, s.Pool, user)}
 	rows, err := s.Pool.Query(ctx, `
-		SELECT c.id, c.number, c.name, COALESCE(sp.scientific_name, c.species_text, ''), c.status, c.last_measurement,
+		SELECT c.id, c.owner_id, c.number, c.name, COALESCE(sp.scientific_name, c.species_text, ''), c.status, c.last_measurement,
 		       w.planned_start_on::text, w.started_on::text, w.planned_end_on::text
 		FROM colonies c
 		JOIN colony_members m ON m.colony_id = c.id AND m.user_id = $1 AND m.deleted_at IS NULL AND m.role <> 'viewer'
@@ -197,7 +200,7 @@ func (s *Service) feedLoad(ctx context.Context, user uuid.UUID) (*feedData, erro
 		var c FeedColony
 		var measurement []byte
 		var w FeedWinter
-		if err := r.Scan(&c.ID, &c.Number, &c.Name, &c.Species, &c.Status, &measurement,
+		if err := r.Scan(&c.ID, &c.OwnerID, &c.Number, &c.Name, &c.Species, &c.Status, &measurement,
 			&w.PlannedStartOn, &w.StartedOn, &w.PlannedEndOn); err != nil {
 			return c, err
 		}
@@ -255,6 +258,7 @@ func (s *Service) colonyStatus(ctx context.Context, user uuid.UUID) (*FeedStatus
 	}
 	for i := range out.Colonies {
 		c := &out.Colonies[i]
+		c.Care = d.due[c.ID]
 		for _, t := range d.due[c.ID] {
 			if t.Status == DuePaused || t.NextDueAt == nil {
 				continue

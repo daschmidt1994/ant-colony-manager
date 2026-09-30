@@ -25,7 +25,12 @@ import (
 // Home Assistant by itself; archived, handed over or deleted colonies are
 // removed again. The administrator sets up the broker in the app
 // (Server-Verwaltung); sent are the colonies that administrator cares for
-// (owner or carer – like the calendar subscription).
+// (owner or carer – like the calendar subscription) and those of every user
+// who switched it on for themselves (mqtt_members).
+//
+// Home Assistant can act, too: a button per care plan ("done") and a winter
+// rest switch per colony. Commands are carried out as a sending user who
+// may edit the colony.
 //
 // Topics, all retained:
 //
@@ -34,6 +39,8 @@ import (
 //	ant-colony-manager/colony/<id>/state     state of a colony (JSON)
 //	ant-colony-manager/state                 totals (JSON)
 //	ant-colony-manager/status                online / offline (last will)
+//	ant-colony-manager/colony/<id>/done      ← care plan id: care done
+//	ant-colony-manager/colony/<id>/hibernation/set  ← ON / OFF
 
 const (
 	mqttKey       = "mqtt"
@@ -50,6 +57,9 @@ type storedMQTT struct {
 	PasswordEnc string    `json:"password_enc,omitempty"`
 	Prefix      string    `json:"prefix"`
 	UserID      uuid.UUID `json:"user_id"` // whose colonies are sent
+	// Home Assistant REST API for sensor values (optional)
+	HAURL      string `json:"ha_url,omitempty"`
+	HATokenEnc string `json:"ha_token_enc,omitempty"`
 }
 
 // mqttSent is what Home Assistant was told (kept across restarts, so that
@@ -77,7 +87,12 @@ type MQTTSettings struct {
 	PasswordSet bool       `json:"password_set"`
 	Prefix      string     `json:"prefix"`
 	Owner       string     `json:"owner,omitempty"` // whose colonies are sent (display name)
+	Members     []string   `json:"members"`         // other users who send their colonies
 	Status      MQTTStatus `json:"status"`
+	// Home Assistant REST API for sensor values
+	HAURL      string  `json:"ha_url"`
+	HAToken    *string `json:"ha_token,omitempty"` // input: nil = keep, "" = remove
+	HATokenSet bool    `json:"ha_token_set"`
 }
 
 // MQTTConn is what the publisher needs from a broker connection. Messages
@@ -96,6 +111,8 @@ type MQTTOptions struct {
 	HAStatusTopic                 string // Home Assistant announces its (re)start here
 	OnConnect                     func() // after every (re)connect
 	OnHAOnline                    func()
+	// Subscribe: topic filter → handler (commands from Home Assistant)
+	Subscribe map[string]func(topic string, payload []byte)
 }
 
 type mqttState struct {
@@ -107,6 +124,32 @@ type mqttState struct {
 	status  MQTTStatus
 	lastLog string
 	kick    chan struct{}
+	haKick  chan struct{}
+}
+
+func (s *Service) haKick() {
+	select {
+	case s.mqtt.haKick <- struct{}{}:
+	default:
+	}
+}
+
+// HARun reads Home Assistant sensors every 5 minutes (and after a change of
+// the settings).
+func (s *Service) HARun(ctx context.Context) {
+	t := time.NewTicker(5 * time.Minute)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		case <-s.mqtt.haKick:
+		}
+		if _, err := s.HASensorSync(ctx); err != nil && ctx.Err() == nil {
+			s.Log.Warn("home assistant sensors failed", "err", err)
+		}
+	}
 }
 
 func (s *Service) mqttKick() {
@@ -255,6 +298,10 @@ func (s *Service) MQTTSync(ctx context.Context) error {
 			s.mqttKick()
 		}
 		opts.OnHAOnline = opts.OnConnect // Home Assistant restarted: send everything again
+		opts.Subscribe = map[string]func(string, []byte){
+			mqttBase + "/colony/+/done":            s.mqttCommand,
+			mqttBase + "/colony/+/hibernation/set": s.mqttCommand,
+		}
 		if conn, err = s.MQTTDial(ctx, opts); err != nil {
 			return s.mqttFail(err)
 		}
@@ -279,12 +326,12 @@ func (s *Service) MQTTSync(ctx context.Context) error {
 		return nil
 	}
 
-	status, err := s.colonyStatus(ctx, st.UserID)
+	status, owners, err := s.mqttStatus(ctx, st)
 	if err != nil {
 		return err
 	}
 	lang := s.userLang(ctx, st.UserID)
-	msgs := s.mqttMessages(st.Prefix, lang, status)
+	msgs := s.mqttMessages(st.Prefix, lang, status, owners)
 	for _, m := range msgs {
 		if err := s.mqttPublish(conn, m.topic, m.payload); err != nil {
 			return s.mqttFail(err)
@@ -373,7 +420,11 @@ func mqttJSON(v any) []byte {
 // mqttMessages: discovery and state for the totals and every colony. Entity
 // IDs contain the colony number (sensor.acm_colony_3_overdue); Home Assistant
 // keeps them when a colony is renamed.
-func (s *Service) mqttMessages(prefix, lang string, st *FeedStatus) []mqttMessage {
+//
+// owners maps the owners of colonies that are not the administrator's to a
+// short name for the entity IDs (sensor.acm_anna_colony_3_overdue) – colony
+// numbers are counted per owner.
+func (s *Service) mqttMessages(prefix, lang string, st *FeedStatus, owners map[uuid.UUID]string) []mqttMessage {
 	origin := map[string]any{"name": "Ant Colony Manager", "support_url": "https://github.com/daschmidt1994/ant-colony-manager"}
 	// unique IDs contain the colony id (numbers may change), entity IDs the number
 	count := func(key, name, icon, uniqueID, entity string) map[string]any {
@@ -406,33 +457,54 @@ func (s *Service) mqttMessages(prefix, lang string, st *FeedStatus) []mqttMessag
 
 	for _, c := range st.Colonies {
 		id := "acm_" + c.ID.String()
-		n := strconv.Itoa(c.Number)
+		ent := "acm_colony_" + strconv.Itoa(c.Number)
+		if o := owners[c.OwnerID]; o != "" {
+			ent = "acm_" + o + "_colony_" + strconv.Itoa(c.Number)
+		}
 		state := mqttBase + "/colony/" + c.ID.String() + "/state"
 		cmps := map[string]any{
-			"overdue":   count("overdue", "Überfällig", "mdi:ant", id+"_overdue", "acm_colony_"+n+"_overdue"),
-			"due_today": count("due_today", "Heute fällig", "mdi:ant", id+"_due_today", "acm_colony_"+n+"_due_today"),
+			"overdue":   count("overdue", "Überfällig", "mdi:ant", id+"_overdue", ent+"_overdue"),
+			"due_today": count("due_today", "Heute fällig", "mdi:ant", id+"_due_today", ent+"_due_today"),
 			"next_due": map[string]any{"platform": "sensor", "name": tl(lang, "Nächste Pflege"), "device_class": "timestamp",
-				"unique_id": id + "_next_due", "default_entity_id": "sensor.acm_colony_" + n + "_next_due",
+				"unique_id": id + "_next_due", "default_entity_id": "sensor." + ent + "_next_due",
 				"value_template":           "{{ value_json.next_due_at }}",
 				"json_attributes_topic":    state,
 				"json_attributes_template": "{{ value_json.next_due | tojson }}"},
 			"next_task": map[string]any{"platform": "sensor", "name": tl(lang, "Nächste Aufgabe"), "icon": "mdi:clipboard-list",
-				"unique_id": id + "_next_task", "default_entity_id": "sensor.acm_colony_" + n + "_next_task",
+				"unique_id": id + "_next_task", "default_entity_id": "sensor." + ent + "_next_task",
 				"value_template": "{{ value_json.next_task }}"},
 			"hibernation": map[string]any{"platform": "binary_sensor", "name": tl(lang, "Winterruhe"), "icon": "mdi:snowflake",
-				"unique_id": id + "_hibernation", "default_entity_id": "binary_sensor.acm_colony_" + n + "_hibernation",
+				"unique_id": id + "_hibernation", "default_entity_id": "binary_sensor." + ent + "_hibernation",
 				"value_template": "{{ 'ON' if value_json.hibernating else 'OFF' }}"},
+			// switch: start or end the winter rest from Home Assistant
+			"hibernation_switch": map[string]any{"platform": "switch", "name": tl(lang, "Winterruhe an/aus"), "icon": "mdi:snowflake",
+				"unique_id": id + "_hibernation_switch", "default_entity_id": "switch." + ent + "_hibernation",
+				"command_topic":  mqttBase + "/colony/" + c.ID.String() + "/hibernation/set",
+				"value_template": "{{ 'ON' if value_json.hibernating else 'OFF' }}",
+				"payload_on":     "ON", "payload_off": "OFF", "state_on": "ON", "state_off": "OFF"},
+		}
+		// one "done" button per care plan
+		for _, t := range c.Care {
+			key := t.TaskType
+			if key == "custom" {
+				key = "custom_" + strings.ReplaceAll(t.ScheduleID.String(), "-", "")[:8]
+			}
+			cmps["done_"+key] = map[string]any{"platform": "button", "name": tl(lang, "%s erledigt", taskLabel(lang, t)),
+				"icon": "mdi:check-circle-outline", "unique_id": id + "_done_" + t.ScheduleID.String(),
+				"default_entity_id": "button." + ent + "_" + key + "_done",
+				"command_topic":     mqttBase + "/colony/" + c.ID.String() + "/done",
+				"payload_press":     t.ScheduleID.String()}
 		}
 		if c.Temperature != nil {
 			cmps["temperature"] = map[string]any{"platform": "sensor", "name": tl(lang, "Temperatur"),
 				"device_class": "temperature", "unit_of_measurement": "°C", "state_class": "measurement",
-				"unique_id": id + "_temperature", "default_entity_id": "sensor.acm_colony_" + n + "_temperature",
+				"unique_id": id + "_temperature", "default_entity_id": "sensor." + ent + "_temperature",
 				"value_template": "{{ value_json.temperature }}"}
 		}
 		if c.Humidity != nil {
 			cmps["humidity"] = map[string]any{"platform": "sensor", "name": tl(lang, "Luftfeuchtigkeit"),
 				"device_class": "humidity", "unit_of_measurement": "%", "state_class": "measurement",
-				"unique_id": id + "_humidity", "default_entity_id": "sensor.acm_colony_" + n + "_humidity",
+				"unique_id": id + "_humidity", "default_entity_id": "sensor." + ent + "_humidity",
 				"value_template": "{{ value_json.humidity }}"}
 		}
 		model := c.Species
@@ -470,6 +542,160 @@ func (s *Service) mqttMessages(prefix, lang string, st *FeedStatus) []mqttMessag
 	return msgs
 }
 
+// mqttSenders: the administrator who set up the broker plus every user who
+// switched Home Assistant on for themselves.
+func (s *Service) mqttSenders(ctx context.Context, st storedMQTT) ([]uuid.UUID, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT m.user_id FROM mqtt_members m JOIN users u ON u.id = m.user_id
+		WHERE u.disabled_at IS NULL ORDER BY m.created_at`)
+	if err != nil {
+		return nil, err
+	}
+	users, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	if err != nil {
+		return nil, err
+	}
+	if st.UserID != uuid.Nil && !slices.Contains(users, st.UserID) {
+		users = append([]uuid.UUID{st.UserID}, users...)
+	}
+	return users, nil
+}
+
+// mqttStatus: the colonies of all senders (each once) with totals, and a
+// short name per owner of colonies that are not the administrator's.
+func (s *Service) mqttStatus(ctx context.Context, st storedMQTT) (*FeedStatus, map[uuid.UUID]string, error) {
+	users, err := s.mqttSenders(ctx, st)
+	if err != nil {
+		return nil, nil, err
+	}
+	out := &FeedStatus{GeneratedAt: s.Now().UTC(), Colonies: []FeedColony{}}
+	seen := map[uuid.UUID]bool{}
+	var others []uuid.UUID
+	for _, u := range users {
+		one, err := s.colonyStatus(ctx, u)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, c := range one.Colonies {
+			if seen[c.ID] {
+				continue
+			}
+			seen[c.ID] = true
+			out.Colonies = append(out.Colonies, c)
+			out.Overdue += c.Overdue
+			out.DueToday += c.DueToday
+			if c.Hibernating {
+				out.Hibernating++
+			}
+			if c.OwnerID != st.UserID && !slices.Contains(others, c.OwnerID) {
+				others = append(others, c.OwnerID)
+			}
+		}
+	}
+	owners := map[uuid.UUID]string{}
+	if len(others) > 0 {
+		rows, err := s.Pool.Query(ctx, `SELECT id, display_name FROM users WHERE id = ANY($1)`, others)
+		if err != nil {
+			return nil, nil, err
+		}
+		var id uuid.UUID
+		var name string
+		if _, err := pgx.ForEachRow(rows, []any{&id, &name}, func() error {
+			owners[id] = entitySlug(name, id)
+			return nil
+		}); err != nil {
+			return nil, nil, err
+		}
+	}
+	return out, owners, nil
+}
+
+// entitySlug: lower-case letters and digits for entity IDs ("Anna M." → anna_m).
+func entitySlug(name string, id uuid.UUID) string {
+	r := strings.NewReplacer("ä", "ae", "ö", "oe", "ü", "ue", "ß", "ss")
+	var b strings.Builder
+	for _, ch := range r.Replace(strings.ToLower(name)) {
+		switch {
+		case ch >= 'a' && ch <= 'z', ch >= '0' && ch <= '9':
+			b.WriteRune(ch)
+		case b.Len() > 0 && !strings.HasSuffix(b.String(), "_"):
+			b.WriteByte('_')
+		}
+	}
+	slug := strings.Trim(b.String(), "_")
+	if slug == "" {
+		slug = "user_" + strings.ReplaceAll(id.String(), "-", "")[:6]
+	}
+	if len(slug) > 20 {
+		slug = strings.Trim(slug[:20], "_")
+	}
+	return slug
+}
+
+// mqttCommand carries out a button press or switch from Home Assistant. It
+// runs as a sending user who may edit the colony.
+func (s *Service) mqttCommand(topic string, payload []byte) {
+	parts := strings.Split(topic, "/") // ant-colony-manager/colony/<id>/done | …/hibernation/set
+	if len(parts) < 4 {
+		return
+	}
+	colony, err := uuid.Parse(parts[2])
+	if err != nil {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := s.runMQTTCommand(ctx, colony, parts[3], strings.TrimSpace(string(payload))); err != nil {
+			s.Log.Warn("home assistant command failed", "topic", topic, "err", err)
+			return
+		}
+		s.mqttKick()
+	}()
+}
+
+func (s *Service) runMQTTCommand(ctx context.Context, colony uuid.UUID, cmd, payload string) error {
+	st, err := s.loadMQTT(ctx)
+	if err != nil || !st.Enabled {
+		return err
+	}
+	users, err := s.mqttSenders(ctx, st)
+	if err != nil {
+		return err
+	}
+	var user uuid.UUID
+	err = s.Pool.QueryRow(ctx, `SELECT user_id FROM colony_members
+		WHERE colony_id = $1 AND user_id = ANY($2) AND role IN ('owner', 'editor') AND deleted_at IS NULL
+		ORDER BY role = 'owner' DESC LIMIT 1`, colony, users).Scan(&user)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errors.New("colony is not sent to Home Assistant or may not be edited")
+	}
+	if err != nil {
+		return err
+	}
+	actor := Actor{UserID: user}
+	switch cmd {
+	case "done":
+		schedule, err := uuid.Parse(payload)
+		if err != nil {
+			return fmt.Errorf("invalid care plan %q", payload)
+		}
+		var ok bool
+		if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM care_schedules WHERE id = $1 AND colony_id = $2)`,
+			schedule, colony).Scan(&ok); err != nil || !ok {
+			return fmt.Errorf("care plan %s does not belong to the colony", schedule)
+		}
+		_, err = s.MarkCareDone(ctx, actor, schedule)
+		return err
+	case "hibernation":
+		if payload != "ON" && payload != "OFF" {
+			return fmt.Errorf("invalid switch value %q", payload)
+		}
+		_, err := s.SetHibernation(ctx, actor, colony, payload == "ON")
+		return err
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Settings (admin)
 
@@ -481,7 +707,16 @@ func (s *Service) GetMQTTSettings(ctx context.Context, actor Actor) (*MQTTSettin
 	if err != nil {
 		return nil, err
 	}
-	out := &MQTTSettings{Enabled: st.Enabled, URL: st.URL, User: st.User, PasswordSet: st.PasswordEnc != "", Prefix: st.Prefix}
+	out := &MQTTSettings{Enabled: st.Enabled, URL: st.URL, User: st.User, PasswordSet: st.PasswordEnc != "", Prefix: st.Prefix,
+		HAURL: st.HAURL, HATokenSet: st.HATokenEnc != "", Members: []string{}}
+	rows, err := s.Pool.Query(ctx, `SELECT u.display_name FROM mqtt_members m JOIN users u ON u.id = m.user_id
+		WHERE m.user_id <> $1 ORDER BY m.created_at`, st.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if out.Members, err = pgx.CollectRows(rows, pgx.RowTo[string]); err != nil {
+		return nil, err
+	}
 	if st.UserID != uuid.Nil {
 		err := s.Pool.QueryRow(ctx, `SELECT display_name FROM users WHERE id = $1`, st.UserID).Scan(&out.Owner)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -523,7 +758,25 @@ func (s *Service) SetMQTTSettings(ctx context.Context, actor Actor, in MQTTSetti
 	if err != nil {
 		return nil, err
 	}
-	st := storedMQTT{Enabled: in.Enabled, URL: u, User: in.User, PasswordEnc: old.PasswordEnc, Prefix: in.Prefix, UserID: actor.UserID}
+	in.HAURL = strings.TrimRight(strings.TrimSpace(in.HAURL), "/")
+	if in.HAURL != "" {
+		if _, err := newHAClient(in.HAURL, ""); err != nil {
+			return nil, err
+		}
+	}
+	if in.HAToken != nil && (strings.ContainsAny(*in.HAToken, " \r\n") || len(*in.HAToken) > 1000) {
+		return nil, Invalid("ha_token", "invalid access token")
+	}
+	st := storedMQTT{Enabled: in.Enabled, URL: u, User: in.User, PasswordEnc: old.PasswordEnc, Prefix: in.Prefix, UserID: actor.UserID,
+		HAURL: in.HAURL, HATokenEnc: old.HATokenEnc}
+	if in.HAToken != nil {
+		st.HATokenEnc = ""
+		if *in.HAToken != "" {
+			if st.HATokenEnc, err = s.encryptSecret(*in.HAToken); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if in.Password != nil {
 		st.PasswordEnc = ""
 		if *in.Password != "" {
@@ -537,7 +790,44 @@ func (s *Service) SetMQTTSettings(ctx context.Context, actor Actor, in MQTTSetti
 	}
 	s.Audit(ctx, &actor.UserID, "mqtt_settings_changed", "", map[string]any{"url": st.URL, "enabled": st.Enabled}, meta.IP)
 	s.mqttKick()
+	s.haKick()
 	return s.GetMQTTSettings(ctx, actor)
+}
+
+// HomeAssistantMe is a user's own choice to send their colonies.
+type HomeAssistantMe struct {
+	Enabled   bool `json:"enabled"`   // own colonies are sent
+	Available bool `json:"available"` // the administrator set up Home Assistant
+	Always    bool `json:"always"`    // this user set it up – their colonies are always sent
+}
+
+func (s *Service) GetHomeAssistantMe(ctx context.Context, actor Actor) (*HomeAssistantMe, error) {
+	st, err := s.loadMQTT(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := &HomeAssistantMe{Available: st.Enabled && st.URL != "", Always: st.UserID == actor.UserID}
+	if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM mqtt_members WHERE user_id = $1)`, actor.UserID).
+		Scan(&out.Enabled); err != nil {
+		return nil, err
+	}
+	out.Enabled = out.Enabled || out.Always
+	return out, nil
+}
+
+// SetHomeAssistantMe switches sending the own colonies on or off.
+func (s *Service) SetHomeAssistantMe(ctx context.Context, actor Actor, on bool) (*HomeAssistantMe, error) {
+	var err error
+	if on {
+		_, err = s.Pool.Exec(ctx, `INSERT INTO mqtt_members (user_id) VALUES ($1) ON CONFLICT DO NOTHING`, actor.UserID)
+	} else {
+		_, err = s.Pool.Exec(ctx, `DELETE FROM mqtt_members WHERE user_id = $1`, actor.UserID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	s.mqttKick()
+	return s.GetHomeAssistantMe(ctx, actor)
 }
 
 // TestMQTT connects to the saved broker once (address and login).

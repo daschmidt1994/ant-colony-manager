@@ -392,11 +392,25 @@ paths:
     get:
       tags: [admin]
       summary: "Home Assistant via MQTT: broker settings and status {enabled, url, user, password_set, prefix, owner, status{connected, last_sync, last_error, last_error_at, colonies}}"
-      responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
+      responses: { "200": { description: "settings (also members: other users who send their colonies; ha_url, ha_token_set: Home Assistant REST API for sensor values)" }, "403": { description: "not an administrator" } }
     put:
       tags: [admin]
-      summary: "Save the MQTT broker (url: host, host:port or mqtt(s)://host:port; prefix: discovery prefix, default homeassistant); password omitted = keep, \"\" = remove. From now on the colonies of this administrator are announced to Home Assistant (MQTT discovery); switching off removes them there"
+      summary: "Save the MQTT broker (and optionally ha_url + ha_token for sensor values; ha_token omitted = keep, \"\" = remove) (url: host, host:port or mqtt(s)://host:port; prefix: discovery prefix, default homeassistant); password omitted = keep, \"\" = remove. From now on the colonies of this administrator are announced to Home Assistant (MQTT discovery); switching off removes them there"
       responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/home-assistant/test:
+    post:
+      tags: [admin]
+      summary: "Check the saved Home Assistant address and access token (REST API, for sensor values)"
+      responses: { "204": { description: "reachable" }, "502": { description: "Home Assistant failed (title explains)" }, "422": { description: "not set up" } }
+  /api/v1/me/home-assistant:
+    get:
+      tags: [auth]
+      summary: "Whether the own colonies are sent to Home Assistant {enabled, available, always}"
+      responses: { "200": { description: "state" } }
+    put:
+      tags: [auth]
+      summary: "Send the own colonies to Home Assistant too {enabled} (the administrator's are always sent)"
+      responses: { "200": { description: "state" } }
   /api/v1/admin/mqtt/test:
     post:
       tags: [admin]

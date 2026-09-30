@@ -206,6 +206,10 @@ const table = <String, String>{
   'Den Kamera-Scan gibt es in der Android-App.': 'Camera scanning is available in the Android app.',
   'Der Schlüssel wird nur jetzt angezeigt. Trage ihn im Sensor ein – geht er verloren, erzeugst du einfach einen neuen.':
       'The key is shown only now. Enter it in the sensor – if it gets lost, just create a new one.',
+  'Der Server liest die Werte alle 5 Minuten aus Home Assistant':
+      'The server reads the values from Home Assistant every 5 minutes',
+  'Der Server liest die Werte alle 5 Minuten aus Home Assistant (Adresse und Zugriffstoken: Server-Verwaltung → Home Assistant (MQTT)).':
+      'The server reads the values from Home Assistant every 5 minutes (address and access token: Server administration → Home Assistant (MQTT)).',
   'Der Setup-Code stimmt nicht (siehe docker compose logs app).':
       'The setup code is wrong (see docker compose logs app).',
   'Der Tag ist schreibgeschützt.': 'The tag is write-protected.',
@@ -301,6 +305,8 @@ const table = <String, String>{
   'Endgültig – der Tag kann dann nie mehr geändert werden.': 'Permanent – the tag can never be changed again.',
   'Entfernen': 'Remove',
   'Entfernt': 'Removed',
+  'Entität Luftfeuchtigkeit': 'Humidity entity',
+  'Entität Temperatur': 'Temperature entity',
   'Entwicklung': 'Development',
   'Entwicklung Ei → Arbeiterin': 'Development egg → worker',
   'Erinnerung zu Beginn der Schwarmflugzeit von {0}': 'Reminder at the start of the flight season of {0}',
@@ -331,6 +337,7 @@ const table = <String, String>{
   'Fliege': 'Fly',
   'Format': 'Format',
   'Format: Titel | Link (Link optional)': 'Format: title | link (link optional)',
+  'Format: sensor.name': 'Format: sensor.name',
   'Formicariumgröße': 'Formicarium size',
   'Fortgeschritten': 'Advanced',
   'Foto': 'Photo',
@@ -395,8 +402,8 @@ const table = <String, String>{
   'Geschenkt': 'Gift',
   'Geschlechtstiere': 'Alates',
   'Gesendet werden die Kolonien von {0}.': 'The colonies of {0} are sent.',
-  'Gesendet werden die Kolonien, die du pflegst (Besitzer oder Pfleger). Entitäten z. B. binary_sensor.acm_colony_3_hibernation und sensor.acm_colony_3_overdue (3 = Kolonie-Nummer); Beispiele für Automationen in docs/22-kalender-home-assistant.md.':
-      'The colonies you care for are sent (owner or carer). Entities e.g. binary_sensor.acm_colony_3_hibernation and sensor.acm_colony_3_overdue (3 = colony number); automation examples in docs/22-kalender-home-assistant.md.',
+  'Gesendet werden die Kolonien, die du pflegst (Besitzer oder Pfleger), und die aller Benutzer, die es unter Mehr → Home Assistant für sich einschalten. Pro Kolonie gibt es einen Knopf je Pflegeplan („… erledigt“) und einen Winterruhe-Schalter. Entitäten z. B. binary_sensor.acm_colony_3_hibernation und sensor.acm_colony_3_overdue (3 = Kolonie-Nummer); Beispiele für Automationen in docs/22-kalender-home-assistant.md.':
+      'Sent are the colonies you care for (owner or carer) and those of every user who switches it on for themselves under More → Home Assistant. Each colony gets a button per care plan (“… done”) and a hibernation switch. Entities e.g. binary_sensor.acm_colony_3_hibernation and sensor.acm_colony_3_overdue (3 = colony number); automation examples in docs/22-kalender-home-assistant.md.',
   'Gespeichert': 'Saved',
   'Gespeichert – gilt ab sofort': 'Saved – applies immediately',
   'Gestern': 'Yesterday',
@@ -443,8 +450,11 @@ const table = <String, String>{
       'Hints appear on the overview and as an app notification (topic “Overdue care”).',
   'Hochzeitsflug': 'Nuptial flight',
   'Home Assistant (MQTT)': 'Home Assistant (MQTT)',
+  'Home Assistant antwortet': 'Home Assistant answers',
+  'Home Assistant testen': 'Test Home Assistant',
   'Home Assistant: Integration „Remote Calendar“ mit der Kalender-Adresse. Den Status jeder Kolonie (z. B. Winterruhe → Heizung aus) bekommt Home Assistant über MQTT – einzurichten vom Administrator unter Mehr → Server-Verwaltung → Home Assistant (MQTT).':
       'Home Assistant: “Remote Calendar” integration with the calendar address. Home Assistant gets the status of every colony (e.g. hibernation → heating off) via MQTT – set up by the administrator under More → Server administration → Home Assistant (MQTT).',
+  'Home-Assistant-Adresse': 'Home Assistant address',
   'Honig': 'Honey',
   'Honigwasser': 'Honey water',
   'Händler-Steckbriefe und Foren liefern Praxiswerte zur Haltung. Sie sind hilfreich, aber nicht immer geprüft – mehrere Quellen vergleichen.':
@@ -453,6 +463,7 @@ const table = <String, String>{
       'In the species catalogue you can create it as your own species with a care sheet.',
   'Im Heimnetz z. B. http://192.168.1.50:8080': 'On the home network e.g. http://192.168.1.50:8080',
   'Im Kalender anzeigen': 'Show in the calendar',
+  'Immer an – du hast Home Assistant eingerichtet': 'Always on – you set up Home Assistant',
   'In der App öffnen': 'Open in the app',
   'In der App „QR-Code aus Web-App scannen“ wählen. Der Code ist 2 Minuten gültig und nur einmal verwendbar.':
       'In the app choose “Scan QR code from web app”. The code is valid for 2 minutes and can be used once.',
@@ -470,6 +481,8 @@ const table = <String, String>{
   'Ja, speichern': 'Yes, save',
   'Jede Kolonie als Gerät in Home Assistant – neue kommen von selbst dazu':
       'Every colony as a device in Home Assistant – new ones are added automatically',
+  'Jede Kolonie als Gerät, mit Knöpfen für erledigte Pflege und Winterruhe-Schalter':
+      'Every colony as a device, with buttons for care done and a hibernation switch',
   'Jede Kolonie erscheint in Home Assistant als eigenes Gerät – mit Winterruhe (an/aus), überfälliger und heute fälliger Pflege, nächster Pflege und letztem Messwert. Neue Kolonien kommen von selbst dazu, archivierte oder abgegebene verschwinden wieder. Voraussetzung: die MQTT-Integration in Home Assistant (z. B. mit dem Mosquitto-Add-on).':
       'Every colony appears in Home Assistant as its own device – with hibernation (on/off), overdue care and care due today, next care and the latest measurement. New colonies are added automatically, archived or handed-over ones disappear. Requirement: the MQTT integration in Home Assistant (e.g. with the Mosquitto add-on).',
   'Jedes Backup zusätzlich in Nextcloud, auf ein NAS oder eine Storage Box (WebDAV, SMB, NFS)':
@@ -594,6 +607,7 @@ const table = <String, String>{
   'Mehlwurm': 'Mealworm',
   'Mehr': 'More',
   'Meine Kolonien': 'My colonies',
+  'Meine Kolonien an Home Assistant senden': 'Send my colonies to Home Assistant',
   'Meintest du …': 'Did you mean …',
   'Menge': 'Amount',
   'Messor barbarus': 'Messor barbarus',
@@ -605,6 +619,8 @@ const table = <String, String>{
   'Messwerte (optional)': 'Readings (optional)',
   'Mindestens 10 Zeichen': 'At least 10 characters',
   'Mindestens eine Art muss ausgewählt bleiben': 'At least one kind must stay selected',
+  'Mindestens eine Entität angeben, z. B. sensor.formicarium_temperature':
+      'Enter at least one entity, e.g. sensor.formicarium_temperature',
   'Mindestens zwei Fotos nötig': 'At least two photos needed',
   'Mindesthaltbarkeit': 'Best before',
   'Mindesthaltbarkeit abgelaufen ({0})': 'Best-before date passed ({0})',
@@ -707,6 +723,8 @@ const table = <String, String>{
   'Offline · {0} Änderung(en) warten': 'Offline · {0} change(s) waiting',
   'Offline – Foto noch nicht geladen': 'Offline – photo not loaded yet',
   'Ohne Winterruhe': 'No hibernation',
+  'Optional: Damit Sensoren der Art „Home Assistant“ ihre Werte bekommen, liest der Server die gewählten Entitäten alle 5 Minuten über die REST-API. Token: in Home Assistant unten links auf dein Profil → Sicherheit → „Langlebige Zugriffstoken“.':
+      'Optional: so that sensors of the kind “Home Assistant” get their values, the server reads the chosen entities every 5 minutes via the REST API. Token: in Home Assistant bottom left on your profile → Security → “Long-lived access tokens”.',
   'Ordner im Container': 'Folder in the container',
   'PDF für {0} Etikett(en)': 'PDF for {0} label(s)',
   'PDF heruntergeladen – im PDF-Programm mit 100 % Skalierung drucken.':
@@ -824,6 +842,7 @@ const table = <String, String>{
   'Sensor-Alarme trotzdem melden': 'Report sensor alarms anyway',
   'Sensor-Grenzwert überschritten': 'Sensor limit exceeded',
   'Sensoren': 'Sensors',
+  'Sensorwerte aus Home Assistant': 'Sensor values from Home Assistant',
   'Seriennummer': 'Serial number',
   'Server': 'Server',
   'Server nicht erreichbar – gleiches Netzwerk? Adresse richtig?':
@@ -1021,6 +1040,7 @@ const table = <String, String>{
   'Zuckerwasser oder Honigwasser darf dauerhaft verfügbar sein. Protein nur so viel, wie in etwa einem Tag verbraucht wird: Zu viel Protein verkürzt die Lebensdauer der Arbeiterinnen (Dussutour & Simpson 2012).':
       'Sugar water or honey water may be available all the time. Protein only as much as is used in about a day: too much protein shortens the workers\' lifespan (Dussutour & Simpson 2012).',
   'Zufälliger Topic-Name': 'Random topic name',
+  'Zugriffstoken': 'Access token',
   'Zuletzt gesendet: {0}': 'Last sent: {0}',
   'Zuletzt {0} {1}': 'Last {0} {1}',
   'Zuletzt: {0}': 'Last: {0}',

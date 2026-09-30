@@ -52,6 +52,7 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, log *slog.
 		imageSem: make(chan struct{}, 2),
 	}
 	s.mqtt.kick = make(chan struct{}, 1)
+	s.mqtt.haKick = make(chan struct{}, 1)
 	if err := s.loadColumns(ctx); err != nil {
 		return nil, err
 	}

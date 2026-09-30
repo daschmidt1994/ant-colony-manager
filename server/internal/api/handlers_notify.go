@@ -167,3 +167,36 @@ func (s *Server) testMQTT(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (s *Server) testHomeAssistant(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.TestHomeAssistant(r.Context(), actorOf(r)); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) getHomeAssistantMe(w http.ResponseWriter, r *http.Request) {
+	st, err := s.svc.GetHomeAssistantMe(r.Context(), actorOf(r))
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, st)
+}
+
+func (s *Server) setHomeAssistantMe(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	st, err := s.svc.SetHomeAssistantMe(r.Context(), actorOf(r), in.Enabled)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, st)
+}
