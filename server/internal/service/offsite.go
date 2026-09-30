@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -18,7 +19,9 @@ import (
 )
 
 // Off-site backup: after the backup container finished a backup, the server
-// copies it to a WebDAV folder (Nextcloud, NAS, storage box). Layout there:
+// copies it to another place – a WebDAV folder (Nextcloud, NAS, storage box),
+// an SMB share (Windows, NAS) or a folder mounted into the container (NFS,
+// USB disk). Layout there:
 //
 //	<folder>/<backup name>/db.dump, manifest.json, uploads.sha256, env.redacted, OK
 //	<folder>/uploads/…      photos, shared by all backups – each photo is sent once
@@ -31,9 +34,16 @@ const (
 	offsiteStateKey = "offsite_state"
 )
 
+const (
+	offsiteWebDAV = "webdav"
+	offsiteSMB    = "smb"
+	offsiteFolder = "folder"
+)
+
 type storedOffsite struct {
 	Enabled     bool   `json:"enabled"`
-	URL         string `json:"url"`
+	Type        string `json:"type,omitempty"` // "" = webdav (before SMB and folders existed)
+	URL         string `json:"url"`            // WebDAV/SMB address or folder path
 	User        string `json:"user"`
 	PasswordEnc string `json:"password_enc,omitempty"`
 	Keep        int    `json:"keep"`
@@ -55,7 +65,8 @@ type OffsiteStatus struct {
 // OffsiteSettings is the admin API shape; the password is write-only.
 type OffsiteSettings struct {
 	Enabled     bool          `json:"enabled"`
-	URL         string        `json:"url"`
+	Type        string        `json:"type"` // webdav | smb | folder
+	URL         string        `json:"url"`  // https://…, smb://server/share/folder or /offsite
 	User        string        `json:"user"`
 	Password    *string       `json:"password,omitempty"` // input: nil = keep, "" = remove
 	PasswordSet bool          `json:"password_set"`
@@ -92,7 +103,7 @@ func (s *Service) GetOffsiteSettings(ctx context.Context, actor Actor) (*Offsite
 	if _, err := s.loadJSONSetting(ctx, offsiteKey, &st); err != nil {
 		return nil, err
 	}
-	out := &OffsiteSettings{Enabled: st.Enabled, URL: st.URL, User: st.User, PasswordSet: st.PasswordEnc != "", Keep: st.Keep}
+	out := &OffsiteSettings{Enabled: st.Enabled, Type: st.kind(), URL: st.URL, User: st.User, PasswordSet: st.PasswordEnc != "", Keep: st.Keep}
 	if out.Keep == 0 {
 		out.Keep = 7
 	}
@@ -114,15 +125,20 @@ func (s *Service) SetOffsiteSettings(ctx context.Context, actor Actor, in Offsit
 	}
 	in.URL = strings.TrimSpace(in.URL)
 	in.User = strings.TrimSpace(in.User)
+	if in.Type == "" {
+		in.Type = offsiteWebDAV
+	}
 	if in.Keep < 1 || in.Keep > 365 {
 		return nil, Invalid("keep", "keep 1–365 backups")
 	}
 	if in.URL != "" {
-		if _, err := newWebdav(in.URL, in.User, ""); err != nil {
+		t, err := s.newOffsiteTarget(in.Type, in.URL, in.User, "")
+		if err != nil {
 			return nil, err
 		}
+		t.close()
 	} else if in.Enabled {
-		return nil, Invalid("url", "enter the WebDAV address")
+		return nil, Invalid("url", "enter where the backups should go")
 	}
 	if strings.ContainsAny(in.User, "\r\n") || len(in.User) > 320 ||
 		(in.Password != nil && (strings.ContainsAny(*in.Password, "\r\n") || len(*in.Password) > 500)) {
@@ -132,7 +148,7 @@ func (s *Service) SetOffsiteSettings(ctx context.Context, actor Actor, in Offsit
 	if _, err := s.loadJSONSetting(ctx, offsiteKey, &old); err != nil {
 		return nil, err
 	}
-	st := storedOffsite{Enabled: in.Enabled, URL: in.URL, User: in.User, Keep: in.Keep, PasswordEnc: old.PasswordEnc}
+	st := storedOffsite{Enabled: in.Enabled, Type: in.Type, URL: in.URL, User: in.User, Keep: in.Keep, PasswordEnc: old.PasswordEnc}
 	if in.Password != nil {
 		st.PasswordEnc = ""
 		if *in.Password != "" {
@@ -143,7 +159,7 @@ func (s *Service) SetOffsiteSettings(ctx context.Context, actor Actor, in Offsit
 		}
 	}
 	// another target: the photos there are unknown – send them all again
-	if old.URL != "" && old.URL != st.URL {
+	if old.URL != "" && (old.URL != st.URL || old.kind() != st.kind()) {
 		if _, err := s.Pool.Exec(ctx, `DELETE FROM offsite_files`); err != nil {
 			return nil, err
 		}
@@ -152,11 +168,42 @@ func (s *Service) SetOffsiteSettings(ctx context.Context, actor Actor, in Offsit
 	if err := s.saveJSONSetting(ctx, offsiteKey, st); err != nil {
 		return nil, err
 	}
-	s.Audit(ctx, &actor.UserID, "offsite_settings_changed", "", map[string]any{"url": st.URL, "enabled": st.Enabled}, meta.IP)
+	s.Audit(ctx, &actor.UserID, "offsite_settings_changed", "", map[string]any{"type": st.Type, "url": st.URL, "enabled": st.Enabled}, meta.IP)
 	return s.GetOffsiteSettings(ctx, actor)
 }
 
-func (s *Service) offsiteClient(ctx context.Context) (*webdav, *storedOffsite, error) {
+func (st storedOffsite) kind() string {
+	if st.Type == "" {
+		return offsiteWebDAV
+	}
+	return st.Type
+}
+
+// offsiteTarget is where the backups go. Paths are relative to the target
+// folder and use "/".
+type offsiteTarget interface {
+	check(ctx context.Context) error // address, login; creates the folder if needed
+	mkdirAll(ctx context.Context, p string, known map[string]bool) error
+	put(ctx context.Context, p string, body io.Reader, size int64) error
+	delete(ctx context.Context, p string) error // a folder with everything in it
+	folders(ctx context.Context, p string) ([]string, error)
+	close()
+}
+
+func (s *Service) newOffsiteTarget(kind, raw, user, pass string) (offsiteTarget, error) {
+	switch kind {
+	case offsiteWebDAV:
+		return newWebdav(raw, user, pass)
+	case offsiteSMB:
+		return newSMBTarget(raw, user, pass)
+	case offsiteFolder:
+		return newFolderTarget(raw, s.Cfg.BackupDir, s.Cfg.StoragePath)
+	}
+	return nil, Invalid("type", "type must be webdav, smb or folder")
+}
+
+// offsiteClient returns the configured target (nil if none); close it after use.
+func (s *Service) offsiteClient(ctx context.Context) (offsiteTarget, *storedOffsite, error) {
 	var st storedOffsite
 	found, err := s.loadJSONSetting(ctx, offsiteKey, &st)
 	if err != nil || !found || st.URL == "" {
@@ -164,13 +211,16 @@ func (s *Service) offsiteClient(ctx context.Context) (*webdav, *storedOffsite, e
 	}
 	pw, err := s.decryptSecret(st.PasswordEnc)
 	if err != nil {
-		return nil, nil, fmt.Errorf("stored WebDAV password cannot be decrypted (INSTANCE_SECRET changed?): %w", err)
+		return nil, nil, fmt.Errorf("stored off-site password cannot be decrypted (INSTANCE_SECRET changed?): %w", err)
 	}
-	d, err := newWebdav(st.URL, st.User, pw)
 	if st.Keep == 0 {
 		st.Keep = 7
 	}
-	return d, &st, err
+	d, err := s.newOffsiteTarget(st.kind(), st.URL, st.User, pw)
+	if err != nil {
+		return nil, nil, err
+	}
+	return d, &st, nil
 }
 
 // TestOffsite checks address and login (and creates the folder).
@@ -183,8 +233,11 @@ func (s *Service) TestOffsite(ctx context.Context, actor Actor) error {
 		return err
 	}
 	if d == nil {
-		return Invalid("url", "enter and save the WebDAV address first")
+		return Invalid("url", "enter and save the target first")
 	}
+	defer d.close()
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
 	if err := d.check(ctx); err != nil {
 		return &Problem{Status: 502, Code: "offsite.failed", Title: err.Error()}
 	}
@@ -197,12 +250,14 @@ func (s *Service) StartOffsite(ctx context.Context, actor Actor) error {
 	if err := requireAdmin(actor); err != nil {
 		return err
 	}
-	if d, _, err := s.offsiteClient(ctx); err != nil || d == nil {
+	d, _, err := s.offsiteClient(ctx)
+	if err != nil || d == nil {
 		if err == nil {
-			err = Invalid("url", "enter and save the WebDAV address first")
+			err = Invalid("url", "enter and save the target first")
 		}
 		return err
 	}
+	d.close()
 	go func() {
 		bg, cancel := context.WithTimeout(context.WithoutCancel(ctx), 6*time.Hour)
 		defer cancel()
@@ -245,8 +300,12 @@ func (s *Service) latestLocalBackup() (string, error) {
 // few minutes by the server and by „Jetzt hochladen“.
 func (s *Service) OffsiteSync(ctx context.Context, force bool) (bool, error) {
 	d, st, err := s.offsiteClient(ctx)
-	if err != nil || d == nil || (!st.Enabled && !force) {
+	if err != nil || d == nil {
 		return false, err
+	}
+	defer d.close()
+	if !st.Enabled && !force {
+		return false, nil
 	}
 	if !offsiteRun.TryLock() {
 		return false, nil // already running
@@ -286,7 +345,7 @@ func (s *Service) offsiteFailed(ctx context.Context, state *OffsiteStatus, err e
 	return err
 }
 
-func (s *Service) offsiteUpload(ctx context.Context, d *webdav, keep int, name string) (int64, int, error) {
+func (s *Service) offsiteUpload(ctx context.Context, d offsiteTarget, keep int, name string) (int64, int, error) {
 	local := filepath.Join(s.Cfg.BackupDir, name)
 	if err := d.check(ctx); err != nil {
 		return 0, 0, err

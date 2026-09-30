@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -56,8 +57,38 @@ func TestFeedCalendar(t *testing.T) {
 		t.Fatal("feed not active")
 	}
 
+	// Only hibernation: care and tasks disappear from the calendar.
+	if info := anna.Do("GET", "/api/v1/me/feed", nil).Must(t, 200).JSON(); info["calendar_types"] != nil {
+		t.Fatalf("default filter: %v", info)
+	}
+	anna.Do("PATCH", "/api/v1/me/feed", map[string]any{"calendar_types": []string{"futter"}}).Must(t, 422)
+	anna.Do("PATCH", "/api/v1/me/feed", map[string]any{"calendar_types": []string{}}).Must(t, 422)
+	info := anna.Do("PATCH", "/api/v1/me/feed", map[string]any{"calendar_types": []string{"winter"}}).Must(t, 200).JSON()
+	if fmt.Sprint(info["calendar_types"]) != "[winter]" {
+		t.Fatalf("filter: %v", info)
+	}
+	ics = string(env.Anon().Do("GET", "/api/v1/feeds/"+token+"/calendar.ics", nil).Must(t, 200).Body)
+	if !strings.Contains(ics, "Winterruhe beenden?") || strings.Contains(ics, "Proteinfütterung") || strings.Contains(ics, "Nest umziehen") {
+		t.Fatalf("only winter:\n%s", ics)
+	}
+	// Only protein feeding and tasks.
+	anna.Do("PATCH", "/api/v1/me/feed", map[string]any{"calendar_types": []string{"tasks", "protein"}}).Must(t, 200)
+	ics = string(env.Anon().Do("GET", "/api/v1/feeds/"+token+"/calendar.ics", nil).Must(t, 200).Body)
+	if strings.Contains(ics, "Winterruhe") || !strings.Contains(ics, "Proteinfütterung") || !strings.Contains(ics, "Nest umziehen") {
+		t.Fatalf("protein and tasks:\n%s", ics)
+	}
+	// Everything selected is stored as "everything"; a new address keeps the choice.
+	all := []string{"protein", "carbohydrate", "feeding", "water", "cleaning", "check", "custom", "winter", "tasks"}
+	if info := anna.Do("PATCH", "/api/v1/me/feed", map[string]any{"calendar_types": all}).Must(t, 200).JSON(); info["calendar_types"] != nil {
+		t.Fatalf("all: %v", info)
+	}
+	anna.Do("PATCH", "/api/v1/me/feed", map[string]any{"calendar_types": []string{"winter"}}).Must(t, 200)
+
 	// A new address replaces the old one; a wrong secret looks like a missing page.
 	token2 := anna.Do("POST", "/api/v1/me/feed", nil).Must(t, 201).JSON()["token"].(string)
+	if info := anna.Do("GET", "/api/v1/me/feed", nil).Must(t, 200).JSON(); fmt.Sprint(info["calendar_types"]) != "[winter]" {
+		t.Fatalf("filter lost with a new address: %v", info)
+	}
 	env.Anon().Do("GET", "/api/v1/feeds/"+token+"/calendar.ics", nil).Must(t, 404)
 	env.Anon().Do("GET", "/api/v1/feeds/"+token2[:len(token2)-3]+"xyz/calendar.ics", nil).Must(t, 404)
 	env.Anon().Do("GET", "/api/v1/feeds/nonsense/calendar.ics", nil).Must(t, 404)
@@ -65,6 +96,7 @@ func TestFeedCalendar(t *testing.T) {
 
 	// Another user sees only their own colonies.
 	ben := env.User(t, "Ben")
+	ben.Do("PATCH", "/api/v1/me/feed", map[string]any{"calendar_types": []string{"winter"}}).Must(t, 404)
 	benToken := ben.Do("POST", "/api/v1/me/feed", nil).Must(t, 201).JSON()["token"].(string)
 	if ics := string(env.Anon().Do("GET", "/api/v1/feeds/"+benToken+"/calendar.ics", nil).Must(t, 200).Body); strings.Contains(ics, "Messor") {
 		t.Fatalf("ben sees: %s", ics)

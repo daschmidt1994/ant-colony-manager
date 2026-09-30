@@ -126,6 +126,7 @@ func (s *Server) Handler() *chi.Mux {
 			r.With(s.rateLimitUser(s.limScan)).Post("/me/notifications/test", s.testNotify)
 			r.Get("/me/feed", s.getFeed)
 			r.With(s.rateLimitUser(s.limSensitive)).Post("/me/feed", s.createFeed)
+			r.Patch("/me/feed", s.setFeedFilter)
 			r.Delete("/me/feed", s.deleteFeed)
 			r.Put("/me/password", s.changePassword)
 			r.Delete("/me", s.deleteMe)

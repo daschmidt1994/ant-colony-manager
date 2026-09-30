@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -28,12 +29,17 @@ type FeedInfo struct {
 	Active     bool       `json:"active"`
 	CreatedAt  *time.Time `json:"created_at,omitempty"`
 	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	// what the calendar shows; nil = everything
+	CalendarTypes []string `json:"calendar_types"`
 }
+
+// CalendarTypes: the care task types, winter rest start/end and one-off tasks.
+var CalendarTypes = []string{"protein", "carbohydrate", "feeding", "water", "cleaning", "check", "custom", "winter", "tasks"}
 
 func (s *Service) FeedInfo(ctx context.Context, actor Actor) (*FeedInfo, error) {
 	var f FeedInfo
-	err := s.Pool.QueryRow(ctx, `SELECT created_at, last_used_at FROM feed_tokens WHERE user_id = $1`, actor.UserID).
-		Scan(&f.CreatedAt, &f.LastUsedAt)
+	err := s.Pool.QueryRow(ctx, `SELECT created_at, last_used_at, calendar_types FROM feed_tokens WHERE user_id = $1`, actor.UserID).
+		Scan(&f.CreatedAt, &f.LastUsedAt, &f.CalendarTypes)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return &f, nil
 	}
@@ -52,6 +58,36 @@ func (s *Service) CreateFeedToken(ctx context.Context, actor Actor) (string, err
 		return "", err
 	}
 	return "acm_fk_" + prefix + "_" + secret, nil
+}
+
+// SetCalendarTypes chooses what the calendar shows (all types = nil); it
+// applies to the existing address at once.
+func (s *Service) SetCalendarTypes(ctx context.Context, actor Actor, types []string) (*FeedInfo, error) {
+	var keep []string
+	for _, t := range CalendarTypes { // known values, in a fixed order, no duplicates
+		if slices.Contains(types, t) {
+			keep = append(keep, t)
+		}
+	}
+	for _, t := range types {
+		if !slices.Contains(CalendarTypes, t) {
+			return nil, Invalid("calendar_types", "unknown type %q", t)
+		}
+	}
+	if types != nil && len(keep) == 0 {
+		return nil, Invalid("calendar_types", "choose at least one type")
+	}
+	if len(keep) == len(CalendarTypes) {
+		keep = nil
+	}
+	tag, err := s.Pool.Exec(ctx, `UPDATE feed_tokens SET calendar_types = $2 WHERE user_id = $1`, actor.UserID, keep)
+	if err != nil {
+		return nil, err
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, NotFound("feed")
+	}
+	return s.FeedInfo(ctx, actor)
 }
 
 func (s *Service) DeleteFeedToken(ctx context.Context, actor Actor) error {
@@ -246,12 +282,18 @@ func (s *Service) colonyStatus(ctx context.Context, user uuid.UUID) (*FeedStatus
 // Calendar (iCal, RFC 5545)
 
 // FeedCalendar lists the next due date of every care plan (overdue ones
-// today), planned winter rest starts and ends, and open one-off tasks.
+// today), planned winter rest starts and ends, and open one-off tasks – as
+// far as the user chose them (calendar_types).
 func (s *Service) FeedCalendar(ctx context.Context, user uuid.UUID) ([]byte, error) {
 	d, err := s.feedLoad(ctx, user)
 	if err != nil {
 		return nil, err
 	}
+	var only []string
+	if err := s.Pool.QueryRow(ctx, `SELECT calendar_types FROM feed_tokens WHERE user_id = $1`, user).Scan(&only); err != nil {
+		return nil, err
+	}
+	show := func(kind string) bool { return only == nil || slices.Contains(only, kind) }
 	now := s.Now()
 	today := now.In(d.prefs.Location)
 	stamp := now.UTC().Format("20060102T150405Z")
@@ -275,7 +317,7 @@ func (s *Service) FeedCalendar(ctx context.Context, user uuid.UUID) ([]byte, err
 	var events []event
 	for _, c := range d.colonies {
 		for _, t := range d.due[c.ID] {
-			if t.Status == DuePaused || t.NextDueAt == nil {
+			if t.Status == DuePaused || t.NextDueAt == nil || !show(t.TaskType) {
 				continue
 			}
 			day := t.NextDueAt.In(d.prefs.Location)
@@ -287,7 +329,7 @@ func (s *Service) FeedCalendar(ctx context.Context, user uuid.UUID) ([]byte, err
 			events = append(events, event{uid: "due-" + t.ScheduleID.String(), day: &day, url: link(c),
 				summary: "🐜 " + taskLabel(d.lang, t) + " – " + label(c), description: desc})
 		}
-		if w := c.Winter; w != nil {
+		if w := c.Winter; w != nil && show("winter") {
 			if w.StartedOn == nil && w.PlannedStartOn != nil {
 				if day, err := time.ParseInLocation(time.DateOnly, *w.PlannedStartOn, d.prefs.Location); err == nil {
 					events = append(events, event{uid: "winter-start-" + c.ID.String(), day: &day, url: link(c),
@@ -303,6 +345,9 @@ func (s *Service) FeedCalendar(ctx context.Context, user uuid.UUID) ([]byte, err
 		}
 	}
 	for _, t := range d.tasks {
+		if !show("tasks") {
+			break
+		}
 		at := t.dueAt
 		summary, url := "📋 "+t.title, s.publicURL()+"/"
 		if t.colonyID != nil {
