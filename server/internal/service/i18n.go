@@ -73,6 +73,7 @@ var enTexts = map[string]string{
 	"Die Antwort der KI wurde abgeschnitten – weniger Fotos wählen":                        "The AI's answer was cut off – choose fewer photos",
 	"Unlesbare Antwort der KI – bitte noch einmal":                                         "Unreadable answer from the AI – please try again",
 	"Die KI hat nicht jedes Foto gezählt – bitte noch einmal":                              "The AI did not count every photo – please try again",
+	"Kein Guthaben beim KI-Anbieter – dort aufladen":                                       "No credit at the AI provider – top it up there",
 	"Die KI ist nicht erreichbar":                                                          "The AI is not reachable",
 	// off-site backup warning
 	"Backup außer Haus fehlt":                              "Off-site backup missing",

@@ -154,3 +154,88 @@ func TestAICount(t *testing.T) {
 		t.Fatal("unexpected retries")
 	}
 }
+
+// ChatGPT and OpenRouter: the Chat Completions API with images as data URLs.
+func TestAICountOpenAICompatible(t *testing.T) {
+	var lastReq map[string]any
+	var lastAuth, lastTitle string
+	status := http.StatusOK
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/chat/completions" {
+			t.Errorf("path %s", r.URL.Path)
+		}
+		lastAuth, lastTitle = r.Header.Get("Authorization"), r.Header.Get("X-Title")
+		b, _ := io.ReadAll(r.Body)
+		lastReq = map[string]any{}
+		json.Unmarshal(b, &lastReq)
+		w.Header().Set("Content-Type", "application/json")
+		if status != http.StatusOK {
+			w.WriteHeader(status)
+			w.Write([]byte(`{"error":{"message":"Insufficient credits. Add more using https://openrouter.ai/credits","code":402}}`))
+			return
+		}
+		// some models wrap the JSON in a code fence
+		content := "```json\n" + `{"photos":[{"photo":1,"count":42,"min":40,"max":45,"queens":1,"note":""}],"overlap":false,"note":""}` + "\n```"
+		msg, _ := json.Marshal(map[string]any{"model": "openai/gpt-test", "choices": []any{map[string]any{
+			"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": content}}}})
+		w.Write(msg)
+	}))
+	defer api.Close()
+
+	env := testenv.New(t)
+	env.Svc.AIBaseURL = api.URL
+	admin := env.Admin(t)
+	anna := env.User(t, "Anna")
+	colony := anna.CreateColony(t, nil)
+	photo := testenv.NewID()
+	anna.Do("POST", "/api/v1/photos", map[string]any{"id": photo, "colony_id": colony}).Must(t, 201)
+	img := testJPEG(t, 300, 200, 1)
+	sum := sha256.Sum256(img)
+	anna.Do("PUT", "/api/v1/photos/"+photo.String()+"/content", img, "Content-SHA256", hex.EncodeToString(sum[:])).Must(t, 200)
+
+	admin.Do("PUT", "/api/v1/admin/ai", map[string]any{"enabled": true, "api_key": "sk-ant-x"}).Must(t, 200)
+	// another provider: the model must be given, the Claude key is not taken over
+	admin.Do("PUT", "/api/v1/admin/ai", map[string]any{"enabled": true, "provider": "openrouter"}).Must(t, 422)
+	admin.Do("PUT", "/api/v1/admin/ai", map[string]any{"enabled": true, "provider": "gemini", "model": "x", "api_key": "k"}).Must(t, 422)
+	if s := admin.Do("PUT", "/api/v1/admin/ai", map[string]any{"enabled": false, "provider": "openrouter", "model": "openai/gpt-test"}).Must(t, 200).JSON(); s["api_key_set"] != false {
+		t.Fatalf("claude key kept for openrouter: %v", s)
+	}
+	s := admin.Do("PUT", "/api/v1/admin/ai", map[string]any{"enabled": true, "provider": "openrouter", "model": "openai/gpt-test", "api_key": "sk-or-test"}).Must(t, 200).JSON()
+	if s["provider"] != "openrouter" || s["model"] != "openai/gpt-test" {
+		t.Fatalf("settings: %v", s)
+	}
+	if info := anna.Do("GET", "/api/v1/ai", nil).Must(t, 200).JSON(); info["available"] != true || info["provider"] != "openrouter" {
+		t.Fatalf("info: %v", info)
+	}
+
+	r := anna.Do("POST", "/api/v1/colonies/"+colony.String()+"/ai-count", map[string]any{"photo_ids": []any{photo}}).Must(t, 200).JSON()
+	if r["total"] != float64(42) || r["model"] != "openai/gpt-test" {
+		t.Fatalf("result: %v", r)
+	}
+	if lastAuth != "Bearer sk-or-test" || lastTitle != "Ant Colony Manager" || lastReq["model"] != "openai/gpt-test" {
+		t.Fatalf("request: %s %s %v", lastAuth, lastTitle, lastReq["model"])
+	}
+	rf := lastReq["response_format"].(map[string]any)
+	if rf["type"] != "json_schema" {
+		t.Fatalf("response_format: %v", rf)
+	}
+	user := lastReq["messages"].([]any)[1].(map[string]any)["content"].([]any)
+	url := user[1].(map[string]any)["image_url"].(map[string]any)["url"].(string)
+	if !strings.HasPrefix(url, "data:image/jpeg;base64,/9j/") {
+		t.Fatalf("image: %.40s", url)
+	}
+
+	// no credit at OpenRouter
+	status = http.StatusPaymentRequired
+	if r := anna.Do("POST", "/api/v1/colonies/"+colony.String()+"/ai-count", map[string]any{"photo_ids": []any{photo}}).Must(t, 502).JSON(); !strings.Contains(r["title"].(string), "Guthaben") {
+		t.Fatalf("no credit: %v", r)
+	}
+
+	// ChatGPT: same API, OpenAI's address (here the test server), no OpenRouter header
+	status = http.StatusOK
+	admin.Do("PUT", "/api/v1/admin/ai", map[string]any{"enabled": true, "provider": "openai", "model": "gpt-test", "api_key": "sk-openai"}).Must(t, 200)
+	anna.Do("POST", "/api/v1/colonies/"+colony.String()+"/ai-count", map[string]any{"photo_ids": []any{photo}}).Must(t, 200)
+	if lastAuth != "Bearer sk-openai" || lastTitle != "" {
+		t.Fatalf("openai request: %s %q", lastAuth, lastTitle)
+	}
+}

@@ -11,7 +11,14 @@ void main() {
   });
 
   test('AI settings body: key only when typed or removed', () {
-    expect(aiBody(enabled: true, model: ' claude-opus-5-5 '), {'enabled': true, 'model': 'claude-opus-5-5'});
+    expect(aiBody(enabled: true, model: ' claude-opus-5-5 '), {
+      'enabled': true,
+      'provider': 'anthropic',
+      'model': 'claude-opus-5-5',
+    });
+    expect(aiBody(enabled: true, provider: 'openrouter', model: 'openai/x')['provider'], 'openrouter');
+    expect(aiProviderHelp('openrouter').keyHint, 'sk-or-…');
+    expect(aiProviderHelp('openai').key, contains('platform.openai.com'));
     expect(aiBody(enabled: true, model: 'm', apiKey: ' sk-ant-x ')['api_key'], 'sk-ant-x');
     expect(aiBody(enabled: false, model: 'm', removeKey: true)['api_key'], '');
   });

@@ -494,5 +494,6 @@ func (s *Server) aiCount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) aiInfo(w http.ResponseWriter, r *http.Request) {
-	s.writeJSON(w, http.StatusOK, map[string]bool{"available": s.svc.AIAvailable(r.Context())})
+	ok, provider := s.svc.AIAvailable(r.Context())
+	s.writeJSON(w, http.StatusOK, map[string]any{"available": ok, "provider": provider})
 }
