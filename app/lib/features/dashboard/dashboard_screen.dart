@@ -10,6 +10,7 @@ import '../../data/repositories/colony_repository.dart';
 import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
+import '../food_stock/food_stock_screen.dart';
 import '../settings/updates.dart';
 import '../../app/i18n.dart';
 
@@ -109,6 +110,7 @@ class _Dashboard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               _RoundCard(needsAttention: d.needsAttention),
+              const FoodStockHintCard(),
               for (final (group, title, open) in _groups)
                 if (grouped[group]?.isNotEmpty == true)
                   _GroupSection(

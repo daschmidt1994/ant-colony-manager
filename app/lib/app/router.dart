@@ -10,10 +10,17 @@ import '../features/colonies/colony_list_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/labels/labels_screen.dart';
 import '../features/nfc/nfc_screens.dart';
+import '../features/photos/compare_screen.dart';
 import '../features/photos/photos.dart';
 import '../features/round/round_screens.dart';
 import '../features/scan/scan_screens.dart';
 import '../features/sensors/sensors_screen.dart';
+import '../features/settings/feeds_screen.dart';
+import '../features/care_cover/care_cover_screen.dart';
+import '../features/settings/ai_screen.dart';
+import '../features/settings/mqtt_screen.dart';
+import '../features/settings/offsite_screen.dart';
+import '../features/food_stock/food_stock_screen.dart';
 import '../features/settings/devices_screen.dart';
 import '../features/settings/notifications_screen.dart';
 import '../features/settings/smtp_screen.dart';
@@ -107,6 +114,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'photos',
                         builder: (_, s) => GalleryScreen(colonyId: s.pathParameters['id']!),
+                        routes: [
+                          GoRoute(
+                            path: 'compare',
+                            builder: (_, s) => PhotoCompareScreen(colonyId: s.pathParameters['id']!),
+                          ),
+                        ],
                       ),
                       GoRoute(
                         path: 'nfc',
@@ -122,6 +135,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(path: 'new', builder: (_, _) => const SpeciesFormScreen()),
                   GoRoute(path: 'food', builder: (_, _) => const FoodGuideScreen()),
+                  GoRoute(path: 'flights', builder: (_, _) => const FlightCalendarScreen()),
                   GoRoute(
                     path: ':id',
                     builder: (_, s) => SpeciesDetailScreen(speciesId: s.pathParameters['id']!),
@@ -163,8 +177,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'sync', builder: (_, _) => const SyncDetailsScreen()),
                   GoRoute(path: 'stats', builder: (_, _) => const CollectionStatsScreen()),
                   GoRoute(path: 'sensors', builder: (_, _) => const SensorsScreen()),
+                  GoRoute(path: 'feeds', builder: (_, _) => const FeedsScreen()),
+                  GoRoute(path: 'food-stock', builder: (_, _) => const FoodStockScreen()),
                   GoRoute(path: 'notifications', builder: (_, _) => const NotificationsScreen()),
                   GoRoute(path: 'smtp', builder: (_, _) => const SmtpScreen()),
+                  GoRoute(path: 'offsite', builder: (_, _) => const OffsiteScreen()),
+                  GoRoute(path: 'mqtt', builder: (_, _) => const MqttScreen()),
+                  GoRoute(path: 'ai', builder: (_, _) => const AiScreen()),
+                  GoRoute(path: 'care-covers', builder: (_, _) => const CareCoverScreen()),
                   GoRoute(path: 'devices', builder: (_, _) => const DevicesScreen()),
                   GoRoute(
                     path: 'labels',

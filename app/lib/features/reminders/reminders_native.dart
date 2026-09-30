@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -12,17 +13,24 @@ import '../../data/local/database.dart';
 import '../../data/repositories/colony_repository.dart';
 import '../../data/sync/background_sync_native.dart';
 import '../../domain/reminders.dart';
+import '../widget/home_widget.dart';
 import 'reminder_actions.dart';
 import '../../app/i18n.dart';
 
 typedef ReminderTap = void Function(String? actionId, String? payload);
 
 final _plugin = FlutterLocalNotificationsPlugin();
+const _system = MethodChannel('acm/system');
 bool _ready = false;
+ReminderTap? _onTap;
 const _shownKey = 'reminders_shown';
+const _lastRunKey = 'reminders_last_run';
+const _errorKey = 'reminders_error';
+const _digestAtKey = 'reminders_digest_at';
 const _groupKey = 'at.antcolony.manager.due';
 final _digestId = notificationId('digest');
 final _summaryId = notificationId('summary');
+const _green = Color(0xFF7DB36F); // app primary – tints the icon
 
 NotificationDetails get _dueDetails => NotificationDetails(
   android: AndroidNotificationDetails(
@@ -30,10 +38,27 @@ NotificationDetails get _dueDetails => NotificationDetails(
     tr('Überfällige Pflege'),
     channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
+    color: _green,
     groupKey: _groupKey,
     actions: [
       AndroidNotificationAction('done', tr('Erledigt')),
       AndroidNotificationAction('snooze', tr('Morgen')),
+      AndroidNotificationAction('open', tr('Öffnen'), showsUserInterface: true),
+    ],
+  ),
+);
+
+/// Food culture: „Erledigt“ without „Morgen“.
+NotificationDetails get _doneDetails => NotificationDetails(
+  android: AndroidNotificationDetails(
+    'due',
+    tr('Überfällige Pflege'),
+    channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
+    category: AndroidNotificationCategory.reminder,
+    color: _green,
+    groupKey: _groupKey,
+    actions: [
+      AndroidNotificationAction('done', tr('Erledigt')),
       AndroidNotificationAction('open', tr('Öffnen'), showsUserInterface: true),
     ],
   ),
@@ -46,6 +71,7 @@ NotificationDetails get _snoozeDetails => NotificationDetails(
     tr('Überfällige Pflege'),
     channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
+    color: _green,
     groupKey: _groupKey,
     actions: [
       AndroidNotificationAction('snooze', tr('Morgen')),
@@ -60,12 +86,19 @@ NotificationDetails get _infoDetails => NotificationDetails(
     tr('Überfällige Pflege'),
     channelDescription: tr('Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“'),
     category: AndroidNotificationCategory.reminder,
+    color: _green,
     groupKey: _groupKey,
   ),
 );
 
 NotificationDetails get _summaryDetails => NotificationDetails(
-  android: AndroidNotificationDetails('due', tr('Überfällige Pflege'), groupKey: _groupKey, setAsGroupSummary: true),
+  android: AndroidNotificationDetails(
+    'due',
+    tr('Überfällige Pflege'),
+    groupKey: _groupKey,
+    setAsGroupSummary: true,
+    color: _green,
+  ),
 );
 
 NotificationDetails get _digestDetails => NotificationDetails(
@@ -74,17 +107,19 @@ NotificationDetails get _digestDetails => NotificationDetails(
     tr('Tages-Überblick'),
     channelDescription: tr('Einmal täglich: was heute ansteht'),
     category: AndroidNotificationCategory.reminder,
+    color: _green,
   ),
 );
 
 bool get _android => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
 Future<void> _init({ReminderTap? onTap}) async {
+  if (onTap != null) _onTap = onTap; // the shell is rebuilt on a language switch
   if (_ready || !_android) return;
   tzdata.initializeTimeZones();
   await _plugin.initialize(
-    settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
-    onDidReceiveNotificationResponse: onTap == null ? null : (r) => onTap(r.actionId, r.payload),
+    settings: const InitializationSettings(android: AndroidInitializationSettings('ic_stat_ant')),
+    onDidReceiveNotificationResponse: (r) => _onTap?.call(r.actionId, r.payload),
     onDidReceiveBackgroundNotificationResponse: reminderActionInBackground,
   );
   _ready = true;
@@ -113,8 +148,22 @@ Future<bool> requestReminderPermission() async {
 /// is shown once, done care disappears, and the daily overview is scheduled
 /// for the next digest time with what will be due then. Runs after every
 /// sync, when the app comes back, and hourly in the background – offline too.
+/// Time and error of the last run are kept for the diagnostics screen.
 Future<void> syncReminders(ColonyRepository repo) async {
   if (!_android) return;
+  try {
+    await _syncReminders(repo);
+    await updateHomeWidget(repo);
+    repo.db.setMeta(_errorKey, null);
+  } catch (e) {
+    repo.db.setMeta(_errorKey, '$e');
+    rethrow;
+  } finally {
+    repo.db.setMeta(_lastRunKey, DateTime.now().toUtc().toIso8601String());
+  }
+}
+
+Future<void> _syncReminders(ColonyRepository repo) async {
   await _init();
   setLanguage(resolveLanguage(repo.settings().locale)); // also in the background isolate
   final db = repo.db;
@@ -133,7 +182,9 @@ Future<void> syncReminders(ColonyRepository repo) async {
       id: notificationId(r.slot),
       title: r.title,
       body: r.body,
-      notificationDetails: r.canComplete
+      notificationDetails: r.canComplete && !r.canSnooze
+          ? _doneDetails
+          : r.canComplete
           ? _dueDetails
           : r.canSnooze
           ? _snoozeDetails
@@ -166,6 +217,7 @@ Future<void> _scheduleDigest(ColonyRepository repo) async {
     loc = tz.UTC;
   }
   final now = tz.TZDateTime.now(loc);
+  repo.db.setMeta(_digestAtKey, null);
   if (!settings.notifyDigestApp) {
     await _plugin.cancel(id: _digestId);
     return;
@@ -187,13 +239,70 @@ Future<void> _scheduleDigest(ColonyRepository repo) async {
     body: d.body,
     payload: jsonEncode({'kind': 'digest'}),
   );
+  repo.db.setMeta(_digestAtKey, at.toUtc().toIso8601String());
 }
+
+/// What the diagnostics screen shows about notifications on this phone.
+class ReminderStatus {
+  const ReminderStatus({
+    required this.allowed,
+    required this.batteryUnrestricted,
+    required this.manufacturer,
+    this.lastRun,
+    this.error,
+    this.digestAt,
+  });
+  final bool allowed;
+  final bool? batteryUnrestricted;
+  final String manufacturer;
+  final DateTime? lastRun, digestAt;
+  final String? error;
+}
+
+Future<ReminderStatus?> reminderStatus(AppDatabase db) async {
+  if (!_android) return null;
+  await _init();
+  final impl = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  Future<T?> sys<T>(String m) async {
+    try {
+      return await _system.invokeMethod<T>(m);
+    } on Exception {
+      return null;
+    }
+  }
+
+  DateTime? at(String key) => DateTime.tryParse(db.getMeta(key) ?? '')?.toLocal();
+  return ReminderStatus(
+    allowed: await impl?.areNotificationsEnabled() ?? false,
+    batteryUnrestricted: await sys<bool>('batteryUnrestricted'),
+    manufacturer: await sys<String>('manufacturer') ?? '',
+    lastRun: at(_lastRunKey),
+    error: db.getMeta(_errorKey),
+    digestAt: at(_digestAtKey),
+  );
+}
+
+/// Shows a notification right away – proves permission, channel and icon.
+Future<void> sendTestReminder() async {
+  if (!_android) return;
+  await _init();
+  await _plugin.show(
+    id: notificationId('test'),
+    title: tr('Test-Benachrichtigung'),
+    body: tr('App-Benachrichtigungen funktionieren auf diesem Gerät.'),
+    notificationDetails: _digestDetails,
+  );
+}
+
+Future<void> openNotificationSettings() => _system.invokeMethod<void>('openNotificationSettings');
+Future<void> openAppSettings() => _system.invokeMethod<void>('openAppSettings');
 
 /// Logout: nothing about the previous account stays on screen.
 Future<void> clearReminders() async {
   if (!_android) return;
   await _init();
   await _plugin.cancelAll();
+  await clearHomeWidget();
 }
 
 /// „Erledigt“ while the app is closed or in the background: Android starts

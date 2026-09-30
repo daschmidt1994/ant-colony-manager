@@ -9,6 +9,7 @@ import '../../data/repositories/colony_repository.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../../app/i18n.dart';
+import '../ai/ai_count.dart';
 
 ColonyRepository _repo(WidgetRef ref) => ref.read(repositoryProvider)!;
 
@@ -73,15 +74,19 @@ void quickCheck(BuildContext context, WidgetRef ref, Colony colony) {
   );
 }
 
-Future<T?> _sheet<T>(BuildContext context, Widget child) => showModalBottomSheet<T>(
-  context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  builder: (c) => Padding(
-    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
-    child: ContentWidth(maxWidth: 640, child: child),
-  ),
-);
+Future<T?> _sheet<T>(BuildContext context, Widget child) {
+  // the „gespeichert – Rückgängig“ of the previous entry must not cover „Speichern“
+  ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (c) => Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
+      child: ContentWidth(maxWidth: 640, child: child),
+    ),
+  );
+}
 
 class _SheetFrame extends StatelessWidget {
   const _SheetFrame({
@@ -97,26 +102,40 @@ class _SheetFrame extends StatelessWidget {
   final List<Widget> children;
   final VoidCallback? onSave;
 
+  // „Speichern“ stays below the scrolling content – always visible.
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-            ),
-            WhenChip(value: when, onChanged: onWhen),
-          ],
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Flexible(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  WhenChip(value: when, onChanged: onWhen),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...children,
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        ...children,
-        const SizedBox(height: 20),
-        FilledButton(onPressed: onSave, child: Text(tr('Speichern'))),
-      ],
-    ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+        child: FilledButton(onPressed: onSave, child: Text(tr('Speichern'))),
+      ),
+    ],
   );
 }
 
@@ -258,7 +277,10 @@ class _FeedingSheetState extends ConsumerState<_FeedingSheet> {
         SegmentedButton<String>(
           segments: [
             for (final a in const ['unknown', 'accepted', 'partial', 'ignored'])
-              ButtonSegment(value: a, label: Text(S.acceptance[a]!)),
+              ButtonSegment(
+                value: a,
+                label: FittedBox(fit: BoxFit.scaleDown, child: Text(S.acceptance[a]!, maxLines: 1)),
+              ),
           ],
           selected: {_acceptance},
           onSelectionChanged: (v) => setState(() => _acceptance = v.first),
@@ -600,6 +622,7 @@ class _CensusSheet extends ConsumerStatefulWidget {
 class _CensusSheetState extends ConsumerState<_CensusSheet> {
   (int, int?)? _range;
   final _exact = TextEditingController();
+  String? _aiNote; // „KI: 200 (170–235)“ after counting with AI
   final _brood = <String, String>{};
   late DateTime? _when = widget.at;
 
@@ -662,6 +685,7 @@ class _CensusSheetState extends ConsumerState<_CensusSheet> {
               selected: _range == r,
               onSelected: (v) => setState(() {
                 _range = v ? r : null;
+                _aiNote = null;
                 if (v) _exact.clear();
               }),
             ),
@@ -671,9 +695,39 @@ class _CensusSheetState extends ConsumerState<_CensusSheet> {
       TextField(
         controller: _exact,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(labelText: tr('oder genau gezählt'), suffixText: tr('Arbeiterinnen')),
-        onChanged: (_) => setState(() => _range = null),
+        decoration: InputDecoration(
+          labelText: tr('oder genau gezählt'),
+          suffixText: tr('Arbeiterinnen'),
+          helperText: _aiNote,
+        ),
+        onChanged: (_) => setState(() {
+          _range = null;
+          _aiNote = null;
+        }),
       ),
+      if (ref.watch(aiAvailableProvider).value == true)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            icon: const Icon(Icons.auto_awesome),
+            label: Text(tr('Mit KI zählen')),
+            onPressed: () async {
+              final r = await showAiCount(context, widget.colony);
+              if (r == null || !mounted) return;
+              final c = aiCensus(r);
+              setState(() {
+                if (c.exact) {
+                  _exact.text = '${c.total}';
+                  _range = null;
+                } else {
+                  _exact.clear();
+                  _range = (c.min, c.max);
+                }
+                _aiNote = tr('KI: {0}', [aiCountText(r)]);
+              });
+            },
+          ),
+        ),
       SectionHeader(tr('Brut')),
       for (final st in _stages.entries)
         Padding(

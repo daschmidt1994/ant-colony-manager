@@ -34,6 +34,7 @@ const (
 	refSameColonySchedule                // schedule of the same colony
 	refSameColonyWinter                  // winter rest of the same colony
 	refSameColonyScanLink                // scan link of the same colony
+	refFoodItem                          // system food catalog or data owner's food items
 )
 
 type ref struct {
@@ -153,6 +154,12 @@ var entities = map[string]*entity{
 		Fields: []string{"parent_id", "name", "sort_order", "notes"},
 		Refs:   []ref{{"parent_id", refLocation}},
 	},
+	"food_stocks": {
+		Scope: scopeOwner, Collection: "food-stocks",
+		Fields: []string{"food_item_id", "name", "kind", "quantity", "unit", "reorder_below", "opened_on",
+			"use_within_days", "best_before", "care_interval_days", "last_cared_at", "notes", "archived_at"},
+		Refs: []ref{{"food_item_id", refFoodItem}},
+	},
 	"food_items": {
 		Scope: scopeOwner, Collection: "food-items",
 		Fields: []string{"name", "category", "default_unit", "sort_order", "archived_at"},
@@ -172,13 +179,14 @@ var entities = map[string]*entity{
 	"user_settings": {
 		Scope: scopeSettings, Collection: "settings",
 		Fields: []string{"timezone", "locale", "theme", "due_soon_days", "digest_time",
-			"notify_overdue", "email_digest", "label_defaults", "notify_digest_app", "notify_sensor_app", "notify_winter_app"},
+			"notify_overdue", "email_digest", "label_defaults", "notify_digest_app", "notify_sensor_app", "notify_winter_app",
+			"flight_watch"},
 		beforeWrite: settingsBeforeWrite,
 	},
 	"sensors": {
 		Scope: scopeOwner, Collection: "sensors",
 		Fields: []string{"name", "kind", "colony_id", "habitat_id", "location_id", "active",
-			"temp_min", "temp_max", "humidity_min", "humidity_max"},
+			"temp_min", "temp_max", "humidity_min", "humidity_max", "ha_temperature_entity", "ha_humidity_entity"},
 		Hidden:      []string{"api_key_hash"},
 		Refs:        []ref{{"colony_id", refColonyOwned}, {"habitat_id", refHabitat}, {"location_id", refLocation}},
 		beforeWrite: sensorBeforeWrite,

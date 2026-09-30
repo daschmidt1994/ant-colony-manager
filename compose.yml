@@ -91,6 +91,7 @@ services:
       - ${DATA_DIR:-./data}/uploads:/data/uploads
       - ${DATA_DIR:-./data}/backups:/data/backups:ro
       - ${DATA_DIR:-./data}/secrets:/run/acm-secrets:ro
+      - ${DATA_DIR:-./data}/update:/data/update   # update request for the optional updater
     user: "${PUID:-1000}:${PGID:-1000}"
     read_only: true
     tmpfs: [/tmp]
@@ -136,6 +137,27 @@ services:
       interval: 15m
       timeout: 10s
       start_period: 1m
+    logging: *logging
+
+  # Optional update button in the app. Enable with COMPOSE_PROFILES=updater
+  # (and ACM_PROJECT_DIR = this folder, set by scripts/init-env.sh). It has the
+  # Docker socket – that is root on the host – but only does what
+  # scripts/update.sh does, when an administrator asks for it in the app.
+  updater:
+    profiles: [updater]
+    image: docker:28-cli
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "${ACM_PROJECT_DIR:-/missing}/deploy/updater/updater.sh"]
+    environment:
+      ACM_PROJECT_DIR: ${ACM_PROJECT_DIR:-}
+      COMPOSE_PROJECT_NAME: ant-colony-manager
+    working_dir: ${ACM_PROJECT_DIR:-/missing}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${ACM_PROJECT_DIR:-/missing}:${ACM_PROJECT_DIR:-/missing}
+      - ${DATA_DIR:-./data}/update:/data/update
+    depends_on:
+      init: { condition: service_completed_successfully }
     logging: *logging
 
   # Optional HTTPS reverse proxy. Enable with COMPOSE_PROFILES=proxy in .env.

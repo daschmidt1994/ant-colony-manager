@@ -17,9 +17,9 @@ case "${1:-cron}" in
     exec supercronic -quiet /tmp/crontab ;;
   init-dirs)
     uid=${PUID:-1000}; gid=${PGID:-1000}
-    mkdir -p /data/uploads /data/backups /data/secrets
+    mkdir -p /data/uploads /data/backups /data/secrets /data/update
     # Only fix ownership of our own directories, never touch postgres data.
-    chown "$uid:$gid" /data/uploads /data/backups
+    chown "$uid:$gid" /data/uploads /data/backups /data/update
     [ -z "$(find /data/uploads -maxdepth 3 ! -user "$uid" -print -quit)" ] || chown -R "$uid:$gid" /data/uploads
     # Secrets: values from .env win; otherwise generate once and keep.
     chown "root:$gid" /data/secrets && chmod 0750 /data/secrets

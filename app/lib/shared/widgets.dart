@@ -83,11 +83,14 @@ class DueChip extends StatelessWidget {
 
 /// One line per task on the colony page.
 class DueRow extends StatelessWidget {
-  const DueRow(this.task, {super.key, this.onSnooze});
+  const DueRow(this.task, {super.key, this.onSnooze, this.onDefer});
   final DueTask task;
 
   /// „Heute keine Zeit“ – offered on long press for care due by today.
   final VoidCallback? onSnooze;
+
+  /// „Aufschieben mit Grund“ – also offered on long press (due by tomorrow).
+  final VoidCallback? onDefer;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +99,7 @@ class DueRow extends StatelessWidget {
         ? (task.schedule.title ?? tr('Aufgabe'))
         : S.taskNames[task.schedule.taskType]!;
     final canSnooze = onSnooze != null && task.status != DueStatus.paused && task.days <= 0;
+    final canDefer = onDefer != null && task.status != DueStatus.paused && task.days <= 1;
     final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -112,7 +116,7 @@ class DueRow extends StatelessWidget {
         ],
       ),
     );
-    if (!canSnooze) return row;
+    if (!canSnooze && !canDefer) return row;
     return InkWell(
       onLongPress: () => showModalBottomSheet<void>(
         context: context,
@@ -124,15 +128,26 @@ class DueRow extends StatelessWidget {
                 title: Text(name, style: Theme.of(c).textTheme.titleMedium),
                 subtitle: Text(S.dueText(task)),
               ),
-              ListTile(
-                leading: const Icon(Icons.update),
-                title: Text(tr('Auf morgen verschieben')),
-                subtitle: Text(tr('Heute keine Zeit – ab morgen wieder fällig')),
-                onTap: () {
-                  Navigator.pop(c);
-                  onSnooze!();
-                },
-              ),
+              if (canSnooze)
+                ListTile(
+                  leading: const Icon(Icons.update),
+                  title: Text(tr('Auf morgen verschieben')),
+                  subtitle: Text(tr('Heute keine Zeit – ab morgen wieder fällig')),
+                  onTap: () {
+                    Navigator.pop(c);
+                    onSnooze!();
+                  },
+                ),
+              if (canDefer)
+                ListTile(
+                  leading: const Icon(Icons.edit_calendar_outlined),
+                  title: Text(tr('Aufschieben mit Grund …')),
+                  subtitle: Text(tr('z. B. „Noch ausreichend Wasser“ – steht dann in der Chronik')),
+                  onTap: () {
+                    Navigator.pop(c);
+                    onDefer!();
+                  },
+                ),
             ],
           ),
         ),
@@ -305,6 +320,7 @@ void showUndoSnackOn(ScaffoldMessengerState m, String text, {VoidCallback? onUnd
   m.showSnackBar(
     SnackBar(
       duration: const Duration(seconds: 6),
+      persist: false, // with an action Flutter would keep it until tapped – covering buttons below
       content: Row(
         children: [
           Expanded(child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis)),

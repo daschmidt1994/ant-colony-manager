@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../shared/widgets.dart';
+import 'server_clock.dart';
+import '../reminders/reminders.dart';
 import '../../app/i18n.dart';
 
 /// Notification settings on the server (ntfy, e-mail per topic). Not synced –
@@ -268,7 +271,12 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
             Icons.phone_android,
             tr('App'),
             app,
-            repo == null ? null : (v) => repo.updateSettings({appSetting: v}),
+            repo == null
+                ? null
+                : (v) {
+                    repo.updateSettings({appSetting: v});
+                    if (v) requestReminderPermission().then((_) => ref.invalidate(reminderStatusProvider));
+                  },
             null,
           ),
           row(
@@ -351,6 +359,7 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const DeviceNotificationsCard(),
                   const SectionHeader('ntfy'),
                   Card(
                     child: Padding(
@@ -549,6 +558,171 @@ class _NotificationsFormState extends ConsumerState<_NotificationsForm> {
           ],
         ),
       ),
+    );
+  }
+}
+
+final reminderStatusProvider = FutureProvider.autoDispose<ReminderStatus?>(
+  (ref) => reminderStatus(ref.read(databaseProvider)),
+);
+
+/// Android only: why app notifications might not arrive on this phone –
+/// permission, battery optimisation, last background check, last error,
+/// next daily overview – plus a test notification.
+class DeviceNotificationsCard extends ConsumerStatefulWidget {
+  const DeviceNotificationsCard({super.key});
+  @override
+  ConsumerState<DeviceNotificationsCard> createState() => _DeviceNotificationsCardState();
+}
+
+class _DeviceNotificationsCardState extends ConsumerState<DeviceNotificationsCard> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // back from the system settings → show the new state
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) ref.invalidate(reminderStatusProvider);
+  }
+
+  Future<void> _allow() async {
+    if (!await requestReminderPermission()) await openNotificationSettings();
+    ref.invalidate(reminderStatusProvider);
+  }
+
+  Future<void> _test() async {
+    try {
+      await sendTestReminder();
+      if (mounted) showUndoSnack(context, tr('Test-Benachrichtigung gesendet'));
+    } catch (e) {
+      if (mounted) showError(context, e);
+    }
+  }
+
+  Future<void> _check() async {
+    final repo = ref.read(repositoryProvider);
+    if (repo == null) return;
+    try {
+      await syncReminders(repo);
+    } catch (_) {
+      // shown in the card
+    }
+    ref.invalidate(reminderStatusProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final st = ref.watch(reminderStatusProvider).value;
+    if (st == null) return const SizedBox.shrink();
+    final now = DateTime.now();
+    final muted = TextStyle(color: context.colors.muted);
+    String when(DateTime t) {
+      final day = DateTime(t.year, t.month, t.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+      final d = switch (day) {
+        0 => tr('Heute'),
+        -1 => tr('Gestern'),
+        1 => tr('Morgen'),
+        _ => S.date(t),
+      };
+      return '$d, ${S.time(t)}';
+    }
+
+    final xiaomi = RegExp('xiaomi|redmi|poco', caseSensitive: false).hasMatch(st.manufacturer);
+
+    Widget line(bool? ok, String title, String? detail, [Widget? action]) => ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      leading: Icon(
+        ok == null ? Icons.info_outline : (ok ? Icons.check_circle : Icons.error_outline),
+        color: ok == null ? context.colors.muted : (ok ? context.colors.ok : context.colors.overdue),
+      ),
+      title: Text(title, style: const TextStyle(fontSize: 15)),
+      subtitle: detail == null ? null : Text(detail),
+      trailing: action,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(tr('App auf diesem Gerät')),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                line(
+                  st.allowed,
+                  st.allowed ? tr('Benachrichtigungen erlaubt') : tr('Benachrichtigungen blockiert'),
+                  st.allowed ? null : tr('Android zeigt nichts an, bis sie erlaubt sind.'),
+                  st.allowed ? null : TextButton(onPressed: _allow, child: Text(tr('Erlauben'))),
+                ),
+                if (st.batteryUnrestricted != null)
+                  line(
+                    st.batteryUnrestricted! ? true : null,
+                    st.batteryUnrestricted! ? tr('Akku: keine Einschränkung') : tr('Akku: optimiert'),
+                    st.batteryUnrestricted!
+                        ? null
+                        : xiaomi
+                        ? tr(
+                            'Xiaomi: in den App-Infos „Autostart“ einschalten und bei „Akku“ „Keine Einschränkungen“ wählen – sonst beendet das System die Hintergrund-Prüfung.',
+                          )
+                        : tr(
+                            'Die Hintergrund-Prüfung kann sich verzögern. In den App-Infos bei „Akku“ „Nicht eingeschränkt“ wählen.',
+                          ),
+                    st.batteryUnrestricted!
+                        ? null
+                        : TextButton(onPressed: openAppSettings, child: Text(tr('App-Infos'))),
+                  ),
+                line(
+                  st.error == null ? (st.lastRun != null) : false,
+                  st.lastRun == null ? tr('Noch keine Prüfung') : tr('Letzte Prüfung: {0}', [when(st.lastRun!)]),
+                  st.error == null
+                      ? tr('Prüft stündlich im Hintergrund und bei jedem Öffnen der App.')
+                      : tr('Fehler: {0}', [st.error]),
+                  TextButton(onPressed: _check, child: Text(tr('Jetzt prüfen'))),
+                ),
+                ClockCheck(
+                  accountZone: ref.read(repositoryProvider)?.settings().timezone ?? 'Europe/Berlin',
+                  line: (ok, title, detail) => line(ok, title, detail),
+                ),
+                line(
+                  null,
+                  st.digestAt == null
+                      ? tr('Kein Tages-Überblick geplant')
+                      : tr('Nächster Tages-Überblick: {0}', [when(st.digestAt!)]),
+                  st.digestAt == null ? tr('Aus, oder zu diesem Zeitpunkt ist nichts fällig.') : null,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  tr(
+                    'Die App meldet Pflege, sobald sie überfällig ist (bei der nächsten Prüfung). „Heute fällig“ steht nur im Tages-Überblick.',
+                  ),
+                  style: muted,
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: _test,
+                    icon: const Icon(Icons.notifications_outlined),
+                    label: Text(tr('Test-Benachrichtigung')),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

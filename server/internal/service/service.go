@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/netip"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,7 +27,14 @@ type Service struct {
 	Blobs  storage.BlobStore
 	Tokens auth.TokenIssuer
 	Now    func() time.Time
+	// MQTTDial connects to the MQTT broker (Home Assistant); tests replace it.
+	MQTTDial func(context.Context, MQTTOptions) (MQTTConn, error)
+	// AIBaseURL overrides the Anthropic API address (tests).
+	AIBaseURL string
 
+	mqtt       mqttState
+	aiJobsMu   sync.Mutex
+	aiJobs     map[uuid.UUID]*aiJob
 	columns    map[string]map[string]bool // table -> column set (loaded at start)
 	setupToken string
 	imageSem   chan struct{}
@@ -45,8 +53,11 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, log *slog.
 			Issuer: "acm",
 		},
 		Now:      time.Now,
+		MQTTDial: pahoDial,
 		imageSem: make(chan struct{}, 2),
 	}
+	s.mqtt.kick = make(chan struct{}, 1)
+	s.mqtt.haKick = make(chan struct{}, 1)
 	if err := s.loadColumns(ctx); err != nil {
 		return nil, err
 	}

@@ -15,6 +15,8 @@ import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../actions/actions.dart';
+import '../actions/defer.dart';
+import '../care_cover/care_cover_screen.dart';
 import '../photos/photos.dart';
 import '../reports/report_action.dart';
 import '../species/species_screens.dart';
@@ -115,6 +117,7 @@ class _ColonyPage extends ConsumerWidget {
               children: [
                 _Header(colony: colony),
                 _SpeciesCard(colony: colony, canEdit: canEdit),
+                CareCoverBanner(colonyId: colony.id),
                 if (colony.archived)
                   _Banner(icon: Icons.archive_outlined, text: tr('Archiviert'), color: context.colors.muted),
                 if (!(canEdit && colony.isCareActive) && colony.status == 'hibernating')
@@ -149,6 +152,7 @@ class _ColonyPage extends ConsumerWidget {
                               );
                             }
                           : null,
+                      onDefer: canEdit ? () => showDeferSheet(context, ref, t) : null,
                     ),
                 if (canEdit) ...[
                   if (lastFeeding != null) ...[
@@ -570,6 +574,26 @@ class _SpeciesCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final invasive = invasiveSpeciesFor(
+      ref.watch(speciesListProvider).value ?? const <Species>[],
+      speciesId: colony.speciesId,
+      text: colony.json['species_text'] as String?,
+    );
+    final card = _card(context, ref);
+    if (invasive == null) return card;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: InvasiveBanner(species: invasive, forColony: true),
+        ),
+        card,
+      ],
+    );
+  }
+
+  Widget _card(BuildContext context, WidgetRef ref) {
     final id = colony.speciesId;
     final species = id == null ? null : ref.watch(speciesProvider(id)).value;
     if (species == null) {

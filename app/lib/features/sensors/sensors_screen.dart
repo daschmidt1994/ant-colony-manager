@@ -16,11 +16,16 @@ Map<String, String> get _kinds => {
   'esp32': 'ESP32',
   'wifi': 'WLAN-Sensor',
   'bluetooth': tr('Bluetooth (über Gateway)'),
+  'home_assistant': 'Home Assistant',
   'generic': tr('Sonstiges'),
 };
 
+/// Entity ID as Home Assistant shows it: domain.name (e.g. sensor.formicarium_temperature).
+bool validEntityId(String v) => RegExp(r'^[a-z_]+\.[a-z0-9_]+$').hasMatch(v);
+
 /// Sensors (spec §23): temperature/humidity from an ESP32 or similar, sent
-/// with its own API key to `POST /api/v1/sensors/{id}/measurements`.
+/// with its own API key to `POST /api/v1/sensors/{id}/measurements` – or read
+/// by the server from Home Assistant entities (kind home_assistant).
 class SensorsScreen extends ConsumerWidget {
   const SensorsScreen({super.key});
 
@@ -82,6 +87,8 @@ class SensorsScreen extends ConsumerWidget {
 
   Future<void> _add(BuildContext context, WidgetRef ref) async {
     final name = TextEditingController();
+    final haTemp = TextEditingController();
+    final haHumid = TextEditingController();
     var kind = 'esp32';
     String? colony;
     final owned = (ref.read(coloniesProvider).value ?? const <Colony>[])
@@ -107,6 +114,26 @@ class SensorsScreen extends ConsumerWidget {
                 items: [for (final e in _kinds.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
                 onChanged: (v) => set(() => kind = v!),
               ),
+              if (kind == 'home_assistant') ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: haTemp,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: tr('Entität Temperatur'),
+                    hintText: 'sensor.formicarium_temperature',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: haHumid,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: tr('Entität Luftfeuchtigkeit'),
+                    hintText: 'sensor.formicarium_humidity',
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 initialValue: colony,
@@ -128,6 +155,12 @@ class SensorsScreen extends ConsumerWidget {
       ),
     );
     if (ok != true || name.text.trim().isEmpty || !context.mounted) return;
+    final ha = kind == 'home_assistant';
+    final temp = haTemp.text.trim(), humid = haHumid.text.trim();
+    if (ha && ((temp.isEmpty && humid.isEmpty) || [temp, humid].any((e) => e.isNotEmpty && !validEntityId(e)))) {
+      showUndoSnack(context, tr('Mindestens eine Entität angeben, z. B. sensor.formicarium_temperature'));
+      return;
+    }
     try {
       // Online only: the key is created by the server and shown exactly once.
       final res =
@@ -135,11 +168,17 @@ class SensorsScreen extends ConsumerWidget {
                 'name': name.text.trim(),
                 'kind': kind,
                 'colony_id': ?colony,
+                if (ha && temp.isNotEmpty) 'ha_temperature_entity': temp,
+                if (ha && humid.isNotEmpty) 'ha_humidity_entity': humid,
               })
               as Map<String, dynamic>;
       final data = (res['data'] as Map).cast<String, dynamic>();
       ref.read(repositoryProvider)!.adoptServerRecord('sensors', data);
-      if (context.mounted) {
+      if (ha) {
+        if (context.mounted) {
+          showUndoSnack(context, tr('Der Server liest die Werte alle 5 Minuten aus Home Assistant'));
+        }
+      } else if (context.mounted) {
         await _showKey(context, ref, data['id'] as String, (res['extra'] as Map)['api_key'] as String);
       }
     } catch (e) {
@@ -253,6 +292,20 @@ class _SensorSheet extends ConsumerWidget {
             ],
             onChanged: (v) => repo.updateSensor(id, {'colony_id': v}),
           ),
+          if (s['kind'] == 'home_assistant') ...[
+            const SizedBox(height: 12),
+            _EntityField(sensor: s, field: 'ha_temperature_entity', label: tr('Entität Temperatur')),
+            const SizedBox(height: 8),
+            _EntityField(sensor: s, field: 'ha_humidity_entity', label: tr('Entität Luftfeuchtigkeit')),
+            const SizedBox(height: 4),
+            Text(
+              tr(
+                'Der Server liest die Werte alle 5 Minuten aus Home Assistant (Adresse und Zugriffstoken: '
+                'Server-Verwaltung → Home Assistant (MQTT)).',
+              ),
+              style: TextStyle(color: context.colors.muted, fontSize: 12),
+            ),
+          ],
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(tr('Aktiv')),
@@ -285,20 +338,21 @@ class _SensorSheet extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.key),
-            label: Text(tr('Neuen Schlüssel erzeugen')),
-            onPressed: () async {
-              try {
-                final res =
-                    await ref.read(authProvider.notifier).api.post('/api/v1/sensors/$id/rotate-key')
-                        as Map<String, dynamic>;
-                if (context.mounted) await _showKey(context, ref, id, res['api_key'] as String);
-              } catch (e) {
-                if (context.mounted) showError(context, e);
-              }
-            },
-          ),
+          if (s['kind'] != 'home_assistant')
+            OutlinedButton.icon(
+              icon: const Icon(Icons.key),
+              label: Text(tr('Neuen Schlüssel erzeugen')),
+              onPressed: () async {
+                try {
+                  final res =
+                      await ref.read(authProvider.notifier).api.post('/api/v1/sensors/$id/rotate-key')
+                          as Map<String, dynamic>;
+                  if (context.mounted) await _showKey(context, ref, id, res['api_key'] as String);
+                } catch (e) {
+                  if (context.mounted) showError(context, e);
+                }
+              },
+            ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(foregroundColor: context.colors.overdue),
@@ -363,5 +417,56 @@ class _LimitFieldState extends ConsumerState<_LimitField> {
       decoration: InputDecoration(labelText: widget.label, suffixText: widget.suffix, isDense: true),
       onSubmitted: (_) => _save(),
     ),
+  );
+}
+
+/// Home Assistant entity of a sensor; saves when editing is finished (empty = none).
+class _EntityField extends ConsumerStatefulWidget {
+  const _EntityField({required this.sensor, required this.field, required this.label});
+  final Map<String, dynamic> sensor;
+  final String field, label;
+  @override
+  ConsumerState<_EntityField> createState() => _EntityFieldState();
+}
+
+class _EntityFieldState extends ConsumerState<_EntityField> {
+  late final _c = TextEditingController(text: widget.sensor[widget.field] as String? ?? '');
+  final _focus = FocusNode();
+  bool _bad = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() {
+      if (!_focus.hasFocus) _save();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final v = _c.text.trim();
+    setState(() => _bad = v.isNotEmpty && !validEntityId(v));
+    if (_bad || v == (widget.sensor[widget.field] ?? '')) return;
+    ref.read(repositoryProvider)!.updateSensor(widget.sensor['id'] as String, {widget.field: v.isEmpty ? null : v});
+  }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: _c,
+    focusNode: _focus,
+    autocorrect: false,
+    decoration: InputDecoration(
+      labelText: widget.label,
+      hintText: 'sensor.…',
+      isDense: true,
+      errorText: _bad ? tr('Format: sensor.name') : null,
+    ),
+    onSubmitted: (_) => _save(),
   );
 }

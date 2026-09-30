@@ -19,6 +19,15 @@ abstract final class S {
     'custom': tr('Aufgabe'),
   };
 
+  /// Units of the food stock.
+  static Map<String, String> get unitNames => {
+    'piece': tr('Stück'),
+    'box': tr('Dosen'),
+    'portion': tr('Portionen'),
+    'g': 'g',
+    'ml': 'ml',
+  };
+
   static Map<String, String> get statusNames => {
     'founding': tr('Gründung'),
     'active': tr('aktiv'),
@@ -90,6 +99,7 @@ abstract final class S {
     'winter_end': tr('Winterruhe beendet'),
     'status_change': tr('Status geändert'),
     'custom_task': tr('Aufgabe erledigt'),
+    'care_deferred': tr('Aufgeschoben'),
   };
 
   static String number(num n) => NumberFormat.decimalPattern(currentLanguage).format(n);
@@ -170,6 +180,30 @@ abstract final class S {
   }
 
   /// One-line summary of an event for timeline and snackbars.
+  /// Why care was deferred.
+  static Map<String, String> get deferReasons => {
+    'water_enough': tr('Noch ausreichend Wasser'),
+    'food_refused': tr('Futter nicht angenommen'),
+    'food_left': tr('Noch Futter übrig'),
+    'still_clean': tr('Noch sauber'),
+    'colony_calm': tr('Kolonie in Ruhe lassen'),
+    'no_time': tr('Keine Zeit'),
+    'other': tr('Anderer Grund'),
+  };
+
+  /// The reasons that fit a care task, most likely first.
+  static List<String> deferReasonsFor(String taskType) => [
+    ...switch (taskType) {
+      'water' => ['water_enough'],
+      'feeding' || 'protein' || 'carbohydrate' => ['food_refused', 'food_left'],
+      'cleaning' => ['still_clean'],
+      _ => <String>[],
+    },
+    'colony_calm',
+    'no_time',
+    'other',
+  ];
+
   static String eventSummary(ColonyEvent e) {
     switch (e.type) {
       case 'feeding':
@@ -196,6 +230,16 @@ abstract final class S {
         return tr('Brut: {0}', [parts.join(', ')]);
       case 'check':
         return e.note?.isNotEmpty == true ? tr('Kontrolle: {0}', [e.note]) : tr('Kontrolle – alles in Ordnung');
+      case 'care_deferred':
+        final p = (e.json['payload'] as Map?)?.cast<String, dynamic>() ?? const {};
+        final task = p['task_type'] == 'custom' ? (p['title'] as String? ?? tr('Aufgabe')) : taskNames[p['task_type']];
+        final days = (p['days'] as num?)?.toInt() ?? 1;
+        final text = tr('{0} aufgeschoben: {1} ({2})', [
+          task ?? tr('Pflege'),
+          deferReasons[p['reason']] ?? p['reason'] ?? '',
+          days == 1 ? tr('1 Tag') : tr('{0} Tage', [days]),
+        ]);
+        return e.note?.isNotEmpty == true ? '$text – ${e.note}' : text;
       case 'note':
       case 'problem':
         return e.note ?? eventTypes[e.type]!;

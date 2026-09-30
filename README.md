@@ -9,12 +9,17 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 
 - **Android-App** (offline-fähig) und **Web-App** mit denselben Daten
 - **NFC-Tags und QR-Etiketten** pro Kolonie, Pflege-Rundgang für viele Kolonien
-- **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos, Messwerte, Sensor-Schnittstelle
+- **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos mit Wachstumsvergleich und Zeitraffer, Messwerte, Sensor-Schnittstelle
+- **Widget für den Startbildschirm** (Android) – überfällig/heute fällig auf einen Blick, Tippen öffnet den Rundgang
+- **Kalender-Abo und Home Assistant** – Fälligkeiten in jedem Kalender; jede Kolonie als Gerät in Home Assistant per MQTT Discovery, neue kommen von selbst dazu ([docs/22](docs/22-kalender-home-assistant.md))
+- **Ameisen mit KI zählen** – Fotos wählen, Claude, ChatGPT oder ein Modell über OpenRouter zählt je Foto, die App addiert ([docs/26](docs/26-ki-zaehlung.md))
+- **Pflegevertretung und Aufschieben mit Grund** – Kolonien zeitlich begrenzt mit Anweisungen abgeben; „Noch ausreichend Wasser“ dokumentieren statt nur verschieben ([docs/27](docs/27-vertretung-aufschieben.md))
 - **Benachrichtigungen per App, ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit, Ruhezeiten, „Morgen“ zum Verschieben
-- **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) – mit den eigenen Kolonien verknüpft
+- **Futtervorrat** – Futtertiere, Zuckerwasser und Zuchten mit Haltbarkeit, Nachbestell- und Versorgungs-Hinweisen
+- **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) auf Deutsch und Englisch – mit den eigenen Kolonien verknüpft, Warnung bei EU-verbotenen Arten, Schwarmflug-Kalender mit Erinnerung
 - **Deutsch und Englisch** (weitere Sprachen: eine Übersetzungsdatei, [docs/21-sprachen.md](docs/21-sprachen.md)); Fotos auch aus der Galerie, mit Aufnahmedatum
 - **Vollständig selbst gehostet** – eine `docker compose`-Installation, kein Cloud-Zwang, keine Telemetrie (nur eine abschaltbare Update-Prüfung gegen die öffentliche GitHub-Release-Liste, `UPDATE_CHECK=false`)
-- **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien
+- **Deine Daten gehören dir** – JSON-Export, Backups als normale Dateien, auf Wunsch zusätzlich außer Haus (WebDAV, SMB, NFS: Nextcloud, NAS)
 
 ## Screenshots
 
@@ -166,6 +171,8 @@ Der vollständige Ablauf Installation → Backup → Zerstören → Restore → 
 
 = Backup `…-pre-update` → `git pull` → neue Images holen/bauen → Neustart → warten bis *healthy*. Datenbank-Migrationen laufen beim Start automatisch (eine Transaktion pro Migration). Eine ältere App-Version startet nicht gegen ein neueres Schema (Schutz vor Downgrade). Feste Version: `ACM_VERSION=1.1.0` in `.env`.
 
+**Update per Knopf in der App (optional):** In `.env` `COMPOSE_PROFILES=updater` setzen (mit Proxy: `proxy,updater`) und `ACM_PROJECT_DIR` auf diesen Ordner (macht `init-env.sh`), dann `docker compose up -d`. Danach zeigt **Mehr → Server → „Jetzt aktualisieren“** den Knopf für Administratoren – aber nur, wenn eine neuere Version verfügbar ist. Der Dienst holt zuerst nur die Images (stört den Betrieb nicht); **nur wenn eines davon neuer ist**, folgen Backup, Neustart und Warten bis *healthy*. Sonst: „Bereits aktuell – kein Update nötig“, ohne Backup und Neustart. Status und Protokoll stehen in der App. Der Dienst `updater` bekommt dafür den Docker-Socket (das ist root auf dem Host); die App selbst bekommt keinen Zugriff auf Docker, sie legt nur einen Auftrag in `data/update/`. Änderungen an der `compose.yml` selbst (neue Dienste, Volumes) holt weiterhin nur `./scripts/update.sh` (`git pull`). Mit fester `ACM_VERSION` holt der Knopf nur Korrekturen derselben Version.
+
 ## Android-App
 
 Schritt für Schritt mit Test auf dem Handy: [docs/16-anleitung-installieren-testen.md](docs/16-anleitung-installieren-testen.md).
@@ -188,6 +195,7 @@ Schritt für Schritt mit Test auf dem Handy: [docs/16-anleitung-installieren-tes
 | Port 8080 belegt | `APP_PORT` ändern (und `PUBLIC_APP_URL`) |
 | Backup-Dienst *unhealthy* | `docker compose logs backup`, `cat data/backups/status.json` |
 | Handy erreicht den Server nicht | gleiches WLAN? Firewall auf dem Server (Port `APP_PORT`)? |
+| Android-App: keine Erinnerungen, wenn die App geschlossen ist | Die App prüft im Hintergrund – das blockieren viele Hersteller. **Xiaomi/Redmi/POCO:** App-Infos → **„Autostart“ einschalten** und Akku → **„Keine Einschränkungen“**. Samsung: Akku → „Nicht eingeschränkt“. Die App nicht aus den letzten Apps wegwischen. Details und Test-Benachrichtigung: Mehr → Benachrichtigungen → „App auf diesem Gerät“ ([docs/20](docs/20-benachrichtigungen.md)) |
 
 Status auf einen Blick: `docker compose ps` · Logs: `docker compose logs -f` (enthalten keine Passwörter, Tokens oder Scan-Codes) · Diagnose: `http://<server>:8080/readyz`
 

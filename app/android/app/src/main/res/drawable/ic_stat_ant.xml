@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification icon (status bar): the app ant as a white silhouette – Android
+     only uses the alpha channel. Source: tool/icon/ant.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="440"
+    android:viewportHeight="440">
+    <group android:translateX="-36" android:translateY="-36">
+        <path android:pathData="M238,118 L214,74 L170,58 M274,118 L298,74 L342,58" android:strokeColor="#FFFFFFFF" android:strokeWidth="22"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M236,214 L186,186 L150,128 M276,214 L326,186 L362,128" android:strokeColor="#FFFFFFFF" android:strokeWidth="24"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M232,240 L168,246 L118,296 M280,240 L344,246 L394,296" android:strokeColor="#FFFFFFFF" android:strokeWidth="24"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M236,266 L184,312 L166,394 M276,266 L328,312 L346,394" android:strokeColor="#FFFFFFFF" android:strokeWidth="24"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M232,112 Q222,92 236,84 M280,112 Q290,92 276,84" android:strokeColor="#FFFFFFFF" android:strokeWidth="18"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M210,146 a46,42 0 1,0 92,0 a46,42 0 1,0 -92,0 z M225,236 a31,52 0 1,0 62,0 a31,52 0 1,0 -62,0 z M241,302 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 z M192,382 a64,80 0 1,0 128,0 a64,80 0 1,0 -128,0 z" />
+    </group>
+</vector>

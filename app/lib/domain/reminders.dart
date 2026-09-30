@@ -5,7 +5,9 @@ library;
 import 'dart:convert';
 
 import 'due.dart';
+import 'food_stock.dart';
 import 'models.dart';
+import 'nuptial.dart';
 import '../app/i18n.dart';
 
 /// One notification. [key] identifies the reason (e.g. this schedule being
@@ -55,6 +57,8 @@ List<Reminder> overdueReminders({
   bool notifySensor = true,
   List<Map<String, dynamic>> sensorProblems = const [],
   List<Map<String, dynamic>> sensors = const [],
+  List<FoodStock> foodStocks = const [],
+  List<Species> flightWatch = const [],
 }) {
   final byId = {for (final c in colonies) c.id: c};
   final out = <Reminder>[];
@@ -133,6 +137,39 @@ List<Reminder> overdueReminders({
         canSnooze: true,
       ),
     );
+  }
+
+  // Food stock: expired, open too long, culture needs care, running low.
+  for (final s in notifyOverdue ? foodStocks : const <FoodStock>[]) {
+    for (final i in s.issues(now)) {
+      out.add(
+        Reminder(
+          key: 'stock:${s.id}:${i.name}:${s.issueKey(i)}',
+          slot: 'stock:${s.id}:${i.name}',
+          title: tr('Futtervorrat: {0}', [s.name]),
+          body: s.issueText(i, now),
+          payload: {'kind': 'stock', 'stock': s.id, 'issue': i.name},
+          canComplete: i == StockIssue.cultureCare,
+        ),
+      );
+    }
+  }
+
+  // Watched species: in the first week of a flight season, once per year.
+  if (now.day <= 7) {
+    for (final s in flightWatch) {
+      final months = flightMonths(s.original('nuptial_flight'));
+      if (months == null || !flightStarts(months).contains(now.month)) continue;
+      out.add(
+        Reminder(
+          key: 'flight:${s.id}:${now.year}-${now.month}',
+          slot: 'flight:${s.id}',
+          title: tr('Schwarmflugzeit: {0}', [s.scientificName]),
+          body: tr('Laut Steckbrief {0} – Wetter und Region verschieben den Termin.', [s.text('nuptial_flight') ?? '']),
+          payload: {'kind': 'flight', 'species': s.id},
+        ),
+      );
+    }
   }
 
   if (!notifySensor) return out;

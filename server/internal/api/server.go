@@ -110,6 +110,8 @@ func (s *Server) Handler() *chi.Mux {
 
 		// Sensor ingest authenticates with the sensor key, not a user session.
 		r.Post("/sensors/{id}/measurements", s.ingestSensor)
+		// Calendar subscription and Home Assistant status: secret in the address.
+		r.Get("/feeds/{token}/calendar.ics", s.feedCalendar)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.authenticated)
@@ -122,6 +124,17 @@ func (s *Server) Handler() *chi.Mux {
 			r.Get("/me/notifications", s.getNotifyPrefs)
 			r.Put("/me/notifications", s.setNotifyPrefs)
 			r.With(s.rateLimitUser(s.limScan)).Post("/me/notifications/test", s.testNotify)
+			r.Get("/me/feed", s.getFeed)
+			r.With(s.rateLimitUser(s.limSensitive)).Post("/me/feed", s.createFeed)
+			r.Patch("/me/feed", s.setFeedFilter)
+			r.Get("/me/home-assistant", s.getHomeAssistantMe)
+			r.Put("/me/home-assistant", s.setHomeAssistantMe)
+			r.Delete("/me/feed", s.deleteFeed)
+			r.Get("/me/feeds", s.listFeeds)
+			r.With(s.rateLimitUser(s.limSensitive)).Post("/me/feeds", s.newFeed)
+			r.Patch("/me/feeds/{id}", s.updateFeed)
+			r.With(s.rateLimitUser(s.limSensitive)).Post("/me/feeds/{id}/rotate", s.rotateFeed)
+			r.Delete("/me/feeds/{id}", s.removeFeed)
 			r.Put("/me/password", s.changePassword)
 			r.Delete("/me", s.deleteMe)
 
@@ -149,6 +162,15 @@ func (s *Server) Handler() *chi.Mux {
 			r.Get("/colonies/{id}/timeline", s.timeline)
 			r.Get("/colonies/{id}/due", s.colonyDue)
 			r.Post("/colonies/{id}/feedings/repeat-last", s.repeatLastFeeding)
+			r.With(s.rateLimitUser(s.limScan)).Post("/colonies/{id}/ai-count", s.aiCount)
+			r.Get("/ai", s.aiInfo)
+			r.Get("/care-covers", s.listCareCovers)
+			r.Post("/care-covers", s.createCareCover)
+			r.Get("/care-covers/{id}", s.getCareCover)
+			r.Patch("/care-covers/{id}", s.updateCareCover)
+			r.Post("/care-covers/{id}/end", s.endCareCover)
+			r.Get("/colonies/{id}/care-instructions", s.careInstructions)
+			r.Get("/ai-count/{job}", s.aiCountJob)
 			r.Get("/colonies/{id}/members", s.listMembers)
 			r.Post("/colonies/{id}/members", s.setMember)
 			r.Delete("/colonies/{id}/members/{userId}", s.removeMember)
@@ -177,6 +199,18 @@ func (s *Server) Handler() *chi.Mux {
 				r.Get("/smtp", s.getSMTP)
 				r.Put("/smtp", s.setSMTP)
 				r.With(s.rateLimitUser(s.limScan)).Post("/smtp/test", s.testSMTP)
+				r.Get("/offsite", s.getOffsite)
+				r.Put("/offsite", s.setOffsite)
+				r.With(s.rateLimitUser(s.limScan)).Post("/offsite/test", s.testOffsite)
+				r.With(s.rateLimitUser(s.limScan)).Post("/offsite/run", s.runOffsite)
+				r.Get("/mqtt", s.getMQTT)
+				r.Put("/mqtt", s.setMQTT)
+				r.With(s.rateLimitUser(s.limScan)).Post("/mqtt/test", s.testMQTT)
+				r.With(s.rateLimitUser(s.limScan)).Post("/home-assistant/test", s.testHomeAssistant)
+				r.Get("/update", s.getUpdater)
+				r.Get("/ai", s.getAI)
+				r.Put("/ai", s.setAI)
+				r.With(s.rateLimitUser(s.limSensitive)).Post("/update", s.startUpdate)
 			})
 
 			// Generic collections (locations, food-items, species, habitats, …)
@@ -292,6 +326,8 @@ func logPath(p string) string {
 		return "/c/…"
 	case strings.HasPrefix(p, "/files/"):
 		return "/files/…"
+	case strings.HasPrefix(p, "/api/v1/feeds/"):
+		return "/api/v1/feeds/…"
 	case strings.HasPrefix(p, "/api/v1/scan/") && !strings.HasPrefix(p, "/api/v1/scan/nfc-uid"):
 		return "/api/v1/scan/…"
 	}

@@ -29,11 +29,16 @@ String? handleReminder(ColonyRepository repo, {String? actionId, String? payload
       case 'task':
         repo.completeTask(p['task'] as String);
         return null;
+      case 'stock' when p['stock'] is String:
+        repo.careFoodStock(p['stock'] as String);
+        return null;
     }
   }
   return switch (p['kind']) {
     'digest' => '/',
     'sensor' => '/settings/sensors',
+    'stock' => '/settings/food-stock',
+    'flight' => '/species/flights',
     _ => open,
   };
 }

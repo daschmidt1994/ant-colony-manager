@@ -71,7 +71,7 @@ paths:
     get:
       tags: [system]
       security: []
-      summary: "Public instance information (used by the app when connecting)"
+      summary: "Public instance information (used by the app when connecting), also server_time (UTC) and time_zone (TZ of the server)"
       responses:
         "200":
           description: "ok"
@@ -369,6 +369,126 @@ paths:
       tags: [admin]
       summary: "Send a test e-mail to the administrator"
       responses: { "204": { description: "sent" }, "502": { description: "SMTP failed (title explains)" } }
+  /api/v1/admin/offsite:
+    get:
+      tags: [admin]
+      summary: "Off-site backup settings and status {enabled, type (webdav | smb | folder), url (WebDAV address, smb://server/share/folder or a folder in the container), user, password_set, keep, status{last_name, last_success, last_error, last_error_at, last_bytes, last_photos, running, local_latest}}"
+      responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save off-site backup settings; password omitted = keep, \"\" = remove; keep = remote backups to keep (1–365)"
+      responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/offsite/test:
+    post:
+      tags: [admin]
+      summary: "Check the target: address, login and write access (creates the folder if missing; a mounted folder must exist)"
+      responses: { "204": { description: "reachable" }, "502": { description: "target failed (title explains)" } }
+  /api/v1/admin/offsite/run:
+    post:
+      tags: [admin]
+      summary: "Upload the newest local backup now (in the background; status via GET /admin/offsite)"
+      responses: { "202": { description: "started" }, "422": { description: "not set up" } }
+  /api/v1/admin/mqtt:
+    get:
+      tags: [admin]
+      summary: "Home Assistant via MQTT: broker settings and status {enabled, url, user, password_set, prefix, owner, status{connected, last_sync, last_error, last_error_at, colonies}}"
+      responses: { "200": { description: "settings (also members: other users who send their colonies; ha_url, ha_token_set: Home Assistant REST API for sensor values)" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save the MQTT broker (and optionally ha_url + ha_token for sensor values; ha_token omitted = keep, \"\" = remove) (url: host, host:port or mqtt(s)://host:port; prefix: discovery prefix, default homeassistant); password omitted = keep, \"\" = remove. From now on the colonies of this administrator are announced to Home Assistant (MQTT discovery); switching off removes them there"
+      responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/update:
+    get:
+      tags: [admin]
+      summary: "Update button: {available (updater service runs), state idle|requested|running|done|failed, message, at, log (after a failure)}"
+      responses: { "200": { description: "status" }, "403": { description: "not an administrator" } }
+    post:
+      tags: [admin]
+      summary: "Update now: the optional updater service backs up, pulls the images and restarts (like scripts/update.sh)"
+      responses: { "202": { description: "requested" }, "409": { description: "no updater or already running" } }
+  /api/v1/admin/ai:
+    get:
+      tags: [admin]
+      summary: "Counting ants with AI: {enabled, provider (anthropic | openai | openrouter), api_key_set, model}"
+      responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save {enabled, provider, api_key (omitted = keep, \"\" = remove; changing the provider drops the old key), model (anthropic: default claude-opus-5-5; openai/openrouter: required, a model that understands images)}"
+      responses: { "200": { description: "settings" }, "422": { description: "invalid" } }
+  /api/v1/ai:
+    get:
+      tags: [colonies]
+      summary: "Whether counting with AI is set up: {available, provider}"
+      responses: { "200": { description: "info" } }
+  /api/v1/colonies/{id}/ai-count:
+    post:
+      tags: [colonies]
+      summary: "Count the ants on 1–6 uploaded photos of the colony with AI {photo_ids, async?}. With async: true 202 {id, state} at once – poll /ai-count/{job}; otherwise waits for {photos[{photo_id, count, min, max, queens, note}], total, min, max, overlap, note, model} – the photos are sent to the provider chosen by the administrator"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "counts" }, "409": { description: "not set up" }, "422": { description: "invalid photos" }, "502": { description: "AI failed (title explains)" } }
+  /api/v1/ai-count/{job}:
+    get:
+      tags: [colonies]
+      summary: "State of a counting job started with {async: true}: {id, state running|done|failed, result?, error?} – only for the user who started it; kept 15 minutes"
+      parameters:
+        - { name: job, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "job" }, "404": { description: "unknown job" } }
+  /api/v1/care-covers:
+    get:
+      tags: [colonies]
+      summary: "Care covers (Pflegevertretung) I set up and those I stand in for: [{id, owner_name, user_name, user_email (owner only), starts_on, ends_on, instructions, state planned|active|ended, mine, colonies[{colony_id, name, number, instructions}]}]"
+      responses: { "200": { description: "list" } }
+    post:
+      tags: [colonies]
+      summary: "Hand own colonies to a person with an account for a period {email, starts_on, ends_on, instructions?, colonies[{colony_id, instructions?}]}; during it the person is a carer (editor)"
+      responses: { "201": { description: "cover" }, "422": { description: "invalid (unknown e-mail, dates, foreign colony)" } }
+  /api/v1/care-covers/{id}:
+    get:
+      tags: [colonies]
+      summary: "One cover with done[{colony_id, type, occurred_at, note}] – the care the substitute documented during it"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "cover" }, "404": { description: "not found" } }
+    patch:
+      tags: [colonies]
+      summary: "Change starts_on, ends_on, instructions or colonies (owner, not after the end)"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "cover" }, "404": { description: "not found" }, "422": { description: "invalid" } }
+  /api/v1/care-covers/{id}/end:
+    post:
+      tags: [colonies]
+      summary: "End a cover now (owner or substitute); a cover that has not started is removed"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "204": { description: "ended" }, "404": { description: "not found" } }
+  /api/v1/colonies/{id}/care-instructions:
+    get:
+      tags: [colonies]
+      summary: "Running and planned covers of this colony that concern me, with the general and this colony's instructions"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "list" }, "404": { description: "colony not found" } }
+  /api/v1/admin/home-assistant/test:
+    post:
+      tags: [admin]
+      summary: "Check the saved Home Assistant address and access token (REST API, for sensor values)"
+      responses: { "204": { description: "reachable" }, "502": { description: "Home Assistant failed (title explains)" }, "422": { description: "not set up" } }
+  /api/v1/me/home-assistant:
+    get:
+      tags: [auth]
+      summary: "Whether the own colonies are sent to Home Assistant {enabled, available, always}"
+      responses: { "200": { description: "state" } }
+    put:
+      tags: [auth]
+      summary: "Send the own colonies to Home Assistant too {enabled} (the administrator's are always sent)"
+      responses: { "200": { description: "state" } }
+  /api/v1/admin/mqtt/test:
+    post:
+      tags: [admin]
+      summary: "Connect to the saved MQTT broker once (address and login)"
+      responses: { "204": { description: "reachable" }, "502": { description: "MQTT failed (title explains)" }, "422": { description: "not set up" } }
   /api/v1/snooze:
     post:
       tags: [colonies]
@@ -380,6 +500,60 @@ paths:
       tags: [auth]
       summary: "Send a test message via the saved ntfy address"
       responses: { "204": { description: "sent" }, "502": { description: "ntfy refused or unreachable (title explains)" } }
+  /api/v1/me/feed:
+    get:
+      tags: [auth]
+      summary: "Older apps: whether a calendar address exists ({active, created_at, last_used_at, calendar_types}) – the first of /me/feeds; never the token. calendar_types null = everything"
+      responses: { "200": { description: "info" } }
+    patch:
+      tags: [auth]
+      summary: "Choose what the calendar shows: {calendar_types: [protein, carbohydrate, feeding, water, cleaning, check, custom, winter, tasks]} (null = everything); applies to the existing address at once"
+      responses: { "200": { description: "info" }, "404": { description: "no calendar address" }, "422": { description: "unknown or no type" } }
+    post:
+      tags: [auth]
+      summary: "Create a new calendar address; an existing one stops working. The token is returned only here"
+      responses: { "201": { description: "{token, calendar_url}" } }
+    delete:
+      tags: [auth]
+      summary: "Switch the calendar address off"
+      responses: { "204": { description: "removed" } }
+  /api/v1/me/feeds:
+    get:
+      tags: [auth]
+      summary: "All calendar subscriptions [{id, name, created_at, last_used_at, calendar_types, colony_ids}] (null = everything / all colonies); never the tokens"
+      responses: { "200": { description: "list" } }
+    post:
+      tags: [auth]
+      summary: "New calendar {name?, calendar_types?, colony_ids?} (at most 10); the address is returned only here: {feed, calendar_url}"
+      responses: { "201": { description: "{feed, calendar_url}" }, "422": { description: "invalid or too many" } }
+  /api/v1/me/feeds/{id}:
+    patch:
+      tags: [auth]
+      summary: "Change name, calendar_types (not empty) or colony_ids ([] = all colonies); applies to the address at once"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "feed" }, "404": { description: "not found" }, "422": { description: "invalid" } }
+    delete:
+      tags: [auth]
+      summary: "Delete a calendar; its address stops working"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "204": { description: "deleted" }, "404": { description: "not found" } }
+  /api/v1/me/feeds/{id}/rotate:
+    post:
+      tags: [auth]
+      summary: "New address for a calendar (the old one stops working): {calendar_url}"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "{calendar_url}" }, "404": { description: "not found" } }
+  /api/v1/feeds/{token}/calendar.ics:
+    get:
+      tags: [colonies]
+      security: []
+      summary: "Calendar subscription (iCal): next due date of every care plan (overdue ones today), planned winter rest start/end, open tasks. Read-only, token from /me/feed"
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses: { "200": { description: "text/calendar" }, "404": { description: "unknown token" } }
   /api/v1/export/link:
     post:
       tags: [colonies]

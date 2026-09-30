@@ -186,6 +186,19 @@ func eventBeforeWrite(ctx context.Context, s *Service, q db.Querier, w *write) e
 			w.details[k] = v
 		}
 	}
+	if evType == "care_deferred" && w.create {
+		// a deferral belongs to a care plan and says why
+		if v, ok := w.data["schedule_id"]; !ok || string(v) == "null" {
+			return Invalid("schedule_id", "a deferral needs the care plan (schedule_id)")
+		}
+		var p struct {
+			Reason string `json:"reason"`
+			Days   int    `json:"days"`
+		}
+		if v, ok := w.data["payload"]; !ok || json.Unmarshal(v, &p) != nil || p.Reason == "" || len(p.Reason) > 40 || p.Days < 1 || p.Days > 60 {
+			return Invalid("payload", "a deferral needs payload {reason, days (1–60)}")
+		}
+	}
 	rule := eventDetailRules[evType]
 	for k := range w.details {
 		if k != rule.required && !contains(rule.optional, k) {
@@ -515,6 +528,12 @@ func settingsBeforeWrite(ctx context.Context, s *Service, q db.Querier, w *write
 		}
 		if _, err := time.LoadLocation(tz); err != nil || tz == "" || tz == "Local" {
 			return Invalid("timezone", "unknown time zone %q", tz)
+		}
+	}
+	if v, ok := w.data["flight_watch"]; ok {
+		var ids []uuid.UUID
+		if err := json.Unmarshal(v, &ids); err != nil || len(ids) > 200 {
+			return Invalid("flight_watch", "flight_watch must be a list of at most 200 species ids")
 		}
 	}
 	if v, ok := w.data["locale"]; ok {
