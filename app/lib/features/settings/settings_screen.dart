@@ -354,6 +354,7 @@ class SettingsScreen extends ConsumerWidget {
                       );
                     },
                   ),
+                  if (auth.user.isAdmin) const UpdateNowTile(),
                   if (!kIsWeb)
                     ListTile(
                       leading: const Icon(Icons.swap_horiz),

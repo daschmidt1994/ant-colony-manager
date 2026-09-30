@@ -198,6 +198,8 @@ func (s *Server) Handler() *chi.Mux {
 				r.Put("/mqtt", s.setMQTT)
 				r.With(s.rateLimitUser(s.limScan)).Post("/mqtt/test", s.testMQTT)
 				r.With(s.rateLimitUser(s.limScan)).Post("/home-assistant/test", s.testHomeAssistant)
+				r.Get("/update", s.getUpdater)
+				r.With(s.rateLimitUser(s.limSensitive)).Post("/update", s.startUpdate)
 			})
 
 			// Generic collections (locations, food-items, species, habitats, …)

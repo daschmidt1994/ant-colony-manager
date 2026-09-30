@@ -1,5 +1,6 @@
 import 'package:ant_colony_manager/features/settings/feeds_screen.dart';
 import 'package:ant_colony_manager/features/settings/offsite_screen.dart';
+import 'package:ant_colony_manager/features/settings/updates.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -31,6 +32,13 @@ void main() {
       }, {}),
       'Winterruhe · 2 Kolonien',
     );
+  });
+
+  test('update button state texts', () {
+    expect(updaterStateText(null), isNull);
+    expect(updaterStateText({'state': 'idle'}), isNull);
+    expect(updaterStateText({'state': 'running', 'message': 'Neue Images holen …'}), contains('Neue Images holen'));
+    expect(updaterStateText({'state': 'failed'}), contains('fehlgeschlagen'));
   });
 
   test('off-site body: type, no user for a mounted folder', () {

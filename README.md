@@ -169,6 +169,8 @@ Der vollständige Ablauf Installation → Backup → Zerstören → Restore → 
 
 = Backup `…-pre-update` → `git pull` → neue Images holen/bauen → Neustart → warten bis *healthy*. Datenbank-Migrationen laufen beim Start automatisch (eine Transaktion pro Migration). Eine ältere App-Version startet nicht gegen ein neueres Schema (Schutz vor Downgrade). Feste Version: `ACM_VERSION=1.1.0` in `.env`.
 
+**Update per Knopf in der App (optional):** In `.env` `COMPOSE_PROFILES=updater` setzen (mit Proxy: `proxy,updater`) und `ACM_PROJECT_DIR` auf diesen Ordner (macht `init-env.sh`), dann `docker compose up -d`. Danach zeigt **Mehr → Server → „Jetzt aktualisieren“** den Knopf für Administratoren: Backup, neue Images holen, Neustart, Warten bis *healthy* – mit Status und Protokoll in der App. Der Dienst `updater` bekommt dafür den Docker-Socket (das ist root auf dem Host); die App selbst bekommt keinen Zugriff auf Docker, sie legt nur einen Auftrag in `data/update/`. Änderungen an der `compose.yml` selbst (neue Dienste, Volumes) holt weiterhin nur `./scripts/update.sh` (`git pull`). Mit fester `ACM_VERSION` holt der Knopf nur Korrekturen derselben Version.
+
 ## Android-App
 
 Schritt für Schritt mit Test auf dem Handy: [docs/16-anleitung-installieren-testen.md](docs/16-anleitung-installieren-testen.md).

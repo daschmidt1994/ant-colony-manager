@@ -1096,5 +1096,16 @@
  "So heißt der Kalender in Google, Outlook & Co., z. B. „Winterruhe“": "The calendar's name in Google, Outlook & co., e.g. “Hibernation”",
  "alle Kolonien": "all colonies",
  "alles": "everything",
- "{0} Kolonien": "{0} colonies"
+ "{0} Kolonien": "{0} colonies",
+ "Den Dienst „updater“ einschalten (COMPOSE_PROFILES=updater), dann geht das Update hier per Knopf.": "Switch on the “updater” service (COMPOSE_PROFILES=updater), then the update works here with a button.",
+ "Der Server macht ein Backup, holt die neuen Images und startet neu – die App ist dabei etwa eine Minute nicht erreichbar.": "The server makes a backup, pulls the new images and restarts – the app is unreachable for about a minute.",
+ "Jetzt aktualisieren": "Update now",
+ "Jetzt aktualisieren?": "Update now?",
+ "Letztes Update abgeschlossen": "Last update finished",
+ "Letztes Update fehlgeschlagen – Protokoll antippen": "Last update failed – tap for the log",
+ "Update angefordert …": "Update requested …",
+ "Update läuft: {0}": "Update running: {0}",
+ "Update mit Knopf": "Update with a button",
+ "Update-Protokoll": "Update log",
+ "⚠ Diese Version hat Breaking Changes – vorher die Hinweise lesen.": "⚠ This version has breaking changes – read the notes first."
 }

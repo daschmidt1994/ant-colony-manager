@@ -210,6 +210,8 @@ const table = <String, String>{
   'Datum/Uhrzeit wählen …': 'Choose date/time …',
   'Deaktivierte Sensoren werden abgewiesen': 'Disabled sensors are rejected',
   'Deine Kolonien. Ein Scan.': 'Your colonies. One scan.',
+  'Den Dienst „updater“ einschalten (COMPOSE_PROFILES=updater), dann geht das Update hier per Knopf.':
+      'Switch on the “updater” service (COMPOSE_PROFILES=updater), then the update works here with a button.',
   'Den Kamera-Scan gibt es in der Android-App.': 'Camera scanning is available in the Android app.',
   'Der Schlüssel wird nur jetzt angezeigt. Trage ihn im Sensor ein – geht er verloren, erzeugst du einfach einen neuen.':
       'The key is shown only now. Enter it in the sensor – if it gets lost, just create a new one.',
@@ -217,6 +219,8 @@ const table = <String, String>{
       'The server reads the values from Home Assistant every 5 minutes',
   'Der Server liest die Werte alle 5 Minuten aus Home Assistant (Adresse und Zugriffstoken: Server-Verwaltung → Home Assistant (MQTT)).':
       'The server reads the values from Home Assistant every 5 minutes (address and access token: Server administration → Home Assistant (MQTT)).',
+  'Der Server macht ein Backup, holt die neuen Images und startet neu – die App ist dabei etwa eine Minute nicht erreichbar.':
+      'The server makes a backup, pulls the new images and restarts – the app is unreachable for about a minute.',
   'Der Setup-Code stimmt nicht (siehe docker compose logs app).':
       'The setup code is wrong (see docker compose logs app).',
   'Der Tag ist schreibgeschützt.': 'The tag is write-protected.',
@@ -494,6 +498,8 @@ const table = <String, String>{
       'Every backup also to Nextcloud, a NAS or a storage box (WebDAV, SMB, NFS)',
   'Jelly': 'Jelly',
   'Jetzt': 'Now',
+  'Jetzt aktualisieren': 'Update now',
+  'Jetzt aktualisieren?': 'Update now?',
   'Jetzt ein Foto aufnehmen': 'Take a photo now',
   'Jetzt hochladen': 'Upload now',
   'Jetzt prüfen': 'Check now',
@@ -593,6 +599,8 @@ const table = <String, String>{
   'Letzte Prüfung: {0}': 'Last check: {0}',
   'Letzte Rundgänge': 'Recent rounds',
   'Letzte Synchronisierung': 'Last sync',
+  'Letztes Update abgeschlossen': 'Last update finished',
+  'Letztes Update fehlgeschlagen – Protokoll antippen': 'Last update failed – tap for the log',
   'Liegt ein Messwert außerhalb, entsteht automatisch ein „Problem“-Eintrag bei der Kolonie und eine Benachrichtigung (höchstens alle 6 Stunden).':
       'If a reading is outside, a “Problem” entry is created for the colony automatically, plus a notification (at most every 6 hours).',
   'Liegt in': 'Inside',
@@ -966,9 +974,13 @@ const table = <String, String>{
   'Unbekanntes Gerät': 'Unknown device',
   'Ungültiger Code.': 'Invalid code.',
   'Unterfamilie': 'Subfamily',
+  'Update angefordert …': 'Update requested …',
+  'Update läuft: {0}': 'Update running: {0}',
+  'Update mit Knopf': 'Update with a button',
   'Update {0} verfügbar': 'Update {0} available',
   'Update {0} verfügbar – ⚠ Breaking Change, vorher Backup': 'Update {0} available – ⚠ breaking change, back up first',
   'Update {0}: Breaking Change': 'Update {0}: breaking change',
+  'Update-Protokoll': 'Update log',
   'Upload gestartet – Status mit ↻ aktualisieren': 'Upload started – refresh the status with ↻',
   'Verbinde mit {0} …': 'Connecting to {0} …',
   'Verbinde …': 'Connecting …',
@@ -1235,4 +1247,6 @@ const table = <String, String>{
   '„{0}“ entfernt': '“{0}” removed',
   '… und {0} ältere Einträge (vollständig im JSON-/CSV-Export).':
       '… and {0} older entries (complete in the JSON/CSV export).',
+  '⚠ Diese Version hat Breaking Changes – vorher die Hinweise lesen.':
+      '⚠ This version has breaking changes – read the notes first.',
 };
