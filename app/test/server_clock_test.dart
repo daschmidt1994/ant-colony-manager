@@ -10,5 +10,9 @@ void main() {
     expect(skewText(const Duration(minutes: 10)), '10 Min.');
     expect(skewText(const Duration(minutes: -125)), '2 Std. 5 Min.');
     expect(skewText(const Duration(hours: 1)), '1 Std.');
+    expect(offsetText(const Duration(hours: 2)), 'UTC+2');
+    expect(offsetText(const Duration(hours: -5, minutes: -30)), 'UTC−5:30');
+    expect(zoneOffsetNow('Europe/Vienna'), isNotNull);
+    expect(zoneOffsetNow('Mars/Olympus'), isNull);
   });
 }

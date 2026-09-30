@@ -8,6 +8,7 @@ import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../shared/widgets.dart';
+import 'server_clock.dart';
 import '../reminders/reminders.dart';
 import '../../app/i18n.dart';
 
@@ -689,6 +690,10 @@ class _DeviceNotificationsCardState extends ConsumerState<DeviceNotificationsCar
                       ? tr('Prüft stündlich im Hintergrund und bei jedem Öffnen der App.')
                       : tr('Fehler: {0}', [st.error]),
                   TextButton(onPressed: _check, child: Text(tr('Jetzt prüfen'))),
+                ),
+                ClockCheck(
+                  accountZone: ref.read(repositoryProvider)?.settings().timezone ?? 'Europe/Berlin',
+                  line: (ok, title, detail) => line(ok, title, detail),
                 ),
                 line(
                   null,

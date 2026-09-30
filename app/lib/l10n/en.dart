@@ -415,6 +415,7 @@ const table = <String, String>{
   'Geplant ab {0}{1}': 'Planned from {0}{1}',
   'Gerade eben gefüttert': 'Just fed',
   'Gereinigt: {0}': 'Cleaned: {0}',
+  'Gerät: {0} ({1})': 'Device: {0} ({1})',
   'Geräte': 'Devices',
   'Geräte & Sitzungen': 'Devices & sessions',
   'Gerätesprache': 'Device language',
@@ -902,6 +903,7 @@ const table = <String, String>{
   'Server-Adresse': 'Server address',
   'Server-Version wird nicht unterstützt': 'Server version not supported',
   'Server-Verwaltung': 'Server administration',
+  'Server: {0}': 'Server: {0}',
   'Serverfehler ({0})': 'Server error ({0})',
   'Serverzeit: {0}': 'Server time: {0}',
   'Setup-Code': 'Setup code',
@@ -991,6 +993,7 @@ const table = <String, String>{
       'Daily at {0}: which colonies need care today. Time under More → Reminders.',
   'Uhrzeit': 'Time',
   'Uhrzeit für den Überblick (Android-App und E-Mail)': 'Time for the overview (Android app and e-mail)',
+  'Uhrzeit: {0}': 'Time: {0}',
   'Umbenennen': 'Rename',
   'Umhängen deaktiviert die alte Zuordnung.': 'Moving it deactivates the old assignment.',
   'Umhängen – Tag erneut anhalten': 'Move – hold the tag again',
@@ -1091,6 +1094,7 @@ const table = <String, String>{
   'Zeitraffer': 'Time-lapse',
   'Zeitraum': 'Period',
   'Zeitzone des Servers: {0}': 'Server time zone: {0}',
+  'Zeitzone im Konto: {0}{1}': 'Account time zone: {0}{1}',
   'Zu viele Versuche – bitte kurz warten.': 'Too many attempts – please wait a moment.',
   'Zucht': 'Culture',
   'Zucht versorgen (alle {0} Tage)': 'Care for the culture (every {0} days)',
@@ -1287,6 +1291,8 @@ const table = <String, String>{
       '⚠ The photos seem to show partly the same ants – the sum is then too high.',
   '⚠ Die Uhr dieses Geräts geht {0} nach – Uhrzeit prüfen': '⚠ This device\'s clock is {0} behind – check the time',
   '⚠ Die Uhr dieses Geräts geht {0} vor – Uhrzeit prüfen': '⚠ This device\'s clock is {0} ahead – check the time',
+  '⚠ Die Zeitzone im Konto passt nicht zum Gerät – Tages-Überblick und Erinnerungen kommen zur falschen Uhrzeit.':
+      '⚠ The account\'s time zone does not match the device – daily overview and reminders come at the wrong time.',
   '⚠ Diese Version hat Breaking Changes – vorher die Hinweise lesen.':
       '⚠ This version has breaking changes – read the notes first.',
 };

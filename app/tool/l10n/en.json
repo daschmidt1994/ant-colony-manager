@@ -1141,5 +1141,10 @@
  "{0} Std.": "{0} h",
  "{0} Std. {1} Min.": "{0} h {1} min",
  "⚠ Die Uhr dieses Geräts geht {0} nach – Uhrzeit prüfen": "⚠ This device's clock is {0} behind – check the time",
- "⚠ Die Uhr dieses Geräts geht {0} vor – Uhrzeit prüfen": "⚠ This device's clock is {0} ahead – check the time"
+ "⚠ Die Uhr dieses Geräts geht {0} vor – Uhrzeit prüfen": "⚠ This device's clock is {0} ahead – check the time",
+ "Gerät: {0} ({1})": "Device: {0} ({1})",
+ "Server: {0}": "Server: {0}",
+ "Uhrzeit: {0}": "Time: {0}",
+ "Zeitzone im Konto: {0}{1}": "Account time zone: {0}{1}",
+ "⚠ Die Zeitzone im Konto passt nicht zum Gerät – Tages-Überblick und Erinnerungen kommen zur falschen Uhrzeit.": "⚠ The account's time zone does not match the device – daily overview and reminders come at the wrong time."
 }
