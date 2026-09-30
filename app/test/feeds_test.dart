@@ -22,10 +22,23 @@ void main() {
       'type': 'folder',
       'url': '/offsite',
       'keep': 7,
+      'encrypt': false,
     });
     final smb = offsiteBody(enabled: true, type: 'smb', url: 'smb://nas/b', user: ' anna ', keep: '3', password: 'pw');
     expect(smb['user'], 'anna');
     expect(smb['password'], 'pw');
+    expect(smb['encrypt'], isFalse);
+    expect(smb.containsKey('passphrase'), isFalse);
+    final enc = offsiteBody(
+      enabled: true,
+      url: 'u',
+      user: '',
+      keep: '7',
+      encrypt: true,
+      passphrase: 'lange Passphrase',
+    );
+    expect(enc['encrypt'], isTrue);
+    expect(enc['passphrase'], 'lange Passphrase');
     expect(offsiteAddress('smb').$2, startsWith('smb://'));
     expect(offsiteAddress('folder').$2, '/offsite');
   });

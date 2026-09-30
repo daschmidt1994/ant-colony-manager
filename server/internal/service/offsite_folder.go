@@ -127,6 +127,14 @@ func (f *folderTarget) folders(ctx context.Context, p string) ([]string, error) 
 
 func (f *folderTarget) close() {}
 
+func (f *folderTarget) get(ctx context.Context, p string) (io.ReadCloser, error) {
+	file, err := f.file(p)
+	if err != nil {
+		return nil, err
+	}
+	return os.Open(file)
+}
+
 // readerWithContext stops a long copy when ctx ends.
 func readerWithContext(ctx context.Context, r io.Reader) io.Reader {
 	return readerFunc(func(p []byte) (int, error) {

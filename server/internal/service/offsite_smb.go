@@ -222,6 +222,21 @@ func (t *smbTarget) folders(ctx context.Context, p string) ([]string, error) {
 	return out, nil
 }
 
+func (t *smbTarget) get(ctx context.Context, p string) (io.ReadCloser, error) {
+	share, err := t.mounted(ctx)
+	if err != nil {
+		return nil, err
+	}
+	f, err := share.Open(t.path(p))
+	if smbNotExist(err) {
+		return nil, fs.ErrNotExist
+	}
+	if err != nil {
+		return nil, smbError("read "+p, err)
+	}
+	return f, nil
+}
+
 // close logs off politely, but does not wait for a server that does not answer.
 func (t *smbTarget) close() {
 	if t.fs == nil {

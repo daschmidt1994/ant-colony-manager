@@ -58,6 +58,18 @@ Dasselbe geht mit einer USB-Platte oder einem schon am Host gemounteten Ordner: 
 
 Bei Unraid mit Dockhand oder Portainer: dieselben Zeilen im Stack-Editor ergänzen ([17-unraid-dockhand.md](17-unraid-dockhand.md)).
 
+### Verschlüsselt oder nicht?
+
+Schalter **„Verschlüsselt speichern“**:
+
+| | Unverschlüsselt (Standard) | Verschlüsselt |
+|---|---|---|
+| Dateien am Ziel | normale Dateien (`db.dump`, Fotos als `.jpg`) | `….age` – ohne Passphrase unlesbar |
+| Wiederherstellen | einfach zurückkopieren oder `restore.sh --from-offsite` | nur mit Passphrase: `restore.sh --from-offsite` (oder das Programm [age](https://age-encryption.org)) |
+| Gut für | eigenes NAS im Haus | fremde Server: Storage Box, Cloud, NAS bei Freunden |
+
+Verschlüsselt wird mit [age](https://age-encryption.org): Der Server erzeugt einmalig ein Schlüsselpaar, verschlüsselt jede Datei mit dem öffentlichen Schlüssel und legt den privaten Schlüssel – mit deiner **Passphrase** geschützt – als `key.age` neben die Backups. Im Notfall brauchst du also nur die Passphrase. Sie wird **nicht gespeichert**: aufschreiben (Passwort-Manager)! Eine neue Passphrase gilt auch für ältere Backups am Ziel. Beim Umschalten werden die Fotos einmal neu übertragen (alte Dateien der anderen Form bleiben am Ziel liegen und können gelöscht werden).
+
 ### Warnung, wenn es nicht klappt
 
 Hat 48 Stunden lang kein Backup außer Haus geklappt (seit dem Einschalten bzw. dem letzten Erfolg), bekommen alle Administratoren eine Nachricht – per E-Mail und, falls eingerichtet, per ntfy – mit dem letzten Fehler. Danach höchstens einmal pro Tag, bis es wieder klappt.
@@ -77,6 +89,27 @@ acm-backups/
 - Im Ordner `uploads/` wird nichts gelöscht; auch Fotos, die du in der App gelöscht hast, bleiben dort (so passen sie auch zu älteren Backups).
 
 ## Wiederherstellen
+
+### Direkt vom Ziel (empfohlen)
+
+```sh
+./scripts/restore.sh --from-offsite            # neuestes Backup
+./scripts/restore.sh --from-offsite 2026-09-28T0300
+```
+
+Das lädt das Backup vom Ziel in den lokalen Backup-Ordner, entschlüsselt es bei Bedarf, prüft jede Datei gegen die Prüfsummen und spielt es dann wie gewohnt ein. Verfügbare Backups: `docker compose run --rm --no-deps app offsite-restore --list`.
+
+Auf einem **neuen Server** (die alten Einstellungen sind weg) das Ziel über Umgebungsvariablen angeben:
+
+```sh
+export ACM_OFFSITE_TYPE=smb                       # webdav | smb | folder
+export ACM_OFFSITE_URL=smb://nas/backup/acm
+export ACM_OFFSITE_USER=acm ACM_OFFSITE_PASSWORD='…'
+export ACM_OFFSITE_PASSPHRASE='…'                 # nur bei verschlüsselten Backups (sonst wird gefragt)
+./scripts/restore.sh --from-offsite
+```
+
+### Von Hand
 
 1. Auf dem (neuen) Server den Stack wie gewohnt installieren.
 2. Den gewünschten Backup-Ordner nach `data/backups/<name>/` kopieren und den Ordner `uploads/` nach `data/backups/<name>/uploads/` (Nextcloud-Web: Ordner als ZIP herunterladen; SMB/NFS: einfach kopieren; oder `rclone copy`).

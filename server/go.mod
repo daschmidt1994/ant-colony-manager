@@ -14,6 +14,8 @@ require (
 )
 
 require (
+	filippo.io/age v1.3.2 // indirect
+	filippo.io/hpke v0.4.0 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.5.1 // indirect
 	github.com/geoffgarside/ber v1.1.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect

@@ -144,6 +144,8 @@ const table = <String, String>{
   'Aus – einschalten, um eine Art aus dem Katalog zu wählen': 'Off – switch on to choose a species from the catalogue',
   'Aus – keine Benachrichtigung': 'Off – no notifications',
   'Aus, oder zu diesem Zeitpunkt ist nichts fällig.': 'Off, or nothing is due at that time.',
+  'Aus: normale Dateien – am einfachsten wiederherzustellen, auch ohne ACM einfach zurückkopieren. Gut für das eigene NAS.':
+      'Off: plain files – easiest to restore, can simply be copied back even without ACM. Good for your own NAS.',
   'Ausblenden': 'Hide',
   'Ausgeschaltet': 'Switched off',
   'Ausschalten': 'Switch off',
@@ -626,6 +628,8 @@ const table = <String, String>{
   'Messungen und Sensor': 'Measurements and sensor',
   'Messwerte (optional)': 'Readings (optional)',
   'Mindestens 10 Zeichen': 'At least 10 characters',
+  'Mindestens 12 Zeichen. Wird nicht gespeichert – bitte sicher aufschreiben (Passwort-Manager). Ändern: ältere Backups öffnen sich dann mit der neuen.':
+      'At least 12 characters. It is not stored – please write it down safely (password manager). Changing it: older backups then open with the new one.',
   'Mindestens eine Art muss ausgewählt bleiben': 'At least one kind must stay selected',
   'Mindestens eine Entität angeben, z. B. sensor.formicarium_temperature':
       'Enter at least one entity, e.g. sensor.formicarium_temperature',
@@ -739,6 +743,7 @@ const table = <String, String>{
   'PDF für {0} Etikett(en)': 'PDF for {0} label(s)',
   'PDF heruntergeladen – im PDF-Programm mit 100 % Skalierung drucken.':
       'PDF downloaded – print from your PDF app at 100 % scale.',
+  'Passphrase': 'Passphrase',
   'Passwort': 'Password',
   'Passwort entfernen': 'Remove password',
   'Passwort geändert. Du kannst dich jetzt anmelden.': 'Password changed. You can sign in now.',
@@ -867,6 +872,8 @@ const table = <String, String>{
   'Serverfehler ({0})': 'Server error ({0})',
   'Setup-Code': 'Setup code',
   'Sie wurde gelöscht oder nicht mehr mit dir geteilt.': 'It was deleted or is no longer shared with you.',
+  'Sinnvoll bei fremden Servern (Storage Box, Cloud). Zum Wiederherstellen wird die Passphrase gebraucht – ohne sie sind die Backups verloren. Die Dateien lassen sich nur mit ACM (restore.sh --from-offsite) oder dem Programm „age“ öffnen.':
+      'Useful on servers of others (storage box, cloud). Restoring needs the passphrase – without it the backups are lost. The files can only be opened with ACM (restore.sh --from-offsite) or the program “age”.',
   'Sobald eine Aufgabe (Fütterung, Wasser, Reinigung …) überfällig ist. Mit „Erledigt“ und „Morgen“ (heute keine Zeit → um einen Tag verschieben).':
       'As soon as a task (feeding, water, cleaning …) is overdue. With “Done” and “Tomorrow” (no time today → postpone by a day).',
   'Solange es besteht, erinnern': 'Remind while it persists',
@@ -973,6 +980,7 @@ const table = <String, String>{
   'Verknüpfung lösen': 'Remove link',
   'Verkäufer / Züchter': 'Seller / breeder',
   'Verlässliche Informationsquellen': 'Reliable sources of information',
+  'Verschlüsselt speichern': 'Store encrypted',
   'Verschlüsselung': 'Encryption',
   'Versorgen alle … Tage': 'Care every … days',
   'Versorgt': 'Cared for',
@@ -1085,6 +1093,7 @@ const table = <String, String>{
   'fakultativ polygyn': 'facultatively polygynous',
   'gefüttert': 'fed',
   'gereinigt': 'cleaned',
+  'gesetzt – nur zum Ändern ausfüllen': 'set – fill in only to change it',
   'gespeichert – leer lassen zum Behalten': 'saved – leave empty to keep',
   'groß': 'large',
   'heute': 'today',

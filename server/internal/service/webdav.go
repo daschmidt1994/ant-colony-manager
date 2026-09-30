@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"path"
@@ -186,6 +187,22 @@ func (d *webdav) folders(ctx context.Context, p string) ([]string, error) {
 }
 
 func (d *webdav) close() {}
+
+func (d *webdav) get(ctx context.Context, p string) (io.ReadCloser, error) {
+	resp, err := d.do(ctx, http.MethodGet, p, nil, -1, nil, 2*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case resp.StatusCode == http.StatusNotFound:
+		resp.Body.Close()
+		return nil, fs.ErrNotExist
+	case resp.StatusCode/100 != 2:
+		defer resp.Body.Close()
+		return nil, davError("GET", p, resp)
+	}
+	return resp.Body, nil
+}
 
 // check verifies address and login and creates the base folder if needed.
 func (d *webdav) check(ctx context.Context) error {

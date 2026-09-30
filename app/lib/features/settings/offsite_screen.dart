@@ -24,6 +24,8 @@ Map<String, dynamic> offsiteBody({
   required String keep,
   String password = '',
   bool removePassword = false,
+  bool encrypt = false,
+  String passphrase = '',
 }) => {
   'enabled': enabled,
   'type': type,
@@ -31,6 +33,8 @@ Map<String, dynamic> offsiteBody({
   if (type != 'folder') 'user': user.trim(),
   'keep': int.tryParse(keep.trim()) ?? 0,
   if (removePassword) 'password': '' else if (password.isNotEmpty) 'password': password,
+  'encrypt': encrypt,
+  if (passphrase.isNotEmpty) 'passphrase': passphrase,
 };
 
 /// Label, example and help for the address field of each target type.
@@ -100,6 +104,8 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
   late Map<String, dynamic> _s = widget.initial;
   late bool _enabled = _s['enabled'] == true;
   late String _type = _s['type'] as String? ?? 'webdav';
+  late bool _encrypt = _s['encrypt'] == true;
+  final _passphrase = TextEditingController();
   late final _url = TextEditingController(text: _s['url'] as String? ?? '');
   late final _user = TextEditingController(text: _s['user'] as String? ?? '');
   late final _keep = TextEditingController(text: '${_s['keep'] ?? 7}');
@@ -109,7 +115,7 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
 
   @override
   void dispose() {
-    for (final c in [_url, _user, _keep, _password]) {
+    for (final c in [_url, _user, _keep, _password, _passphrase]) {
       c.dispose();
     }
     super.dispose();
@@ -131,11 +137,14 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
               keep: _keep.text,
               password: _password.text,
               removePassword: _removePassword,
+              encrypt: _encrypt,
+              passphrase: _passphrase.text,
             ),
           );
       setState(() {
         _s = r as Map<String, dynamic>;
         _password.clear();
+        _passphrase.clear();
         _removePassword = false;
       });
       if (!quiet && mounted) showUndoSnack(context, tr('Gespeichert'));
@@ -298,6 +307,40 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
                     helperText: tr('Ältere werden dort gelöscht; Fotos bleiben.'),
                   ),
                 ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tr('Verschlüsselt speichern')),
+                  subtitle: Text(
+                    _encrypt
+                        ? tr(
+                            'Sinnvoll bei fremden Servern (Storage Box, Cloud). Zum Wiederherstellen wird die Passphrase '
+                            'gebraucht – ohne sie sind die Backups verloren. Die Dateien lassen sich nur mit ACM '
+                            '(restore.sh --from-offsite) oder dem Programm „age“ öffnen.',
+                          )
+                        : tr(
+                            'Aus: normale Dateien – am einfachsten wiederherzustellen, auch ohne ACM einfach zurückkopieren. '
+                            'Gut für das eigene NAS.',
+                          ),
+                  ),
+                  value: _encrypt,
+                  onChanged: (v) => setState(() => _encrypt = v),
+                ),
+                if (_encrypt)
+                  TextField(
+                    controller: _passphrase,
+                    obscureText: true,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      labelText: tr('Passphrase'),
+                      hintText: _s['passphrase_set'] == true ? tr('gesetzt – nur zum Ändern ausfüllen') : null,
+                      helperText: tr(
+                        'Mindestens 12 Zeichen. Wird nicht gespeichert – bitte sicher aufschreiben (Passwort-Manager). '
+                        'Ändern: ältere Backups öffnen sich dann mit der neuen.',
+                      ),
+                      helperMaxLines: 3,
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
