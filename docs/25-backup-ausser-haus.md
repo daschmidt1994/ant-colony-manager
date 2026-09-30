@@ -30,6 +30,8 @@ Unterstützt werden SMB 2 und 3 mit Benutzer und Passwort (NTLM) – das, was Wi
 
 ### NFS einbinden
 
+In der App gibt es dazu eine Anleitung: bei „NFS / Ordner“ auf **„NFS einrichten – Anleitung“** tippen, NAS-Adresse und Freigabe-Pfad eintragen – die fertige `compose.override.yml` lässt sich kopieren.
+
 NFS bindet nicht die App ein, sondern Docker: Der App-Container läuft bewusst ohne Root-Rechte, und die meisten NAS nehmen NFS nur von Root (privilegierter Port) an. Docker kann NFS-Freigaben selbst als Volume einhängen.
 
 1. Am NAS eine NFS-Freigabe anlegen und dem Docker-Host Schreibrecht geben. Geschrieben wird mit `PUID`/`PGID` aus der `.env` (Standard 1000:1000) – entweder diese Benutzer-ID auf der Freigabe erlauben oder am NAS alle Zugriffe auf einen Benutzer abbilden (Synology: „Alle Benutzer zu admin zuordnen“ bzw. Squash; Unraid: Security „Public“ oder Rule `*(rw,all_squash,anonuid=1000,anongid=1000)`).
@@ -55,6 +57,10 @@ NFS bindet nicht die App ein, sondern Docker: Der App-Container läuft bewusst o
 Dasselbe geht mit einer USB-Platte oder einem schon am Host gemounteten Ordner: `- /mnt/usb/acm:/offsite` unter `volumes` des Dienstes `app`. Der lokale Backup-Ordner (`/data/backups`) und die Fotos (`/data/uploads`) werden als Ziel abgelehnt – sonst würde „Backups dort behalten“ die lokalen Backups löschen.
 
 Bei Unraid mit Dockhand oder Portainer: dieselben Zeilen im Stack-Editor ergänzen ([17-unraid-dockhand.md](17-unraid-dockhand.md)).
+
+### Warnung, wenn es nicht klappt
+
+Hat 48 Stunden lang kein Backup außer Haus geklappt (seit dem Einschalten bzw. dem letzten Erfolg), bekommen alle Administratoren eine Nachricht – per E-Mail und, falls eingerichtet, per ntfy – mit dem letzten Fehler. Danach höchstens einmal pro Tag, bis es wieder klappt.
 
 ## Was liegt dort?
 

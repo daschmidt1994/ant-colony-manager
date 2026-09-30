@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"golang.org/x/net/webdav"
 
@@ -199,5 +200,62 @@ func TestOffsiteBackupToFolder(t *testing.T) {
 	}
 	if exists("2026-09-27T0300") || !exists("2026-09-28T0300/db.dump") || !exists("uploads/c1/a.jpg") {
 		t.Fatal("retention wrong")
+	}
+}
+
+// Admins hear about it when the off-site backup has not worked for 48 hours.
+func TestOffsiteWarning(t *testing.T) {
+	backups, target := t.TempDir(), t.TempDir()
+	env := testenv.New(t, testenv.Options{Env: map[string]string{"BACKUP_STATUS_DIR": backups}})
+	admin := env.Admin(t)
+	ctx := context.Background()
+	warnings := func() int {
+		n := 0
+		for _, m := range env.Mail.Messages() {
+			if strings.Contains(m.Subject, "Backup außer Haus fehlt") {
+				n++
+			}
+		}
+		return n
+	}
+	// not set up: never a warning
+	env.Clock.Advance(100 * time.Hour)
+	if warned, err := env.Svc.OffsiteWatch(ctx); err != nil || warned {
+		t.Fatalf("not set up: %v %v", warned, err)
+	}
+
+	admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{"enabled": true, "type": "folder", "url": filepath.Join(target, "fehlt"), "keep": 3}).Must(t, 200)
+	env.Clock.Advance(47 * time.Hour)
+	if warned, _ := env.Svc.OffsiteWatch(ctx); warned {
+		t.Fatal("warned before 48 hours")
+	}
+	env.Clock.Advance(2 * time.Hour)
+	writeBackup(t, backups, "2026-09-27T0300", map[string]string{"c1/a.jpg": "A"})
+	_, _ = env.Svc.OffsiteSync(ctx, false) // fails: the folder does not exist
+	if warned, err := env.Svc.OffsiteWatch(ctx); err != nil || !warned || warnings() != 1 {
+		t.Fatalf("expected a warning: %v %v %d", warned, err, warnings())
+	}
+	for _, m := range env.Mail.Messages() {
+		if strings.Contains(m.Subject, "fehlt") && !strings.Contains(m.Body, "mounted") {
+			t.Fatalf("the last error belongs into the warning: %s", m.Body)
+		}
+	}
+	// at most once a day
+	env.Clock.Advance(10 * time.Hour)
+	if warned, _ := env.Svc.OffsiteWatch(ctx); warned {
+		t.Fatal("warned twice within a day")
+	}
+	env.Clock.Advance(15 * time.Hour)
+	if warned, _ := env.Svc.OffsiteWatch(ctx); !warned || warnings() != 2 {
+		t.Fatal("no second warning after a day")
+	}
+	// works again → quiet
+	admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{"enabled": true, "type": "folder", "url": target, "keep": 3}).Must(t, 200)
+	if _, err := env.Svc.OffsiteSync(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	env.Clock.Advance(30 * time.Hour)
+	if warned, _ := env.Svc.OffsiteWatch(ctx); warned {
+		t.Fatal("warned although the backup works")
 	}
 }

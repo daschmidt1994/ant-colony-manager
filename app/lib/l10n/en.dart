@@ -18,8 +18,15 @@ const table = <String, String>{
   '1 Monat': '1 month',
   '1 Tag': '1 day',
   '1 Tag überfällig': '1 day overdue',
+  '1. Am NAS eine NFS-Freigabe anlegen und dem Docker-Host Schreibrecht geben. Geschrieben wird mit PUID/PGID aus der .env (Standard 1000) – am NAS diese ID erlauben oder alle Zugriffe auf einen Benutzer abbilden (Synology: Squash „Alle Benutzer zu admin zuordnen“, Unraid: all_squash).':
+      '1. Create an NFS share on the NAS and give the Docker host write access. Files are written with PUID/PGID from the .env (default 1000) – allow this ID on the NAS or map all access to one user (Synology: squash “Map all users to admin”, Unraid: all_squash).',
+  '2. Adresse und Pfad der Freigabe eintragen:': '2. Enter the address and path of the share:',
   '3 M': '3 mo',
+  '3. Neben der compose.yml als compose.override.yml speichern (Updates überschreiben sie nicht):':
+      '3. Save next to compose.yml as compose.override.yml (updates do not overwrite it):',
   '30 T': '30 d',
+  '4. „docker compose up -d“ ausführen (Unraid/Portainer: Stack neu bereitstellen). Dann oben „/offsite“ eintragen, speichern und „Verbindung testen“. USB-Platte statt NFS: unter volumes nur „- /mnt/usb/acm:/offsite“.':
+      '4. Run “docker compose up -d” (Unraid/Portainer: redeploy the stack). Then enter “/offsite” above, save and “Test connection”. USB disk instead of NFS: under volumes only “- /mnt/usb/acm:/offsite”.',
   '7 T': '7 d',
   'A4-Bogen 38,1 × 21,2 mm (5 × 13, z. B. Avery L7651)': 'A4 sheet 38.1 × 21.2 mm (5 × 13, e.g. Avery L7651)',
   'A4-Bogen 70 × 37 mm (3 × 8)': 'A4 sheet 70 × 37 mm (3 × 8)',
@@ -350,6 +357,7 @@ const table = <String, String>{
   'Fotos werden vor dem Hochladen verkleinert und sind auch offline sichtbar.':
       'Photos are downscaled before uploading and are visible offline too.',
   'Fotos · {0}': 'Photos · {0}',
+  'Freigabe-Pfad': 'Share path',
   'Frisch': 'Fresh',
   'Frucht': 'Fruit',
   'Fruchtfliege': 'Fruit fly',
@@ -633,6 +641,7 @@ const table = <String, String>{
   'Muss der Mail-Anbieter meist als Absender erlauben': 'Your mail provider usually has to allow it as sender',
   'Männchen': 'Males',
   'Müllplatz': 'Midden',
+  'NAS-Adresse': 'NAS address',
   'NFC ist ausgeschaltet': 'NFC is switched off',
   'NFC ist ausgeschaltet.': 'NFC is switched off.',
   'NFC ist bereit – Tag einfach antippen': 'NFC is ready – just tap the tag',
@@ -641,6 +650,7 @@ const table = <String, String>{
   'NFC-Tags ({0})': 'NFC tags ({0})',
   'NFC-Tags werden mit der Android-App zugewiesen.': 'NFC tags are assigned with the Android app.',
   'NFS / Ordner': 'NFS / folder',
+  'NFS einrichten – Anleitung': 'Set up NFS – guide',
   'Nach Art': 'By species',
   'Nach Gattung': 'By genus',
   'Nach Standort': 'By location',
@@ -886,6 +896,8 @@ const table = <String, String>{
   'Synchron': 'In sync',
   'Synchronisiere …': 'Syncing …',
   'Synchronisierung': 'Sync',
+  'Synology: /volume1/<Freigabe> · Unraid: /mnt/user/<Freigabe> · QNAP: /<Freigabe>':
+      'Synology: /volume1/<share> · Unraid: /mnt/user/<share> · QNAP: /<share>',
   'System': 'System',
   'Süßes Obst in kleinen Stücken als Abwechslung.': 'Sweet fruit in small pieces for variety.',
   'Tag antippen': 'Tap the tag',

@@ -208,6 +208,9 @@ func serve() error {
 			if _, err := svc.OffsiteSync(ctx, false); err != nil && ctx.Err() == nil {
 				log.Error("off-site backup failed", "err", err)
 			}
+			if _, err := svc.OffsiteWatch(ctx); err != nil && ctx.Err() == nil {
+				log.Error("off-site backup warning failed", "err", err)
+			}
 		}
 	}()
 

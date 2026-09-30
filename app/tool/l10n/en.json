@@ -1077,5 +1077,13 @@
  "Mindestens eine Entität angeben, z. B. sensor.formicarium_temperature": "Enter at least one entity, e.g. sensor.formicarium_temperature",
  "Optional: Damit Sensoren der Art „Home Assistant“ ihre Werte bekommen, liest der Server die gewählten Entitäten alle 5 Minuten über die REST-API. Token: in Home Assistant unten links auf dein Profil → Sicherheit → „Langlebige Zugriffstoken“.": "Optional: so that sensors of the kind “Home Assistant” get their values, the server reads the chosen entities every 5 minutes via the REST API. Token: in Home Assistant bottom left on your profile → Security → “Long-lived access tokens”.",
  "Sensorwerte aus Home Assistant": "Sensor values from Home Assistant",
- "Zugriffstoken": "Access token"
+ "Zugriffstoken": "Access token",
+ "1. Am NAS eine NFS-Freigabe anlegen und dem Docker-Host Schreibrecht geben. Geschrieben wird mit PUID/PGID aus der .env (Standard 1000) – am NAS diese ID erlauben oder alle Zugriffe auf einen Benutzer abbilden (Synology: Squash „Alle Benutzer zu admin zuordnen“, Unraid: all_squash).": "1. Create an NFS share on the NAS and give the Docker host write access. Files are written with PUID/PGID from the .env (default 1000) – allow this ID on the NAS or map all access to one user (Synology: squash “Map all users to admin”, Unraid: all_squash).",
+ "2. Adresse und Pfad der Freigabe eintragen:": "2. Enter the address and path of the share:",
+ "3. Neben der compose.yml als compose.override.yml speichern (Updates überschreiben sie nicht):": "3. Save next to compose.yml as compose.override.yml (updates do not overwrite it):",
+ "4. „docker compose up -d“ ausführen (Unraid/Portainer: Stack neu bereitstellen). Dann oben „/offsite“ eintragen, speichern und „Verbindung testen“. USB-Platte statt NFS: unter volumes nur „- /mnt/usb/acm:/offsite“.": "4. Run “docker compose up -d” (Unraid/Portainer: redeploy the stack). Then enter “/offsite” above, save and “Test connection”. USB disk instead of NFS: under volumes only “- /mnt/usb/acm:/offsite”.",
+ "Freigabe-Pfad": "Share path",
+ "NAS-Adresse": "NAS address",
+ "NFS einrichten – Anleitung": "Set up NFS – guide",
+ "Synology: /volume1/<Freigabe> · Unraid: /mnt/user/<Freigabe> · QNAP: /<Freigabe>": "Synology: /volume1/<share> · Unraid: /mnt/user/<share> · QNAP: /<share>"
 }

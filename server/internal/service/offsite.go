@@ -47,6 +47,8 @@ type storedOffsite struct {
 	User        string `json:"user"`
 	PasswordEnc string `json:"password_enc,omitempty"`
 	Keep        int    `json:"keep"`
+	// when it was switched on – the warning counts from here until the first success
+	EnabledAt *time.Time `json:"enabled_at,omitempty"`
 }
 
 // OffsiteStatus is what the last runs did.
@@ -57,6 +59,7 @@ type OffsiteStatus struct {
 	LastErrorAt *time.Time `json:"last_error_at,omitempty"`
 	LastBytes   int64      `json:"last_bytes,omitempty"`
 	LastPhotos  int        `json:"last_photos,omitempty"`
+	LastWarned  *time.Time `json:"last_warned,omitempty"` // admins were told it fails
 	Running     bool       `json:"running"`
 	// the newest complete local backup (empty: backup folder not visible)
 	LocalLatest string `json:"local_latest,omitempty"`
@@ -148,7 +151,12 @@ func (s *Service) SetOffsiteSettings(ctx context.Context, actor Actor, in Offsit
 	if _, err := s.loadJSONSetting(ctx, offsiteKey, &old); err != nil {
 		return nil, err
 	}
-	st := storedOffsite{Enabled: in.Enabled, Type: in.Type, URL: in.URL, User: in.User, Keep: in.Keep, PasswordEnc: old.PasswordEnc}
+	st := storedOffsite{Enabled: in.Enabled, Type: in.Type, URL: in.URL, User: in.User, Keep: in.Keep, PasswordEnc: old.PasswordEnc,
+		EnabledAt: old.EnabledAt}
+	if in.Enabled && (!old.Enabled || st.EnabledAt == nil) {
+		now := s.Now().UTC()
+		st.EnabledAt = &now
+	}
 	if in.Password != nil {
 		st.PasswordEnc = ""
 		if *in.Password != "" {
@@ -442,4 +450,69 @@ func (s *Service) offsiteUpload(ctx context.Context, d offsiteTarget, keep int, 
 		}
 	}
 	return total, photos, nil
+}
+
+// offsiteWarnAfter: without a successful off-site backup for this long, the
+// administrators are told (again at most once a day).
+const offsiteWarnAfter = 48 * time.Hour
+
+// OffsiteWatch warns the administrators (e-mail and their ntfy) when the
+// off-site backup has not worked for 48 hours. Returns whether it warned.
+func (s *Service) OffsiteWatch(ctx context.Context) (bool, error) {
+	var st storedOffsite
+	if found, err := s.loadJSONSetting(ctx, offsiteKey, &st); err != nil || !found || !st.Enabled {
+		return false, err
+	}
+	var state OffsiteStatus
+	if _, err := s.loadJSONSetting(ctx, offsiteStateKey, &state); err != nil {
+		return false, err
+	}
+	since := st.EnabledAt
+	if state.LastSuccess != nil && (since == nil || state.LastSuccess.After(*since)) {
+		since = state.LastSuccess
+	}
+	now := s.Now()
+	if since == nil || now.Sub(*since) < offsiteWarnAfter ||
+		(state.LastWarned != nil && now.Sub(*state.LastWarned) < 24*time.Hour) {
+		return false, nil
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT u.id, u.email, us.locale, u.lang_hint,
+			COALESCE(np.ntfy_url, ''), COALESCE(np.ntfy_token, '')
+		FROM users u JOIN user_settings us ON us.id = u.id
+		LEFT JOIN notification_prefs np ON np.user_id = u.id
+		WHERE u.instance_role = 'admin' AND u.disabled_at IS NULL`)
+	if err != nil {
+		return false, err
+	}
+	admins, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (recipient, error) {
+		var r recipient
+		var locale, hint *string
+		err := row.Scan(&r.id, &r.email, &locale, &hint, &r.ntfyURL, &r.token)
+		r.lang = resolveLang(locale, hint)
+		return r, err
+	})
+	if err != nil {
+		return false, err
+	}
+	hours := int(now.Sub(*since).Hours())
+	warned := false
+	for _, r := range admins {
+		body := tl(r.lang, "Seit %d Stunden hat kein Backup außer Haus geklappt.", hours)
+		if state.LastError != "" {
+			body += " " + tl(r.lang, "Letzter Fehler: %s", state.LastError)
+		}
+		n := notice{Title: tl(r.lang, "Backup außer Haus fehlt"), Body: body, Priority: 4, Tags: []string{"warning"},
+			Click: s.publicURL() + "/settings/offsite"}
+		if s.deliver(ctx, r, true, true, n) {
+			warned = true
+		}
+	}
+	if warned {
+		state.LastWarned = &now
+		if err := s.saveJSONSetting(ctx, offsiteStateKey, state); err != nil {
+			return true, err
+		}
+		s.Log.Warn("off-site backup failing – administrators warned", "hours", hours)
+	}
+	return warned, nil
 }

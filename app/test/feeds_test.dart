@@ -29,4 +29,13 @@ void main() {
     expect(offsiteAddress('smb').$2, startsWith('smb://'));
     expect(offsiteAddress('folder').$2, '/offsite');
   });
+
+  test('NFS compose snippet from address and path', () {
+    final y = nfsComposeSnippet(server: ' 192.168.178.20 ', export: 'mnt/user/backup', version: '3');
+    expect(y, contains('- offsite:/offsite'));
+    expect(y, contains('o: "addr=192.168.178.20,rw,nfsvers=3"'));
+    expect(y, contains('device: ":/mnt/user/backup"'));
+    expect(y, isNot(contains('\t')));
+    expect(nfsComposeSnippet(server: '', export: ''), contains('addr=192.168.178.10'));
+  });
 }
