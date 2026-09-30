@@ -16,6 +16,23 @@ void main() {
     expect(only, ['feeding', 'winter']); // fixed order
   });
 
+  test('calendar colonies: all, some, never none', () {
+    const all = ['a', 'b', 'c'];
+    final noB = toggleCalendarColony(null, 'b', all)!;
+    expect(noB, ['a', 'c']);
+    expect(toggleCalendarColony(noB, 'b', all), isNull);
+    final onlyA = ['a'];
+    expect(toggleCalendarColony(onlyA, 'a', all), same(onlyA));
+    expect(calendarSummary({'calendar_types': null, 'colony_ids': null}, {}), contains('alle Kolonien'));
+    expect(
+      calendarSummary({
+        'calendar_types': ['winter'],
+        'colony_ids': ['x', 'y'],
+      }, {}),
+      'Winterruhe · 2 Kolonien',
+    );
+  });
+
   test('off-site body: type, no user for a mounted folder', () {
     expect(offsiteBody(enabled: true, type: 'folder', url: ' /offsite ', user: 'x', keep: '7'), {
       'enabled': true,

@@ -10,6 +10,7 @@ const table = <String, String>{
   '0 keine · 1 wenig · 2 mittel · 3 viel': '0 none · 1 a little · 2 medium · 3 a lot',
   '1 J': '1 yr',
   '1 Jahr': '1 year',
+  '1 Kolonie': '1 colony',
   '1 Kolonie braucht heute Aufmerksamkeit': '1 colony needs attention today',
   '1 Kolonie braucht heute Pflege': '1 colony needs care today',
   '1 Kolonie verweist auf diese Art und verliert den Steckbrief (der Artname bleibt erhalten).':
@@ -38,10 +39,8 @@ const table = <String, String>{
   'Absender': 'Sender',
   'Abspielen': 'Play',
   'Adresse': 'Address',
-  'Adresse aktiv': 'Address active',
   'Adresse des Brokers, den Home Assistant nutzt – meist die Adresse von Home Assistant mit Port 1883. mqtts:// für TLS.':
       'Address of the broker Home Assistant uses – usually the Home Assistant address with port 1883. mqtts:// for TLS.',
-  'Adresse erzeugen': 'Create address',
   'Ahornsirup': 'Maple syrup',
   'Akku: keine Einschränkung': 'Battery: unrestricted',
   'Akku: optimiert': 'Battery: optimised',
@@ -148,7 +147,6 @@ const table = <String, String>{
       'Off: plain files – easiest to restore, can simply be copied back even without ACM. Good for your own NAS.',
   'Ausblenden': 'Hide',
   'Ausgeschaltet': 'Switched off',
-  'Ausschalten': 'Switch off',
   'Ausschalten entfernt die Geräte wieder aus Home Assistant.':
       'Switching off removes the devices from Home Assistant again.',
   'Aussehen': 'Appearance',
@@ -229,7 +227,6 @@ const table = <String, String>{
       'The tag cannot be written. You can register it by serial number – that works while the app is open.',
   'Details': 'Details',
   'Deutscher Name': 'Common name',
-  'Die Adresse wird nur beim Erzeugen angezeigt.': 'The address is only shown when it is created.',
   'Die Android-App erinnert zusätzlich selbst (Mehr → Erinnerungen). ntfy und E-Mail kommen vom Server – auch wenn das Handy aus ist.':
       'The Android app also reminds you itself (More → Reminders). ntfy and e-mail come from the server – even when the phone is off.',
   'Die App ist bereits in einem anderen Tab geöffnet.': 'The app is already open in another tab.',
@@ -295,8 +292,6 @@ const table = <String, String>{
   'Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“': 'One notification per overdue task – with “Done”',
   'Eine Quelle pro Zeile': 'One source per line',
   'Eine Seite pro Etikett – nur für Etikettendrucker': 'One page per label – label printers only',
-  'Eine private Adresse, über die Kalender-Apps alle Fälligkeiten deiner Kolonien zeigen – nur lesen, nichts ändern.':
-      'A private address through which calendar apps show everything due for your colonies – read-only, nothing can be changed.',
   'Einheit': 'Unit',
   'Einladung erhalten? Konto erstellen': 'Got an invitation? Create account',
   'Einmal täglich: was heute ansteht': 'Once a day: what is due today',
@@ -420,8 +415,8 @@ const table = <String, String>{
   'Gestern Abend': 'Last night',
   'Getauscht': 'Traded',
   'Geöffnet / angesetzt am': 'Opened / made on',
-  'Gilt sofort für die bestehende Adresse – Kalender-Apps zeigen es beim nächsten Abruf.':
-      'Applies to the existing address at once – calendar apps show it on their next refresh.',
+  'Gilt sofort für die bestehende Adresse – Kalender-Apps zeigen es beim nächsten Abruf. Mit Auswahl von Kolonien fehlen Aufgaben, die zu keiner Kolonie gehören.':
+      'Applies to the existing address at once – calendar apps show it on their next refresh. With a choice of colonies, tasks that belong to no colony are left out.',
   'Gleichzeitig geändert': 'Changed at the same time',
   'Google Kalender: „Weitere Kalender“ → „Per URL“. Outlook: „Kalender hinzufügen“ → „Aus dem Internet“. Thunderbird, Apple: „Kalender abonnieren“. Enthält den nächsten Termin jedes Pflegeplans (überfällige heute), geplanten Beginn und Ende der Winterruhe und offene Aufgaben. Kalender-Apps aktualisieren Abos selbst – Google teils nur alle 12–24 Stunden.':
       'Google Calendar: “Other calendars” → “From URL”. Outlook: “Add calendar” → “From the internet”. Thunderbird, Apple: “Subscribe to calendar”. Contains the next date of every care plan (overdue ones today), planned start and end of hibernation and open tasks. Calendar apps refresh subscriptions themselves – Google sometimes only every 12–24 hours.',
@@ -504,8 +499,9 @@ const table = <String, String>{
   'Jetzt prüfen': 'Check now',
   'Jetzt synchronisieren': 'Sync now',
   'Kalender': 'Calendar',
+  'Kalender löschen': 'Delete calendar',
   'Kalender-Abo': 'Calendar subscription',
-  'Kalender-Adresse (iCal)': 'Calendar address (iCal)',
+  'Kalender-Adresse': 'Calendar address',
   'Kamera': 'Camera',
   'Kamera nicht verfügbar.': 'Camera not available.',
   'Kamera nicht verfügbar: {0}': 'Camera not available: {0}',
@@ -633,10 +629,12 @@ const table = <String, String>{
   'Mindestens eine Art muss ausgewählt bleiben': 'At least one kind must stay selected',
   'Mindestens eine Entität angeben, z. B. sensor.formicarium_temperature':
       'Enter at least one entity, e.g. sensor.formicarium_temperature',
+  'Mindestens eine Kolonie muss ausgewählt bleiben': 'At least one colony must stay selected',
   'Mindestens zwei Fotos nötig': 'At least two photos needed',
   'Mindesthaltbarkeit': 'Best before',
   'Mindesthaltbarkeit abgelaufen ({0})': 'Best-before date passed ({0})',
   'Mit der Android-App scannen': 'Scan with the Android app',
+  'Mit „+ Kalender“ die erste Adresse erzeugen.': 'Create the first address with “+ Calendar”.',
   'Monate laut Steckbrief der Art (Richtwerte, v. a. Mitteleuropa). Wetter, Höhenlage und Region verschieben den Schwarmflug – meist an warmen, windstillen Tagen nach Regen. Die Glocke erinnert zu Beginn der Schwarmflugzeit.':
       'Months according to the species\' care sheet (guide values, mainly Central Europe). Weather, altitude and region shift the nuptial flight – usually on warm, calm days after rain. The bell reminds you at the start of the flight season.',
   'Morgen': 'Tomorrow',
@@ -685,6 +683,7 @@ const table = <String, String>{
   'Neue Kolonie': 'New colony',
   'Neuen Schlüssel erzeugen': 'Create new key',
   'Neuer Eintrag': 'New entry',
+  'Neuer Kalender': 'New calendar',
   'Neuer Standort': 'New location',
   'Neues Passwort': 'New password',
   'Neuestes Backup hier: {0}': 'Newest backup here: {0}',
@@ -700,6 +699,7 @@ const table = <String, String>{
   'Nicht verfügbar': 'Not available',
   'Nichts fällig': 'Nothing due',
   'Nichts fällig – gut gemacht.': 'Nothing due – well done.',
+  'Noch kein Kalender': 'No calendar yet',
   'Noch kein Tag. Tipp: Aufkleber außen am Formicarium, etwas Abstand zu Metall und Heizmatten.':
       'No tag yet. Tip: sticker on the outside of the formicarium, some distance from metal and heat mats.',
   'Noch kein Vorrat erfasst': 'No stock yet',
@@ -770,6 +770,8 @@ const table = <String, String>{
   'Postausgangsserver (SMTP)': 'Outgoing mail server (SMTP)',
   'Postausgangsserver für Passwort vergessen, Überblick und Benachrichtigungen':
       'Outgoing mail server for forgot password, overview and notifications',
+  'Private Adressen, über die Kalender-Apps die Fälligkeiten deiner Kolonien zeigen – nur lesen, nichts ändern. Mehrere Kalender sind möglich, z. B. einer nur für die Winterruhe und einer für die Fütterungen – jeder mit eigener Farbe in der Kalender-App.':
+      'Private addresses through which calendar apps show what is due for your colonies – read-only, nothing can be changed. Several calendars are possible, e.g. one only for hibernation and one for the feedings – each with its own colour in the calendar app.',
   'Problem': 'Problem',
   'Probleme': 'Problems',
   'Protein': 'Protein',
@@ -874,6 +876,8 @@ const table = <String, String>{
   'Sie wurde gelöscht oder nicht mehr mit dir geteilt.': 'It was deleted or is no longer shared with you.',
   'Sinnvoll bei fremden Servern (Storage Box, Cloud). Zum Wiederherstellen wird die Passphrase gebraucht – ohne sie sind die Backups verloren. Die Dateien lassen sich nur mit ACM (restore.sh --from-offsite) oder dem Programm „age“ öffnen.':
       'Useful on servers of others (storage box, cloud). Restoring needs the passphrase – without it the backups are lost. The files can only be opened with ACM (restore.sh --from-offsite) or the program “age”.',
+  'So heißt der Kalender in Google, Outlook & Co., z. B. „Winterruhe“':
+      'The calendar\'s name in Google, Outlook & co., e.g. “Hibernation”',
   'Sobald eine Aufgabe (Fütterung, Wasser, Reinigung …) überfällig ist. Mit „Erledigt“ und „Morgen“ (heute keine Zeit → um einen Tag verschieben).':
       'As soon as a task (feeding, water, cleaning …) is overdue. With “Done” and “Tomorrow” (no time today → postpone by a day).',
   'Solange es besteht, erinnern': 'Remind while it persists',
@@ -1074,7 +1078,9 @@ const table = <String, String>{
   'aktiv': 'active',
   'alle 12 Stunden': 'every 12 hours',
   'alle 6 Stunden': 'every 6 hours',
+  'alle Kolonien': 'all colonies',
   'alle {0} Tage': 'every {0} days',
+  'alles': 'everything',
   'angemeldet seit {0}': 'signed in since {0}',
   'angenommen': 'accepted',
   'angenommen {0} % von {1} bewerteten': 'accepted {0} % of {1} rated',
@@ -1089,7 +1095,6 @@ const table = <String, String>{
   'eine andere Kolonie': 'another colony',
   'ergänzt': 'added',
   'erscheint als Warnung im Dashboard': 'shown as a warning on the dashboard',
-  'erzeugt {0}': 'created {0}',
   'fakultativ polygyn': 'facultatively polygynous',
   'gefüttert': 'fed',
   'gereinigt': 'cleaned',
@@ -1173,6 +1178,7 @@ const table = <String, String>{
   '{0} Geräte abgemeldet': '{0} devices signed out',
   '{0} Geräte abmelden?': 'Sign out {0} devices?',
   '{0} Jahre': '{0} years',
+  '{0} Kolonien': '{0} colonies',
   '{0} Kolonien brauchen heute Aufmerksamkeit': '{0} colonies need attention today',
   '{0} Kolonien brauchen heute Pflege': '{0} colonies need care today',
   '{0} Kolonien verweisen auf diese Art und verlieren den Steckbrief (der Artname bleibt erhalten).':

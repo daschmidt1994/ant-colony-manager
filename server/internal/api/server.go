@@ -130,6 +130,11 @@ func (s *Server) Handler() *chi.Mux {
 			r.Get("/me/home-assistant", s.getHomeAssistantMe)
 			r.Put("/me/home-assistant", s.setHomeAssistantMe)
 			r.Delete("/me/feed", s.deleteFeed)
+			r.Get("/me/feeds", s.listFeeds)
+			r.With(s.rateLimitUser(s.limSensitive)).Post("/me/feeds", s.newFeed)
+			r.Patch("/me/feeds/{id}", s.updateFeed)
+			r.With(s.rateLimitUser(s.limSensitive)).Post("/me/feeds/{id}/rotate", s.rotateFeed)
+			r.Delete("/me/feeds/{id}", s.removeFeed)
 			r.Put("/me/password", s.changePassword)
 			r.Delete("/me", s.deleteMe)
 

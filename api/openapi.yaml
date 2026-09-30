@@ -430,7 +430,7 @@ paths:
   /api/v1/me/feed:
     get:
       tags: [auth]
-      summary: "Whether a calendar address exists ({active, created_at, last_used_at, calendar_types}); never the token. calendar_types null = everything"
+      summary: "Older apps: whether a calendar address exists ({active, created_at, last_used_at, calendar_types}) – the first of /me/feeds; never the token. calendar_types null = everything"
       responses: { "200": { description: "info" } }
     patch:
       tags: [auth]
@@ -444,6 +444,35 @@ paths:
       tags: [auth]
       summary: "Switch the calendar address off"
       responses: { "204": { description: "removed" } }
+  /api/v1/me/feeds:
+    get:
+      tags: [auth]
+      summary: "All calendar subscriptions [{id, name, created_at, last_used_at, calendar_types, colony_ids}] (null = everything / all colonies); never the tokens"
+      responses: { "200": { description: "list" } }
+    post:
+      tags: [auth]
+      summary: "New calendar {name?, calendar_types?, colony_ids?} (at most 10); the address is returned only here: {feed, calendar_url}"
+      responses: { "201": { description: "{feed, calendar_url}" }, "422": { description: "invalid or too many" } }
+  /api/v1/me/feeds/{id}:
+    patch:
+      tags: [auth]
+      summary: "Change name, calendar_types (not empty) or colony_ids ([] = all colonies); applies to the address at once"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "feed" }, "404": { description: "not found" }, "422": { description: "invalid" } }
+    delete:
+      tags: [auth]
+      summary: "Delete a calendar; its address stops working"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "204": { description: "deleted" }, "404": { description: "not found" } }
+  /api/v1/me/feeds/{id}/rotate:
+    post:
+      tags: [auth]
+      summary: "New address for a calendar (the old one stops working): {calendar_url}"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "{calendar_url}" }, "404": { description: "not found" } }
   /api/v1/feeds/{token}/calendar.ics:
     get:
       tags: [colonies]

@@ -5,7 +5,9 @@
 
 ## Kalender-Abo
 
-App/Web → **Mehr → Kalender-Abo → „Adresse erzeugen“**. Die Adresse wird **nur einmal angezeigt** (wie ein Passwort behandeln). „Neue Adresse erzeugen“ macht die alte sofort ungültig, „Ausschalten“ entfernt sie.
+App/Web → **Mehr → Kalender-Abo → „+ Kalender“**, Namen vergeben. Die Adresse wird **nur einmal angezeigt** (wie ein Passwort behandeln). Kalender antippen: Name, Arten und Kolonien ändern, „Neue Adresse erzeugen“ (die alte wird sofort ungültig) oder „Kalender löschen“.
+
+**Mehrere Kalender** (bis zu 10) sind möglich – z. B. „Winterruhe“ nur mit der Winterruhe und „Messor füttern“ nur mit den Fütterungen einer Kolonie. Der Name erscheint in der Kalender-App; jeder Kalender bekommt dort seine eigene Farbe.
 
 ```
 https://<server>/api/v1/feeds/acm_fk_…/calendar.ics
@@ -20,7 +22,7 @@ Die Adresse enthält nur Lesezugriff auf die Kolonien, die du pflegst (Besitzer 
 | ☀ Winterruhe beenden? | geplantes Ende einer laufenden oder geplanten Winterruhe |
 | 📋 *Aufgabe* | offene einmalige Aufgaben mit Termin (30 Minuten) |
 
-**Was im Kalender steht, wählst du selbst:** unter „Im Kalender anzeigen“ die Arten an- oder abwählen – Fütterung, Proteinfütterung, Kohlenhydratfütterung, Wasser, Reinigung, Kontrolle, eigene Pflegepläne, Winterruhe, einmalige Aufgaben. Z. B. nur „Winterruhe“ oder nur die Fütterungen. Die Auswahl gilt sofort für die bestehende Adresse (Kalender-Apps zeigen es beim nächsten Abruf) und bleibt beim Erzeugen einer neuen Adresse erhalten.
+**Was im Kalender steht, wählst du pro Kalender:** unter „Im Kalender anzeigen“ die Arten – Fütterung, Proteinfütterung, Kohlenhydratfütterung, Wasser, Reinigung, Kontrolle, eigene Pflegepläne, Winterruhe, einmalige Aufgaben – und unter „Kolonien“ alle oder nur bestimmte. Mit einer Auswahl von Kolonien fehlen Aufgaben ohne Kolonie. Änderungen gelten sofort für die bestehende Adresse (Kalender-Apps zeigen es beim nächsten Abruf) und bleiben bei einer neuen Adresse erhalten.
 
 Pflege-Termine sind ganztägig und „frei“ (blockieren keine Zeit). Jeder Eintrag verlinkt auf die Kolonie in der Web-App. Kalender-Apps laden Abos selbst neu – Home Assistant und Thunderbird nach Einstellung, **Google teils nur alle 12–24 Stunden**.
 
