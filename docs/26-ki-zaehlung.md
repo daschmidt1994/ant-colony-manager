@@ -1,14 +1,20 @@
 # Ameisen mit KI zählen
 
-Bei **„Größe & Brut“** zählt auf Wunsch eine KI (Anthropic Claude) die Ameisen auf Fotos der Kolonie – auch über mehrere Fotos, z. B. Vorder- und Rückseite des Nests oder Nest und Arena. Jedes Foto wird einzeln gezählt, die Zahlen werden addiert.
+Bei **„Größe & Brut“** zählt auf Wunsch eine KI – **Claude** (Anthropic), **ChatGPT** (OpenAI) oder ein Modell über **OpenRouter** – die Ameisen auf Fotos der Kolonie – auch über mehrere Fotos, z. B. Vorder- und Rückseite des Nests oder Nest und Arena. Jedes Foto wird einzeln gezählt, die Zahlen werden addiert.
 
 ## Einrichten (Admin)
 
-1. Bei [console.anthropic.com](https://console.anthropic.com) ein Konto anlegen, Guthaben aufladen und unter **API Keys** einen Schlüssel erzeugen.
-2. App/Web → **Mehr → Server-Verwaltung → KI-Zählung**: „Zählen mit KI anbieten“ einschalten, Schlüssel eintragen, speichern. Der Schlüssel wird verschlüsselt gespeichert und nie angezeigt.
-3. Modell: Standard `claude-opus-5-5` (am genauesten); günstiger `claude-sonnet-5-5`.
+App/Web → **Mehr → Server-Verwaltung → KI-Zählung**: Anbieter wählen, Schlüssel und Modell eintragen, „Zählen mit KI anbieten“ einschalten, speichern. Der Schlüssel wird verschlüsselt gespeichert und nie angezeigt; beim Wechsel des Anbieters braucht es dessen Schlüssel.
 
-Die Kosten gehen auf das Anthropic-Konto – je nach Modell und Anzahl der Fotos einige Cent pro Zählung.
+| Anbieter | Schlüssel | Modell |
+|---|---|---|
+| **Claude** (Anthropic) | [console.anthropic.com](https://console.anthropic.com) → API Keys, Guthaben unter Billing | Standard `claude-opus-5-5` (am genauesten), günstiger `claude-sonnet-5-5` |
+| **ChatGPT** (OpenAI) | [platform.openai.com](https://platform.openai.com) → API keys, Guthaben unter Billing | ein Modell, das Bilder versteht – siehe [Modellliste](https://platform.openai.com/docs/models) |
+| **OpenRouter** | [openrouter.ai](https://openrouter.ai) → Keys, Guthaben unter Credits | Modell-ID aus [openrouter.ai/models](https://openrouter.ai/models) mit Eingabe „image“, z. B. `anthropic/…`, `openai/…`, `google/…` |
+
+ChatGPT und OpenRouter werden über dieselbe Schnittstelle (Chat Completions mit JSON-Schema) angesprochen. Nicht jedes Modell bei OpenRouter kann ein festes JSON-Format liefern – meldet die KI einen Fehler, ein anderes Modell wählen.
+
+Die Kosten gehen auf das Konto beim Anbieter – je nach Modell und Anzahl der Fotos meist einige Cent pro Zählung. Fehlt Guthaben, sagt die App das so.
 
 ## Zählen
 
@@ -24,7 +30,7 @@ Gezählt werden erwachsene Ameisen (Arbeiterinnen, Soldaten, Königinnen, Geflü
 
 ## Datenschutz
 
-Nur die ausgewählten Fotos (in der 2048-px-Anzeigefassung, ohne Metadaten) gehen an Anthropic, sonst nichts. Ohne eingerichteten Schlüssel gibt es den Knopf nicht. Jede Zählung steht im Audit-Log des Servers.
+Nur die ausgewählten Fotos (in der 2048-px-Anzeigefassung, ohne Metadaten) gehen an den gewählten Anbieter, sonst nichts (bei OpenRouter weiter an den Anbieter des Modells). Ohne eingerichteten Schlüssel gibt es den Knopf nicht. Jede Zählung steht im Audit-Log des Servers.
 
 ## Schnittstelle
 

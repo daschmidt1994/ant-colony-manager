@@ -32,6 +32,7 @@ const table = <String, String>{
   'A4-Bogen 38,1 × 21,2 mm (5 × 13, z. B. Avery L7651)': 'A4 sheet 38.1 × 21.2 mm (5 × 13, e.g. Avery L7651)',
   'A4-Bogen 70 × 37 mm (3 × 8)': 'A4 sheet 70 × 37 mm (3 × 8)',
   'A4-Bogen 99,1 × 38,1 mm (2 × 7, z. B. Avery L7163)': 'A4 sheet 99.1 × 38.1 mm (2 × 7, e.g. Avery L7163)',
+  'API-Schlüssel ({0})': 'API key ({0})',
   'API-Schlüssel des Sensors': 'Sensor API key',
   'Abbrechen': 'Cancel',
   'Abmelden': 'Sign out',
@@ -101,7 +102,6 @@ const table = <String, String>{
   'AntWiki': 'AntWiki',
   'AntWiki (antwiki.org): Biologie, Verbreitung und Literatur zu jeder Art – wissenschaftlich gepflegt.':
       'AntWiki (antwiki.org): biology, distribution and literature for every species – scientifically maintained.',
-  'Anthropic-API-Schlüssel': 'Anthropic API key',
   'App': 'App',
   'App auf diesem Gerät': 'App on this device',
   'App verbinden': 'Connect app',
@@ -167,8 +167,8 @@ const table = <String, String>{
   'Beginn': 'Start',
   'Beginnen bei Feld (angebrochener Bogen)': 'Start at field (partly used sheet)',
   'Begonnen': 'Started',
-  'Bei „Größe & Brut“ gibt es dann „Mit KI zählen“: Fotos wählen, die KI zählt die Ameisen auf jedem Foto, die Zahlen werden addiert. Dafür werden die gewählten Fotos an Anthropic (Claude) geschickt. Die Kosten gehen auf dein Anthropic-Konto – einige Cent pro Zählung.':
-      '“Size & brood” then offers “Count with AI”: choose photos, the AI counts the ants on each photo, the numbers are added up. The chosen photos are sent to Anthropic (Claude) for this. The costs go to your Anthropic account – a few cents per count.',
+  'Bei „Größe & Brut“ gibt es dann „Mit KI zählen“: Fotos wählen, die KI zählt die Ameisen auf jedem Foto, die Zahlen werden addiert. Dafür werden die gewählten Fotos an den gewählten Anbieter geschickt. Die Kosten gehen auf dein Konto dort – meist einige Cent pro Zählung.':
+      '“Size & brood” then offers “Count with AI”: choose photos, the AI counts the ants on each photo, the numbers are added up. The chosen photos are sent to the chosen provider for this. The costs go to your account there – usually a few cents per count.',
   'Benachrichtigungen': 'Notifications',
   'Benachrichtigungen blockiert': 'Notifications blocked',
   'Benachrichtigungen erlaubt': 'Notifications allowed',
@@ -297,6 +297,8 @@ const table = <String, String>{
   'Eigene Zucht': 'Own breeding',
   'Ein ESP32 oder ein anderer WLAN-Sensor kann Temperatur und Luftfeuchtigkeit direkt an deinen Server senden. Die Werte erscheinen in der Statistik der Kolonie.':
       'An ESP32 or another Wi-Fi sensor can send temperature and humidity directly to your server. The values appear in the colony statistics.',
+  'Ein Modell, das Bilder versteht – Liste: platform.openai.com/docs/models':
+      'A model that understands images – list: platform.openai.com/docs/models',
   'Ein oder mehrere Fotos – mit ihrem Aufnahmedatum': 'One or more photos – with their capture date',
   'Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“': 'One notification per overdue task – with “Done”',
   'Eine Quelle pro Zeile': 'One source per line',
@@ -364,8 +366,8 @@ const table = <String, String>{
   'Fotos nur im WLAN hochladen': 'Upload photos on Wi-Fi only',
   'Fotos werden vor dem Hochladen verkleinert und sind auch offline sichtbar.':
       'Photos are downscaled before uploading and are visible offline too.',
-  'Fotos wählen (bis zu {0}) – z. B. Vorder- und Rückseite des Nests. Jedes Foto wird einzeln gezählt, die Zahlen werden addiert. Die Fotos werden dafür an die KI (Anthropic Claude) geschickt.':
-      'Choose photos (up to {0}) – e.g. front and back of the nest. Each photo is counted on its own, the numbers are added up. The photos are sent to the AI (Anthropic Claude) for this.',
+  'Fotos wählen (bis zu {0}) – z. B. Vorder- und Rückseite des Nests. Jedes Foto wird einzeln gezählt, die Zahlen werden addiert. Die Fotos werden dafür an die KI ({1}) geschickt.':
+      'Choose photos (up to {0}) – e.g. front and back of the nest. Each photo is counted on its own, the numbers are added up. The photos are sent to the AI ({1}) for this.',
   'Fotos · {0}': 'Photos · {0}',
   'Freigabe-Pfad': 'Share path',
   'Frisch': 'Fresh',
@@ -513,6 +515,7 @@ const table = <String, String>{
   'Jetzt hochladen': 'Upload now',
   'Jetzt prüfen': 'Check now',
   'Jetzt synchronisieren': 'Sync now',
+  'KI-Anbieter': 'AI provider',
   'KI-Zählung': 'AI counting',
   'KI: {0}': 'AI: {0}',
   'Kalender': 'Calendar',
@@ -657,6 +660,8 @@ const table = <String, String>{
   'Mit der Android-App scannen': 'Scan with the Android app',
   'Mit „+ Kalender“ die erste Adresse erzeugen.': 'Create the first address with “+ Calendar”.',
   'Modell': 'Model',
+  'Modell-ID aus openrouter.ai/models mit Eingabe „image“, z. B. anthropic/… oder openai/… – OpenRouter leitet an viele Anbieter weiter.':
+      'Model ID from openrouter.ai/models with input “image”, e.g. anthropic/… or openai/… – OpenRouter forwards to many providers.',
   'Monate laut Steckbrief der Art (Richtwerte, v. a. Mitteleuropa). Wetter, Höhenlage und Region verschieben den Schwarmflug – meist an warmen, windstillen Tagen nach Regen. Die Glocke erinnert zu Beginn der Schwarmflugzeit.':
       'Months according to the species\' care sheet (guide values, mainly Central Europe). Weather, altitude and region shift the nuptial flight – usually on warm, calm days after rain. The bell reminds you at the start of the flight season.',
   'Morgen': 'Tomorrow',
@@ -1122,7 +1127,6 @@ const table = <String, String>{
   'bis {0} {1}': 'up to {0} {1}',
   'ca. {0}': 'approx. {0}',
   'claustral – Königin gründet ohne Futter': 'claustral – queen founds without food',
-  'console.anthropic.com → API Keys': 'console.anthropic.com → API Keys',
   'diese Woche': 'this week',
   'dieser Monat': 'this month',
   'eigene Art': 'own species',

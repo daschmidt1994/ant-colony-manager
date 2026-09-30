@@ -11,15 +11,22 @@ import '../photos/photos.dart';
 
 /// Counting ants with AI (set up by the administrator): choose up to 6
 /// uploaded photos of the colony – e.g. front and back of the nest – the
-/// server has each counted by Claude and the counts are added up.
-final aiAvailableProvider = FutureProvider.autoDispose<bool>((ref) async {
+/// server has each counted by the AI (Claude, ChatGPT or via OpenRouter) and
+/// the counts are added up.
+final aiInfoProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   try {
-    final r = await ref.read(authProvider.notifier).api.get('/api/v1/ai') as Map<String, dynamic>;
-    return r['available'] == true;
+    return await ref.read(authProvider.notifier).api.get('/api/v1/ai') as Map<String, dynamic>;
   } on Exception {
-    return false; // offline or older server
+    return const {}; // offline or older server
   }
 });
+
+final aiAvailableProvider = FutureProvider.autoDispose<bool>(
+  (ref) async => (await ref.watch(aiInfoProvider.future))['available'] == true,
+);
+
+/// Display names of the AI providers.
+const aiProviders = {'anthropic': 'Anthropic Claude', 'openai': 'OpenAI ChatGPT', 'openrouter': 'OpenRouter'};
 
 const aiMaxPhotos = 6;
 
@@ -95,8 +102,8 @@ class _AiCountSheetState extends ConsumerState<_AiCountSheet> {
             Text(
               tr(
                 'Fotos wählen (bis zu {0}) – z. B. Vorder- und Rückseite des Nests. Jedes Foto wird einzeln gezählt, '
-                'die Zahlen werden addiert. Die Fotos werden dafür an die KI (Anthropic Claude) geschickt.',
-                [aiMaxPhotos],
+                'die Zahlen werden addiert. Die Fotos werden dafür an die KI ({1}) geschickt.',
+                [aiMaxPhotos, aiProviders[ref.watch(aiInfoProvider).value?['provider']] ?? tr('KI-Anbieter')],
               ),
               style: muted,
             ),

@@ -7,7 +7,8 @@ import '../../core/session.dart';
 import '../../shared/widgets.dart';
 import '../ai/ai_count.dart';
 
-/// Counting ants with AI – administrators enter the Anthropic API key here.
+/// Counting ants with AI – administrators choose the provider (Claude,
+/// ChatGPT, OpenRouter) and enter its API key here.
 final aiSettingsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   return await ref.read(authProvider.notifier).api.get('/api/v1/admin/ai') as Map<String, dynamic>;
 });
@@ -15,13 +16,37 @@ final aiSettingsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref
 /// Request body; the key only when typed or removed.
 Map<String, dynamic> aiBody({
   required bool enabled,
+  String provider = 'anthropic',
   required String model,
   String apiKey = '',
   bool removeKey = false,
 }) => {
   'enabled': enabled,
+  'provider': provider,
   'model': model.trim(),
   if (removeKey) 'api_key': '' else if (apiKey.trim().isNotEmpty) 'api_key': apiKey.trim(),
+};
+
+/// Where to get the key, and which model to enter – per provider.
+({String key, String keyHint, String modelHelp}) aiProviderHelp(String provider) => switch (provider) {
+  'openai' => (
+    key: 'platform.openai.com → API keys',
+    keyHint: 'sk-…',
+    modelHelp: tr('Ein Modell, das Bilder versteht – Liste: platform.openai.com/docs/models'),
+  ),
+  'openrouter' => (
+    key: 'openrouter.ai → Keys',
+    keyHint: 'sk-or-…',
+    modelHelp: tr(
+      'Modell-ID aus openrouter.ai/models mit Eingabe „image“, z. B. anthropic/… oder openai/… – '
+      'OpenRouter leitet an viele Anbieter weiter.',
+    ),
+  ),
+  _ => (
+    key: 'console.anthropic.com → API Keys',
+    keyHint: 'sk-ant-…',
+    modelHelp: tr('Standard: claude-opus-5-5 (am genauesten). Günstiger: claude-sonnet-5-5.'),
+  ),
 };
 
 class AiScreen extends ConsumerWidget {
@@ -58,6 +83,7 @@ class _AiForm extends ConsumerStatefulWidget {
 class _AiFormState extends ConsumerState<_AiForm> {
   late Map<String, dynamic> _s = widget.initial;
   late bool _enabled = _s['enabled'] == true;
+  late String _provider = _s['provider'] as String? ?? 'anthropic';
   late final _model = TextEditingController(text: _s['model'] as String? ?? 'claude-opus-5-5');
   final _key = TextEditingController();
   bool _removeKey = false;
@@ -78,14 +104,20 @@ class _AiFormState extends ConsumerState<_AiForm> {
           .api
           .put(
             '/api/v1/admin/ai',
-            aiBody(enabled: _enabled, model: _model.text, apiKey: _key.text, removeKey: _removeKey),
+            aiBody(
+              enabled: _enabled,
+              provider: _provider,
+              model: _model.text,
+              apiKey: _key.text,
+              removeKey: _removeKey,
+            ),
           );
       setState(() {
         _s = r as Map<String, dynamic>;
         _key.clear();
         _removeKey = false;
       });
-      ref.invalidate(aiAvailableProvider);
+      ref.invalidate(aiInfoProvider);
       if (mounted) showUndoSnack(context, tr('Gespeichert'));
     } catch (e) {
       if (mounted) showError(context, e);
@@ -97,7 +129,9 @@ class _AiFormState extends ConsumerState<_AiForm> {
   @override
   Widget build(BuildContext context) {
     final muted = TextStyle(color: context.colors.muted);
-    final keySet = _s['api_key_set'] == true && !_removeKey;
+    // a key belongs to its provider: after switching, a new one is needed
+    final keySet = _s['api_key_set'] == true && !_removeKey && _s['provider'] == _provider;
+    final help = aiProviderHelp(_provider);
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('KI-Zählung')),
@@ -114,8 +148,8 @@ class _AiFormState extends ConsumerState<_AiForm> {
                 Text(
                   tr(
                     'Bei „Größe & Brut“ gibt es dann „Mit KI zählen“: Fotos wählen, die KI zählt die Ameisen auf jedem '
-                    'Foto, die Zahlen werden addiert. Dafür werden die gewählten Fotos an Anthropic (Claude) geschickt. '
-                    'Die Kosten gehen auf dein Anthropic-Konto – einige Cent pro Zählung.',
+                    'Foto, die Zahlen werden addiert. Dafür werden die gewählten Fotos an den gewählten Anbieter '
+                    'geschickt. Die Kosten gehen auf dein Konto dort – meist einige Cent pro Zählung.',
                   ),
                   style: muted,
                 ),
@@ -126,14 +160,30 @@ class _AiFormState extends ConsumerState<_AiForm> {
                   value: _enabled,
                   onChanged: (v) => setState(() => _enabled = v),
                 ),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'anthropic', label: Text('Claude')),
+                    ButtonSegment(value: 'openai', label: Text('ChatGPT')),
+                    ButtonSegment(value: 'openrouter', label: Text('OpenRouter')),
+                  ],
+                  selected: {_provider},
+                  onSelectionChanged: (v) => setState(() {
+                    _provider = v.first;
+                    _model.text = _provider == _s['provider']
+                        ? _s['model'] as String? ?? ''
+                        : (_provider == 'anthropic' ? 'claude-opus-5-5' : '');
+                  }),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _key,
                   obscureText: true,
                   autocorrect: false,
                   decoration: InputDecoration(
-                    labelText: tr('Anthropic-API-Schlüssel'),
-                    hintText: keySet ? tr('gespeichert – leer lassen zum Behalten') : 'sk-ant-…',
-                    helperText: tr('console.anthropic.com → API Keys'),
+                    labelText: tr('API-Schlüssel ({0})', [aiProviders[_provider] ?? _provider]),
+                    hintText: keySet ? tr('gespeichert – leer lassen zum Behalten') : help.keyHint,
+                    helperText: help.key,
                     suffixIcon: keySet
                         ? IconButton(
                             tooltip: tr('Schlüssel entfernen'),
@@ -147,11 +197,7 @@ class _AiFormState extends ConsumerState<_AiForm> {
                 TextField(
                   controller: _model,
                   autocorrect: false,
-                  decoration: InputDecoration(
-                    labelText: tr('Modell'),
-                    helperText: tr('Standard: claude-opus-5-5 (am genauesten). Günstiger: claude-sonnet-5-5.'),
-                    helperMaxLines: 2,
-                  ),
+                  decoration: InputDecoration(labelText: tr('Modell'), helperText: help.modelHelp, helperMaxLines: 3),
                 ),
               ],
             ),
