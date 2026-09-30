@@ -14,6 +14,7 @@ import '../../core/web_meta.dart';
 import '../../data/sync/sync_engine.dart';
 import '../../data/sync/upload_policy.dart';
 import '../../shared/widgets.dart';
+import 'mqtt_screen.dart';
 import 'updates.dart';
 import '../../app/i18n.dart';
 
@@ -209,6 +210,7 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/feeds'),
               ),
             ),
+            const HomeAssistantMeTile(),
             SectionHeader(tr('Synchronisierung')),
             Card(
               child: ListTile(
@@ -268,6 +270,15 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: Text(tr('Jede Kolonie als Gerät in Home Assistant – neue kommen von selbst dazu')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/settings/mqtt'),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.auto_awesome),
+                  title: Text(tr('KI-Zählung')),
+                  subtitle: Text(tr('Ameisen auf Fotos zählen lassen (Anthropic Claude)')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/ai'),
                 ),
               ),
             ],
@@ -352,6 +363,7 @@ class SettingsScreen extends ConsumerWidget {
                       );
                     },
                   ),
+                  if (auth.user.isAdmin) const UpdateNowTile(),
                   if (!kIsWeb)
                     ListTile(
                       leading: const Icon(Icons.swap_horiz),

@@ -22,12 +22,17 @@ Map<String, dynamic> mqttBody({
   required String prefix,
   String password = '',
   bool removePassword = false,
+  String haUrl = '',
+  String haToken = '',
+  bool removeHaToken = false,
 }) => {
   'enabled': enabled,
   'url': url.trim(),
   'user': user.trim(),
   'prefix': prefix.trim(),
   if (removePassword) 'password': '' else if (password.isNotEmpty) 'password': password,
+  'ha_url': haUrl.trim(),
+  if (removeHaToken) 'ha_token': '' else if (haToken.trim().isNotEmpty) 'ha_token': haToken.trim(),
 };
 
 class MqttScreen extends ConsumerWidget {
@@ -68,12 +73,15 @@ class _MqttFormState extends ConsumerState<_MqttForm> {
   late final _user = TextEditingController(text: _s['user'] as String? ?? '');
   late final _prefix = TextEditingController(text: _s['prefix'] as String? ?? 'homeassistant');
   final _password = TextEditingController();
+  late final _haUrl = TextEditingController(text: _s['ha_url'] as String? ?? '');
+  final _haToken = TextEditingController();
   bool _removePassword = false;
+  bool _removeHaToken = false;
   bool _busy = false;
 
   @override
   void dispose() {
-    for (final c in [_url, _user, _prefix, _password]) {
+    for (final c in [_url, _user, _prefix, _password, _haUrl, _haToken]) {
       c.dispose();
     }
     super.dispose();
@@ -94,13 +102,18 @@ class _MqttFormState extends ConsumerState<_MqttForm> {
               prefix: _prefix.text,
               password: _password.text,
               removePassword: _removePassword,
+              haUrl: _haUrl.text,
+              haToken: _haToken.text,
+              removeHaToken: _removeHaToken,
             ),
           );
       setState(() {
         _s = r as Map<String, dynamic>;
         _url.text = _s['url'] as String? ?? '';
         _password.clear();
+        _haToken.clear();
         _removePassword = false;
+        _removeHaToken = false;
       });
       if (!quiet && mounted) showUndoSnack(context, tr('Gespeichert'));
       return true;
@@ -112,12 +125,12 @@ class _MqttFormState extends ConsumerState<_MqttForm> {
     }
   }
 
-  Future<void> _test() async {
+  Future<void> _test(String path, String done) async {
     if (!await _save(quiet: true)) return;
     setState(() => _busy = true);
     try {
-      await ref.read(authProvider.notifier).api.post('/api/v1/admin/mqtt/test');
-      if (mounted) showUndoSnack(context, tr('Verbindung zum MQTT-Broker klappt'));
+      await ref.read(authProvider.notifier).api.post(path);
+      if (mounted) showUndoSnack(context, done);
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -135,6 +148,8 @@ class _MqttFormState extends ConsumerState<_MqttForm> {
     final failed = errAt != null && !connected;
     final passwordSet = _s['password_set'] == true && !_removePassword;
     final owner = _s['owner'] as String?;
+    final members = (_s['members'] as List?)?.cast<String>() ?? const [];
+    final haTokenSet = _s['ha_token_set'] == true && !_removeHaToken;
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('Home Assistant (MQTT)')),
@@ -173,7 +188,10 @@ class _MqttFormState extends ConsumerState<_MqttForm> {
                       [
                         if (synced != null) tr('Zuletzt gesendet: {0}', [S.dateTime(synced)]),
                         if (failed) tr('Fehler ({0}): {1}', [S.dateTime(errAt), st['last_error']]),
-                        if (owner != null && owner.isNotEmpty) tr('Gesendet werden die Kolonien von {0}.', [owner]),
+                        if (owner != null && owner.isNotEmpty)
+                          tr('Gesendet werden die Kolonien von {0}.', [
+                            [owner, ...members].join(', '),
+                          ]),
                       ].join('\n'),
                     ),
                     trailing: IconButton(
@@ -248,16 +266,68 @@ class _MqttFormState extends ConsumerState<_MqttForm> {
                   runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: _busy ? null : _test,
+                      onPressed: _busy
+                          ? null
+                          : () => _test('/api/v1/admin/mqtt/test', tr('Verbindung zum MQTT-Broker klappt')),
                       icon: const Icon(Icons.wifi_tethering),
                       label: Text(tr('Verbindung testen')),
+                    ),
+                  ],
+                ),
+                SectionHeader(tr('Sensorwerte aus Home Assistant')),
+                Text(
+                  tr(
+                    'Optional: Damit Sensoren der Art „Home Assistant“ ihre Werte bekommen, liest der Server die '
+                    'gewählten Entitäten alle 5 Minuten über die REST-API. Token: in Home Assistant unten links auf '
+                    'dein Profil → Sicherheit → „Langlebige Zugriffstoken“.',
+                  ),
+                  style: muted,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _haUrl,
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: tr('Home-Assistant-Adresse'),
+                    hintText: 'http://192.168.1.10:8123',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _haToken,
+                  obscureText: true,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: tr('Zugriffstoken'),
+                    hintText: haTokenSet ? tr('gespeichert – leer lassen zum Behalten') : null,
+                    suffixIcon: haTokenSet
+                        ? IconButton(
+                            tooltip: tr('Token entfernen'),
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => setState(() => _removeHaToken = true),
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _busy
+                          ? null
+                          : () => _test('/api/v1/admin/home-assistant/test', tr('Home Assistant antwortet')),
+                      icon: const Icon(Icons.wifi_tethering),
+                      label: Text(tr('Home Assistant testen')),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Text(
                   tr(
-                    'Gesendet werden die Kolonien, die du pflegst (Besitzer oder Pfleger). Entitäten z. B. '
+                    'Gesendet werden die Kolonien, die du pflegst (Besitzer oder Pfleger), und die aller Benutzer, '
+                    'die es unter Mehr → Home Assistant für sich einschalten. Pro Kolonie gibt es einen Knopf je '
+                    'Pflegeplan („… erledigt“) und einen Winterruhe-Schalter. Entitäten z. B. '
                     'binary_sensor.acm_colony_3_hibernation und sensor.acm_colony_3_overdue (3 = Kolonie-Nummer); '
                     'Beispiele für Automationen in docs/22-kalender-home-assistant.md.',
                   ),
@@ -267,6 +337,45 @@ class _MqttFormState extends ConsumerState<_MqttForm> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A user's own choice to send their colonies to Home Assistant.
+final homeAssistantMeProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  return await ref.read(authProvider.notifier).api.get('/api/v1/me/home-assistant') as Map<String, dynamic>;
+});
+
+/// Switch in „Mehr“: only shown when the administrator set up Home Assistant.
+class HomeAssistantMeTile extends ConsumerWidget {
+  const HomeAssistantMeTile({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final me = ref.watch(homeAssistantMeProvider).value;
+    if (me == null || me['available'] != true) return const SizedBox.shrink();
+    final always = me['always'] == true;
+    return Card(
+      child: SwitchListTile(
+        secondary: const Icon(Icons.home_outlined),
+        title: Text(tr('Meine Kolonien an Home Assistant senden')),
+        subtitle: Text(
+          always
+              ? tr('Immer an – du hast Home Assistant eingerichtet')
+              : tr('Jede Kolonie als Gerät, mit Knöpfen für erledigte Pflege und Winterruhe-Schalter'),
+        ),
+        value: me['enabled'] == true,
+        onChanged: always
+            ? null
+            : (v) async {
+                try {
+                  await ref.read(authProvider.notifier).api.put('/api/v1/me/home-assistant', {'enabled': v});
+                  ref.invalidate(homeAssistantMeProvider);
+                } catch (e) {
+                  if (context.mounted) showError(context, e);
+                }
+              },
       ),
     );
   }

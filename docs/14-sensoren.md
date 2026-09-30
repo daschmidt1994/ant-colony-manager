@@ -8,6 +8,12 @@ Ein ESP32, ein anderer WLAN-Sensor oder ein Gateway (z. B. für Bluetooth-Sensor
 2. Der **API-Schlüssel wird genau einmal angezeigt** (Adresse, Schlüssel und ein `curl`-Beispiel zum Kopieren). Verloren? → Sensor antippen → „Neuen Schlüssel erzeugen“ (der alte wird sofort ungültig).
 3. Optional **Grenzwerte** (Temperatur min/max, Luftfeuchte min/max) eintragen.
 
+## Werte aus Home Assistant
+
+Hängt der Sensor schon an Home Assistant (Zigbee, Bluetooth, ESPHome …), braucht er keine eigene Verbindung: Art **„Home Assistant“** wählen und die Entitäten eintragen, z. B. `sensor.formicarium_temperature` und `sensor.formicarium_humidity` (Home Assistant → Einstellungen → Entitäten). Der Server liest sie alle 5 Minuten über die REST-API von Home Assistant; Grenzwerte, Alarme und Statistik funktionieren wie bei jedem anderen Sensor.
+
+Einmalig richtet der Administrator die Verbindung ein: **Mehr → Server-Verwaltung → Home Assistant (MQTT) → Sensorwerte aus Home Assistant** – Adresse (z. B. `http://192.168.178.199:8123`) und ein **langlebiges Zugriffstoken** (Home Assistant: Profil unten links → Sicherheit → „Langlebige Zugriffstoken“). Gelesen werden nur Sensoren von Benutzern, die ihre Kolonien an Home Assistant senden.
+
 ## Schnittstelle
 
 ```http

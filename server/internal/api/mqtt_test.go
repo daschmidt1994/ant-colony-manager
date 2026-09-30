@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 	"sync"
@@ -211,5 +214,161 @@ func TestMQTTHomeAssistantDiscovery(t *testing.T) {
 		if topic != "ant-colony-manager/status" {
 			t.Errorf("still retained after switching off: %s = %s", topic, v)
 		}
+	}
+}
+
+// Buttons and switches in Home Assistant act in ACM; other users can send
+// their colonies too; sensor values are read from Home Assistant.
+func TestHomeAssistantActionsAndSensors(t *testing.T) {
+	env := testenv.New(t)
+	admin := env.Admin(t)
+	ben := env.User(t, "Ben")
+	ctx := context.Background()
+	broker := &fakeBroker{retained: map[string]string{}}
+	env.Svc.MQTTDial = broker.dial
+
+	messor := admin.CreateColony(t, map[string]any{"name": "Messor"})
+	water := testenv.NewID()
+	custom := testenv.NewID()
+	admin.Push(t,
+		testenv.Op{OpID: testenv.NewID(), Entity: "care_schedules", EntityID: water, Op: "create",
+			Payload: testenv.Payload(map[string]any{"colony_id": messor, "task_type": "water", "interval_days": 3,
+				"starts_at": time.Now().Add(-5 * 24 * time.Hour)})},
+		testenv.Op{OpID: testenv.NewID(), Entity: "care_schedules", EntityID: custom, Op: "create",
+			Payload: testenv.Payload(map[string]any{"colony_id": messor, "task_type": "custom", "title": "Nest befeuchten",
+				"interval_days": 7, "starts_at": time.Now().Add(-10 * 24 * time.Hour)})},
+	)
+	bens := ben.CreateColony(t, map[string]any{"name": "Lasius"})
+
+	// Ben's colonies only when Ben switches it on
+	if me := ben.Do("GET", "/api/v1/me/home-assistant", nil).Must(t, 200).JSON(); me["enabled"] != false || me["available"] != false {
+		t.Fatalf("ben before: %v", me)
+	}
+	admin.Do("PUT", "/api/v1/admin/mqtt", map[string]any{"enabled": true, "url": "broker"}).Must(t, 200)
+	if err := env.Svc.MQTTSync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if broker.has("homeassistant/device/acm_" + bens.String() + "/config") {
+		t.Fatal("ben's colony sent without his consent")
+	}
+	if me := ben.Do("PUT", "/api/v1/me/home-assistant", map[string]any{"enabled": true}).Must(t, 200).JSON(); me["enabled"] != true {
+		t.Fatalf("ben: %v", me)
+	}
+	if err := env.Svc.MQTTSync(ctx); err != nil {
+		t.Fatal(err)
+	}
+	cfg := broker.get(t, "homeassistant/device/acm_"+bens.String()+"/config")
+	if id := cfg["components"].(map[string]any)["overdue"].(map[string]any)["default_entity_id"]; id != "sensor.acm_ben_colony_1_overdue" {
+		t.Fatalf("entity id of ben's colony: %v", id)
+	}
+	if s := admin.Do("GET", "/api/v1/admin/mqtt", nil).Must(t, 200).JSON(); fmt.Sprint(s["members"]) != "[Ben]" {
+		t.Fatalf("members: %v", s["members"])
+	}
+
+	// buttons and switch in the discovery
+	cmps := broker.get(t, "homeassistant/device/acm_"+messor.String()+"/config")["components"].(map[string]any)
+	btn := cmps["done_water"].(map[string]any)
+	if btn["platform"] != "button" || btn["payload_press"] != water.String() || btn["name"] != "Wasser erledigt" {
+		t.Fatalf("water button: %v", btn)
+	}
+	var customKey string
+	for k := range cmps {
+		if strings.HasPrefix(k, "done_custom_") {
+			customKey = k
+		}
+	}
+	if customKey == "" || cmps[customKey].(map[string]any)["name"] != "Nest befeuchten erledigt" {
+		t.Fatalf("custom button missing: %v", cmps)
+	}
+	sw := cmps["hibernation_switch"].(map[string]any)
+	if sw["platform"] != "switch" || sw["command_topic"] != "ant-colony-manager/colony/"+messor.String()+"/hibernation/set" {
+		t.Fatalf("switch: %v", sw)
+	}
+
+	// pressing: the handlers come from the subscriptions of the connection
+	press := func(topic, payload string) {
+		t.Helper()
+		for filter, handle := range broker.opts[0].Subscribe {
+			if strings.HasSuffix(filter, topic[strings.LastIndex(topic, "/"):]) ||
+				(strings.HasSuffix(topic, "/set") && strings.HasSuffix(filter, "/set")) {
+				handle(topic, []byte(payload))
+				return
+			}
+		}
+		t.Fatalf("no subscription for %s", topic)
+	}
+	wait := func(what, sql string, want int, args ...any) {
+		t.Helper()
+		for i := 0; i < 100; i++ {
+			if env.Count(t, sql, args...) == want {
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+		t.Fatalf("%s: want %d", what, want)
+	}
+	press("ant-colony-manager/colony/"+messor.String()+"/done", water.String())
+	wait("water event", `SELECT count(*) FROM colony_events e JOIN waterings w ON w.event_id = e.id
+		WHERE e.colony_id = $1 AND w.kinds = '{drinker_refilled}'`, 1, messor)
+	press("ant-colony-manager/colony/"+messor.String()+"/done", custom.String())
+	wait("custom event", `SELECT count(*) FROM colony_events WHERE colony_id = $1 AND type = 'custom_task' AND schedule_id = $2`, 1, messor, custom)
+	// a care plan of another colony is refused
+	press("ant-colony-manager/colony/"+bens.String()+"/done", water.String())
+	press("ant-colony-manager/colony/"+messor.String()+"/hibernation/set", "ON")
+	wait("winter started", `SELECT count(*) FROM winter_rests WHERE colony_id = $1 AND started_on = current_date AND ended_on IS NULL`, 1, messor)
+	press("ant-colony-manager/colony/"+messor.String()+"/hibernation/set", "OFF")
+	wait("winter ended", `SELECT count(*) FROM winter_rests WHERE colony_id = $1 AND ended_on = current_date`, 1, messor)
+	time.Sleep(200 * time.Millisecond)
+	if n := env.Count(t, `SELECT count(*) FROM colony_events WHERE colony_id = $1`, bens); n != 0 {
+		t.Fatalf("foreign care plan was applied to ben's colony: %d events", n)
+	}
+
+	// Home Assistant sensors: read via the REST API with the admin's token
+	ha := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer ha-token" {
+			w.WriteHeader(401)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/":
+			w.Write([]byte(`{"message":"API running."}`))
+		case "/api/states/sensor.formicarium_temperatur":
+			w.Write([]byte(`{"state":"24.6","last_updated":"` + time.Now().Add(-time.Minute).UTC().Format(time.RFC3339) + `"}`))
+		case "/api/states/sensor.formicarium_feuchte":
+			w.Write([]byte(`{"state":"unavailable"}`))
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer ha.Close()
+	admin.Do("PUT", "/api/v1/admin/mqtt", map[string]any{"enabled": true, "url": "broker", "ha_url": "ftp://x"}).Must(t, 422)
+	s := admin.Do("PUT", "/api/v1/admin/mqtt", map[string]any{"enabled": true, "url": "broker", "ha_url": ha.URL, "ha_token": "falsch"}).Must(t, 200).JSON()
+	if s["ha_token_set"] != true || s["ha_token"] != nil {
+		t.Fatalf("ha settings: %v", s)
+	}
+	admin.Do("POST", "/api/v1/admin/home-assistant/test", nil).Must(t, 502)
+	admin.Do("PUT", "/api/v1/admin/mqtt", map[string]any{"enabled": true, "url": "broker", "ha_url": ha.URL, "ha_token": "ha-token"}).Must(t, 200)
+	admin.Do("POST", "/api/v1/admin/home-assistant/test", nil).Must(t, 204)
+
+	sensor := testenv.NewID()
+	r := admin.Push(t, testenv.Op{OpID: testenv.NewID(), Entity: "sensors", EntityID: sensor, Op: "create",
+		Payload: testenv.Payload(map[string]any{"name": "Formicarium", "kind": "home_assistant", "colony_id": messor,
+			"ha_temperature_entity": "sensor.formicarium_temperatur", "ha_humidity_entity": "sensor.formicarium_feuchte"})})
+	if r.Results[0].Status != "applied" {
+		t.Fatalf("sensor: %+v", r.Results[0])
+	}
+	bad := admin.Push(t, testenv.Op{OpID: testenv.NewID(), Entity: "sensors", EntityID: testenv.NewID(), Op: "create",
+		Payload: testenv.Payload(map[string]any{"name": "X", "kind": "home_assistant", "ha_temperature_entity": "kein entity"})})
+	if bad.Results[0].Status != "rejected" {
+		t.Fatalf("invalid entity accepted: %+v", bad.Results[0])
+	}
+	if n, err := env.Svc.HASensorSync(ctx); err != nil || n != 1 {
+		t.Fatalf("ha sync: %d %v", n, err)
+	}
+	if n, _ := env.Svc.HASensorSync(ctx); n != 0 {
+		t.Fatalf("same value stored twice: %d", n)
+	}
+	if v := env.Count(t, `SELECT round(value)::int FROM sensor_readings WHERE sensor_id = $1 AND metric = 'temperature'`, sensor); v != 25 {
+		t.Fatalf("temperature: %d", v)
 	}
 }

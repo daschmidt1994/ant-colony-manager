@@ -13,9 +13,11 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"golang.org/x/net/webdav"
 
+	"github.com/daschmidt1994/ant-colony-manager/server/internal/service"
 	"github.com/daschmidt1994/ant-colony-manager/server/internal/testenv"
 )
 
@@ -135,6 +137,24 @@ func TestOffsiteBackupToWebDAV(t *testing.T) {
 		t.Fatal("retention wrong")
 	}
 
+	// encrypted over WebDAV: the length is computed before the upload
+	admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{
+		"enabled": true, "url": srv.URL + "/dav/acm-enc", "user": "ameisen", "password": "app-passwort", "keep": 2,
+		"encrypt": true, "passphrase": "eine lange Passphrase",
+	}).Must(t, 200)
+	if _, err := env.Svc.OffsiteSync(ctx, true); err != nil {
+		t.Fatalf("encrypted webdav: %v", err)
+	}
+	if !exists("acm-enc/key.age") || !exists("acm-enc/2026-09-29T0300/db.dump.age") || !exists("acm-enc/uploads/c2/c.jpg.age") {
+		t.Fatal("encrypted webdav upload incomplete")
+	}
+	admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{
+		"enabled": true, "url": srv.URL + "/dav/acm-backups", "user": "ameisen", "keep": 2, "encrypt": false,
+	}).Must(t, 200)
+	if _, err := env.Svc.OffsiteSync(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+
 	st := admin.Do("GET", "/api/v1/admin/offsite", nil).Must(t, 200).JSON()["status"].(map[string]any)
 	if st["last_name"] != "2026-09-29T0300" || st["local_latest"] != "2026-09-29T0300" || st["last_error"] != nil {
 		t.Fatalf("status: %v", st)
@@ -199,5 +219,153 @@ func TestOffsiteBackupToFolder(t *testing.T) {
 	}
 	if exists("2026-09-27T0300") || !exists("2026-09-28T0300/db.dump") || !exists("uploads/c1/a.jpg") {
 		t.Fatal("retention wrong")
+	}
+}
+
+// Admins hear about it when the off-site backup has not worked for 48 hours.
+func TestOffsiteWarning(t *testing.T) {
+	backups, target := t.TempDir(), t.TempDir()
+	env := testenv.New(t, testenv.Options{Env: map[string]string{"BACKUP_STATUS_DIR": backups}})
+	admin := env.Admin(t)
+	ctx := context.Background()
+	warnings := func() int {
+		n := 0
+		for _, m := range env.Mail.Messages() {
+			if strings.Contains(m.Subject, "Backup außer Haus fehlt") {
+				n++
+			}
+		}
+		return n
+	}
+	// not set up: never a warning
+	env.Clock.Advance(100 * time.Hour)
+	if warned, err := env.Svc.OffsiteWatch(ctx); err != nil || warned {
+		t.Fatalf("not set up: %v %v", warned, err)
+	}
+
+	admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{"enabled": true, "type": "folder", "url": filepath.Join(target, "fehlt"), "keep": 3}).Must(t, 200)
+	env.Clock.Advance(47 * time.Hour)
+	if warned, _ := env.Svc.OffsiteWatch(ctx); warned {
+		t.Fatal("warned before 48 hours")
+	}
+	env.Clock.Advance(2 * time.Hour)
+	writeBackup(t, backups, "2026-09-27T0300", map[string]string{"c1/a.jpg": "A"})
+	_, _ = env.Svc.OffsiteSync(ctx, false) // fails: the folder does not exist
+	if warned, err := env.Svc.OffsiteWatch(ctx); err != nil || !warned || warnings() != 1 {
+		t.Fatalf("expected a warning: %v %v %d", warned, err, warnings())
+	}
+	for _, m := range env.Mail.Messages() {
+		if strings.Contains(m.Subject, "fehlt") && !strings.Contains(m.Body, "mounted") {
+			t.Fatalf("the last error belongs into the warning: %s", m.Body)
+		}
+	}
+	// at most once a day
+	env.Clock.Advance(10 * time.Hour)
+	if warned, _ := env.Svc.OffsiteWatch(ctx); warned {
+		t.Fatal("warned twice within a day")
+	}
+	env.Clock.Advance(15 * time.Hour)
+	if warned, _ := env.Svc.OffsiteWatch(ctx); !warned || warnings() != 2 {
+		t.Fatal("no second warning after a day")
+	}
+	// works again → quiet
+	admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{"enabled": true, "type": "folder", "url": target, "keep": 3}).Must(t, 200)
+	if _, err := env.Svc.OffsiteSync(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	env.Clock.Advance(30 * time.Hour)
+	if warned, _ := env.Svc.OffsiteWatch(ctx); warned {
+		t.Fatal("warned although the backup works")
+	}
+}
+
+// Encrypted off-site backups and the way back: download, decrypt, check.
+func TestOffsiteEncryptionAndRestore(t *testing.T) {
+	backups, target := t.TempDir(), t.TempDir()
+	env := testenv.New(t, testenv.Options{Env: map[string]string{"BACKUP_STATUS_DIR": backups}})
+	admin := env.Admin(t)
+	ctx := context.Background()
+	set := func(body map[string]any, status int) map[string]any {
+		body["enabled"], body["type"], body["url"], body["keep"] = true, "folder", target, 5
+		return admin.Do("PUT", "/api/v1/admin/offsite", body).Must(t, status).JSON()
+	}
+	// encryption needs a passphrase of at least 12 characters
+	set(map[string]any{"encrypt": true}, 422)
+	set(map[string]any{"encrypt": true, "passphrase": "zu kurz"}, 422)
+	s := set(map[string]any{"encrypt": true, "passphrase": "Messor barbarus 2026"}, 200)
+	if s["encrypt"] != true || s["passphrase_set"] != true || s["passphrase"] != nil {
+		t.Fatalf("settings: %v", s)
+	}
+
+	photo := strings.Repeat("Ameisenfoto ", 20000) // > 64 KiB: several age chunks
+	writeBackup(t, backups, "2026-09-27T0300", map[string]string{"c1/a.jpg": photo, "c1/b.jpg": ""})
+	if did, err := env.Svc.OffsiteSync(ctx, false); err != nil || !did {
+		t.Fatalf("upload: %v %v", did, err)
+	}
+	for _, p := range []string{"key.age", "2026-09-27T0300/db.dump.age", "2026-09-27T0300/OK.age", "uploads/c1/a.jpg.age"} {
+		if _, err := os.Stat(filepath.Join(target, p)); err != nil {
+			t.Fatalf("missing %s", p)
+		}
+	}
+	if b, _ := os.ReadFile(filepath.Join(target, "uploads/c1/a.jpg.age")); strings.Contains(string(b), "Ameisenfoto") {
+		t.Fatal("photo is not encrypted")
+	}
+
+	d, err := service.OpenOffsiteTarget(service.OffsiteTargetConfig{Type: "folder", URL: target})
+	if err != nil {
+		t.Fatal(err)
+	}
+	restore := t.TempDir()
+	if _, err := service.OffsiteFetch(ctx, d, "", restore, "falsche Passphrase", nil); err == nil || !strings.Contains(err.Error(), "wrong passphrase") {
+		t.Fatalf("wrong passphrase: %v", err)
+	}
+	if _, err := service.OffsiteFetch(ctx, d, "", restore, "", nil); err == nil {
+		t.Fatal("encrypted backup restored without passphrase")
+	}
+	name, err := service.OffsiteFetch(ctx, d, "", restore, "Messor barbarus 2026", nil)
+	if err != nil || name != "2026-09-27T0300" {
+		t.Fatalf("fetch: %s %v", name, err)
+	}
+	for f, want := range map[string]string{"uploads/c1/a.jpg": photo, "uploads/c1/b.jpg": "", "db.dump": "dump of 2026-09-27T0300"} {
+		if b, err := os.ReadFile(filepath.Join(restore, name, f)); err != nil || string(b) != want {
+			t.Fatalf("%s restored wrong: %v", f, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(restore, name, "OK")); err != nil {
+		t.Fatal("OK missing after the download")
+	}
+
+	// new passphrase: same key – the old backup opens with the new one
+	set(map[string]any{"encrypt": true, "passphrase": "Lasius niger ist super"}, 200)
+	writeBackup(t, backups, "2026-09-28T0300", map[string]string{"c1/a.jpg": photo, "c1/b.jpg": ""})
+	if _, err := env.Svc.OffsiteSync(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.OffsiteFetch(ctx, d, "2026-09-27T0300", t.TempDir(), "Lasius niger ist super", nil); err != nil {
+		t.Fatalf("old backup with the new passphrase: %v", err)
+	}
+
+	// damaged copy is noticed
+	os.WriteFile(filepath.Join(target, "uploads/c1/b.jpg.age"), []byte("kaputt"), 0o644)
+	if _, err := service.OffsiteFetch(ctx, d, "2026-09-28T0300", t.TempDir(), "Lasius niger ist super", nil); err == nil {
+		t.Fatal("damaged photo not noticed")
+	}
+
+	// without encryption: plain files, restore without passphrase
+	plain := t.TempDir()
+	admin.Do("PUT", "/api/v1/admin/offsite", map[string]any{"enabled": true, "type": "folder", "url": plain, "keep": 5, "encrypt": false}).Must(t, 200)
+	if _, err := env.Svc.OffsiteSync(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(plain, "uploads/c1/a.jpg")); string(b) != photo {
+		t.Fatal("plain photo wrong")
+	}
+	dp, _ := service.OpenOffsiteTarget(service.OffsiteTargetConfig{Type: "folder", URL: plain})
+	list, encrypted, err := service.OffsiteRemoteBackups(ctx, dp)
+	if err != nil || encrypted || fmt.Sprint(list) != "[2026-09-28T0300]" {
+		t.Fatalf("plain list: %v %v %v", list, encrypted, err)
+	}
+	if _, err := service.OffsiteFetch(ctx, dp, "", t.TempDir(), "", nil); err != nil {
+		t.Fatal(err)
 	}
 }

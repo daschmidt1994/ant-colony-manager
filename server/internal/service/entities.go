@@ -186,7 +186,7 @@ var entities = map[string]*entity{
 	"sensors": {
 		Scope: scopeOwner, Collection: "sensors",
 		Fields: []string{"name", "kind", "colony_id", "habitat_id", "location_id", "active",
-			"temp_min", "temp_max", "humidity_min", "humidity_max"},
+			"temp_min", "temp_max", "humidity_min", "humidity_max", "ha_temperature_entity", "ha_humidity_entity"},
 		Hidden:      []string{"api_key_hash"},
 		Refs:        []ref{{"colony_id", refColonyOwned}, {"habitat_id", refHabitat}, {"location_id", refLocation}},
 		beforeWrite: sensorBeforeWrite,

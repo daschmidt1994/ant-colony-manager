@@ -392,11 +392,55 @@ paths:
     get:
       tags: [admin]
       summary: "Home Assistant via MQTT: broker settings and status {enabled, url, user, password_set, prefix, owner, status{connected, last_sync, last_error, last_error_at, colonies}}"
+      responses: { "200": { description: "settings (also members: other users who send their colonies; ha_url, ha_token_set: Home Assistant REST API for sensor values)" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save the MQTT broker (and optionally ha_url + ha_token for sensor values; ha_token omitted = keep, \"\" = remove) (url: host, host:port or mqtt(s)://host:port; prefix: discovery prefix, default homeassistant); password omitted = keep, \"\" = remove. From now on the colonies of this administrator are announced to Home Assistant (MQTT discovery); switching off removes them there"
+      responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+  /api/v1/admin/update:
+    get:
+      tags: [admin]
+      summary: "Update button: {available (updater service runs), state idle|requested|running|done|failed, message, at, log (after a failure)}"
+      responses: { "200": { description: "status" }, "403": { description: "not an administrator" } }
+    post:
+      tags: [admin]
+      summary: "Update now: the optional updater service backs up, pulls the images and restarts (like scripts/update.sh)"
+      responses: { "202": { description: "requested" }, "409": { description: "no updater or already running" } }
+  /api/v1/admin/ai:
+    get:
+      tags: [admin]
+      summary: "Counting ants with AI (Claude): {enabled, api_key_set, model}"
       responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
     put:
       tags: [admin]
-      summary: "Save the MQTT broker (url: host, host:port or mqtt(s)://host:port; prefix: discovery prefix, default homeassistant); password omitted = keep, \"\" = remove. From now on the colonies of this administrator are announced to Home Assistant (MQTT discovery); switching off removes them there"
-      responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
+      summary: "Save {enabled, api_key (omitted = keep, \"\" = remove), model (default claude-opus-5-5)}"
+      responses: { "200": { description: "settings" }, "422": { description: "invalid" } }
+  /api/v1/ai:
+    get:
+      tags: [colonies]
+      summary: "Whether counting with AI is set up: {available}"
+      responses: { "200": { description: "info" } }
+  /api/v1/colonies/{id}/ai-count:
+    post:
+      tags: [colonies]
+      summary: "Count the ants on 1–6 uploaded photos of the colony with AI {photo_ids}: {photos[{photo_id, count, min, max, queens, note}], total, min, max, overlap, note, model} – the photos are sent to Anthropic"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "counts" }, "409": { description: "not set up" }, "422": { description: "invalid photos" }, "502": { description: "AI failed (title explains)" } }
+  /api/v1/admin/home-assistant/test:
+    post:
+      tags: [admin]
+      summary: "Check the saved Home Assistant address and access token (REST API, for sensor values)"
+      responses: { "204": { description: "reachable" }, "502": { description: "Home Assistant failed (title explains)" }, "422": { description: "not set up" } }
+  /api/v1/me/home-assistant:
+    get:
+      tags: [auth]
+      summary: "Whether the own colonies are sent to Home Assistant {enabled, available, always}"
+      responses: { "200": { description: "state" } }
+    put:
+      tags: [auth]
+      summary: "Send the own colonies to Home Assistant too {enabled} (the administrator's are always sent)"
+      responses: { "200": { description: "state" } }
   /api/v1/admin/mqtt/test:
     post:
       tags: [admin]
@@ -416,7 +460,7 @@ paths:
   /api/v1/me/feed:
     get:
       tags: [auth]
-      summary: "Whether a calendar address exists ({active, created_at, last_used_at, calendar_types}); never the token. calendar_types null = everything"
+      summary: "Older apps: whether a calendar address exists ({active, created_at, last_used_at, calendar_types}) – the first of /me/feeds; never the token. calendar_types null = everything"
       responses: { "200": { description: "info" } }
     patch:
       tags: [auth]
@@ -430,6 +474,35 @@ paths:
       tags: [auth]
       summary: "Switch the calendar address off"
       responses: { "204": { description: "removed" } }
+  /api/v1/me/feeds:
+    get:
+      tags: [auth]
+      summary: "All calendar subscriptions [{id, name, created_at, last_used_at, calendar_types, colony_ids}] (null = everything / all colonies); never the tokens"
+      responses: { "200": { description: "list" } }
+    post:
+      tags: [auth]
+      summary: "New calendar {name?, calendar_types?, colony_ids?} (at most 10); the address is returned only here: {feed, calendar_url}"
+      responses: { "201": { description: "{feed, calendar_url}" }, "422": { description: "invalid or too many" } }
+  /api/v1/me/feeds/{id}:
+    patch:
+      tags: [auth]
+      summary: "Change name, calendar_types (not empty) or colony_ids ([] = all colonies); applies to the address at once"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "feed" }, "404": { description: "not found" }, "422": { description: "invalid" } }
+    delete:
+      tags: [auth]
+      summary: "Delete a calendar; its address stops working"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "204": { description: "deleted" }, "404": { description: "not found" } }
+  /api/v1/me/feeds/{id}/rotate:
+    post:
+      tags: [auth]
+      summary: "New address for a calendar (the old one stops working): {calendar_url}"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "{calendar_url}" }, "404": { description: "not found" } }
   /api/v1/feeds/{token}/calendar.ics:
     get:
       tags: [colonies]

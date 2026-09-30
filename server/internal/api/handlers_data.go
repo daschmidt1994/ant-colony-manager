@@ -470,3 +470,29 @@ func (s *Server) removeMember(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// aiCount counts the ants on photos of a colony with the AI set up by the admin.
+func (s *Server) aiCount(w http.ResponseWriter, r *http.Request) {
+	colony, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	var in struct {
+		PhotoIDs []uuid.UUID `json:"photo_ids"`
+	}
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	res, err := s.svc.AICount(r.Context(), actorOf(r), colony, in.PhotoIDs, service.ClientMeta{IP: clientIP(r)})
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) aiInfo(w http.ResponseWriter, r *http.Request) {
+	s.writeJSON(w, http.StatusOK, map[string]bool{"available": s.svc.AIAvailable(r.Context())})
+}

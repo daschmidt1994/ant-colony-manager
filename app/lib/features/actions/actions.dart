@@ -9,6 +9,7 @@ import '../../data/repositories/colony_repository.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../../app/i18n.dart';
+import '../ai/ai_count.dart';
 
 ColonyRepository _repo(WidgetRef ref) => ref.read(repositoryProvider)!;
 
@@ -621,6 +622,7 @@ class _CensusSheet extends ConsumerStatefulWidget {
 class _CensusSheetState extends ConsumerState<_CensusSheet> {
   (int, int?)? _range;
   final _exact = TextEditingController();
+  String? _aiNote; // „KI: 200 (170–235)“ after counting with AI
   final _brood = <String, String>{};
   late DateTime? _when = widget.at;
 
@@ -683,6 +685,7 @@ class _CensusSheetState extends ConsumerState<_CensusSheet> {
               selected: _range == r,
               onSelected: (v) => setState(() {
                 _range = v ? r : null;
+                _aiNote = null;
                 if (v) _exact.clear();
               }),
             ),
@@ -692,9 +695,39 @@ class _CensusSheetState extends ConsumerState<_CensusSheet> {
       TextField(
         controller: _exact,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(labelText: tr('oder genau gezählt'), suffixText: tr('Arbeiterinnen')),
-        onChanged: (_) => setState(() => _range = null),
+        decoration: InputDecoration(
+          labelText: tr('oder genau gezählt'),
+          suffixText: tr('Arbeiterinnen'),
+          helperText: _aiNote,
+        ),
+        onChanged: (_) => setState(() {
+          _range = null;
+          _aiNote = null;
+        }),
       ),
+      if (ref.watch(aiAvailableProvider).value == true)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            icon: const Icon(Icons.auto_awesome),
+            label: Text(tr('Mit KI zählen')),
+            onPressed: () async {
+              final r = await showAiCount(context, widget.colony);
+              if (r == null || !mounted) return;
+              final c = aiCensus(r);
+              setState(() {
+                if (c.exact) {
+                  _exact.text = '${c.total}';
+                  _range = null;
+                } else {
+                  _exact.clear();
+                  _range = (c.min, c.max);
+                }
+                _aiNote = tr('KI: {0}', [aiCountText(r)]);
+              });
+            },
+          ),
+        ),
       SectionHeader(tr('Brut')),
       for (final st in _stages.entries)
         Padding(

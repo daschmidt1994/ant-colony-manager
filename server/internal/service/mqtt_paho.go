@@ -40,6 +40,9 @@ func pahoDial(ctx context.Context, o MQTTOptions) (MQTTConn, error) {
 						}
 					})
 				}
+				for filter, handle := range o.Subscribe {
+					c.Subscribe(filter, 1, func(_ paho.Client, m paho.Message) { handle(m.Topic(), m.Payload()) })
+				}
 				if o.OnConnect != nil {
 					o.OnConnect()
 				}

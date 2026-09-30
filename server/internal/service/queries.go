@@ -494,12 +494,20 @@ func (s *Service) Dashboard(ctx context.Context, actor Actor) (*Dashboard, error
 // Repeat last feeding
 
 func (s *Service) RepeatLastFeeding(ctx context.Context, actor Actor, colony uuid.UUID, opID, eventID uuid.UUID, at *time.Time) (OpResult, error) {
+	return s.repeatFeeding(ctx, actor, colony, "", opID, eventID, at)
+}
+
+// repeatFeeding repeats the last feeding – with category (protein,
+// carbohydrate) the last one that contained such food.
+func (s *Service) repeatFeeding(ctx context.Context, actor Actor, colony uuid.UUID, category string, opID, eventID uuid.UUID, at *time.Time) (OpResult, error) {
 	if _, err := requireColony(ctx, s.Pool, actor, colony, RoleEditor); err != nil {
 		return OpResult{}, err
 	}
 	var last json.RawMessage
-	err := s.Pool.QueryRow(ctx, `SELECT event_json(id) FROM colony_events WHERE colony_id = $1 AND type = 'feeding'
-		AND deleted_at IS NULL ORDER BY occurred_at DESC, id DESC LIMIT 1`, colony).Scan(&last)
+	err := s.Pool.QueryRow(ctx, `SELECT event_json(e.id) FROM colony_events e WHERE e.colony_id = $1 AND e.type = 'feeding'
+		AND e.deleted_at IS NULL AND ($2 = '' OR EXISTS (
+			SELECT 1 FROM feeding_items fi WHERE fi.feeding_id = e.id AND fi.category = $2))
+		ORDER BY e.occurred_at DESC, e.id DESC LIMIT 1`, colony, category).Scan(&last)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return OpResult{}, &Problem{Status: http.StatusConflict, Code: "feeding.none", Title: "no previous feeding to repeat"}
 	}

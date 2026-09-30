@@ -12,6 +12,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Fälligkeiten mit Ampel**, Winterruhe, Timeline, Fotos mit Wachstumsvergleich und Zeitraffer, Messwerte, Sensor-Schnittstelle
 - **Widget für den Startbildschirm** (Android) – überfällig/heute fällig auf einen Blick, Tippen öffnet den Rundgang
 - **Kalender-Abo und Home Assistant** – Fälligkeiten in jedem Kalender; jede Kolonie als Gerät in Home Assistant per MQTT Discovery, neue kommen von selbst dazu ([docs/22](docs/22-kalender-home-assistant.md))
+- **Ameisen mit KI zählen** – Fotos wählen, Claude zählt je Foto, die App addiert ([docs/26](docs/26-ki-zaehlung.md))
 - **Benachrichtigungen per App, ntfy oder E-Mail** – Tages-Überblick, überfällige Pflege, Sensor-Alarm, Winterruhe; Häufigkeit, Ruhezeiten, „Morgen“ zum Verschieben
 - **Futtervorrat** – Futtertiere, Zuckerwasser und Zuchten mit Haltbarkeit, Nachbestell- und Versorgungs-Hinweisen
 - **Artenkatalog** mit Steckbrief (Klima, Winterruhe, Futter, Haltung, Quellen) auf Deutsch und Englisch – mit den eigenen Kolonien verknüpft, Warnung bei EU-verbotenen Arten, Schwarmflug-Kalender mit Erinnerung
@@ -168,6 +169,8 @@ Der vollständige Ablauf Installation → Backup → Zerstören → Restore → 
 ```
 
 = Backup `…-pre-update` → `git pull` → neue Images holen/bauen → Neustart → warten bis *healthy*. Datenbank-Migrationen laufen beim Start automatisch (eine Transaktion pro Migration). Eine ältere App-Version startet nicht gegen ein neueres Schema (Schutz vor Downgrade). Feste Version: `ACM_VERSION=1.1.0` in `.env`.
+
+**Update per Knopf in der App (optional):** In `.env` `COMPOSE_PROFILES=updater` setzen (mit Proxy: `proxy,updater`) und `ACM_PROJECT_DIR` auf diesen Ordner (macht `init-env.sh`), dann `docker compose up -d`. Danach zeigt **Mehr → Server → „Jetzt aktualisieren“** den Knopf für Administratoren: Backup, neue Images holen, Neustart, Warten bis *healthy* – mit Status und Protokoll in der App. Der Dienst `updater` bekommt dafür den Docker-Socket (das ist root auf dem Host); die App selbst bekommt keinen Zugriff auf Docker, sie legt nur einen Auftrag in `data/update/`. Änderungen an der `compose.yml` selbst (neue Dienste, Volumes) holt weiterhin nur `./scripts/update.sh` (`git pull`). Mit fester `ACM_VERSION` holt der Knopf nur Korrekturen derselben Version.
 
 ## Android-App
 

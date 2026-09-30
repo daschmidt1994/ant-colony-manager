@@ -5,7 +5,9 @@
 
 ## Kalender-Abo
 
-App/Web → **Mehr → Kalender-Abo → „Adresse erzeugen“**. Die Adresse wird **nur einmal angezeigt** (wie ein Passwort behandeln). „Neue Adresse erzeugen“ macht die alte sofort ungültig, „Ausschalten“ entfernt sie.
+App/Web → **Mehr → Kalender-Abo → „+ Kalender“**, Namen vergeben. Die Adresse wird **nur einmal angezeigt** (wie ein Passwort behandeln). Kalender antippen: Name, Arten und Kolonien ändern, „Neue Adresse erzeugen“ (die alte wird sofort ungültig) oder „Kalender löschen“.
+
+**Mehrere Kalender** (bis zu 10) sind möglich – z. B. „Winterruhe“ nur mit der Winterruhe und „Messor füttern“ nur mit den Fütterungen einer Kolonie. Der Name erscheint in der Kalender-App; jeder Kalender bekommt dort seine eigene Farbe.
 
 ```
 https://<server>/api/v1/feeds/acm_fk_…/calendar.ics
@@ -20,7 +22,7 @@ Die Adresse enthält nur Lesezugriff auf die Kolonien, die du pflegst (Besitzer 
 | ☀ Winterruhe beenden? | geplantes Ende einer laufenden oder geplanten Winterruhe |
 | 📋 *Aufgabe* | offene einmalige Aufgaben mit Termin (30 Minuten) |
 
-**Was im Kalender steht, wählst du selbst:** unter „Im Kalender anzeigen“ die Arten an- oder abwählen – Fütterung, Proteinfütterung, Kohlenhydratfütterung, Wasser, Reinigung, Kontrolle, eigene Pflegepläne, Winterruhe, einmalige Aufgaben. Z. B. nur „Winterruhe“ oder nur die Fütterungen. Die Auswahl gilt sofort für die bestehende Adresse (Kalender-Apps zeigen es beim nächsten Abruf) und bleibt beim Erzeugen einer neuen Adresse erhalten.
+**Was im Kalender steht, wählst du pro Kalender:** unter „Im Kalender anzeigen“ die Arten – Fütterung, Proteinfütterung, Kohlenhydratfütterung, Wasser, Reinigung, Kontrolle, eigene Pflegepläne, Winterruhe, einmalige Aufgaben – und unter „Kolonien“ alle oder nur bestimmte. Mit einer Auswahl von Kolonien fehlen Aufgaben ohne Kolonie. Änderungen gelten sofort für die bestehende Adresse (Kalender-Apps zeigen es beim nächsten Abruf) und bleiben bei einer neuen Adresse erhalten.
 
 Pflege-Termine sind ganztägig und „frei“ (blockieren keine Zeit). Jeder Eintrag verlinkt auf die Kolonie in der Web-App. Kalender-Apps laden Abos selbst neu – Home Assistant und Thunderbird nach Einstellung, **Google teils nur alle 12–24 Stunden**.
 
@@ -40,7 +42,7 @@ Der ACM-Server meldet die Kolonien per **MQTT Discovery** bei Home Assistant an 
    - „Kolonien an Home Assistant senden“ einschalten, **Speichern**, **Verbindung testen**.
 3. In Home Assistant erscheinen unter **Einstellungen → Geräte & Dienste → MQTT** das Gerät „Ameisen“ (Summen) und je Kolonie ein Gerät „Name (#Nr)“.
 
-Gesendet werden die Kolonien des Administrators, der die Einstellungen gespeichert hat (Besitzer oder Pfleger – wie beim Kalender). Der ACM-Server muss den Broker im Netz erreichen (bei Docker: `192.168.x.x`, nicht `localhost`).
+Gesendet werden die Kolonien des Administrators, der die Einstellungen gespeichert hat (Besitzer oder Pfleger – wie beim Kalender). **Andere Benutzer** schalten es für sich unter **Mehr → „Meine Kolonien an Home Assistant senden“** ein; ihre Entitäten tragen ihren Namen, z. B. `sensor.acm_anna_colony_2_overdue` (Kolonie-Nummern zählt jeder Benutzer für sich). Der ACM-Server muss den Broker im Netz erreichen (bei Docker: `192.168.x.x`, nicht `localhost`).
 
 **Ausschalten** entfernt alle ACM-Geräte wieder aus Home Assistant. Ist ACM gestoppt, zeigen die Entitäten „nicht verfügbar“ (Last Will).
 
@@ -57,9 +59,36 @@ Pro Kolonie (`3` = Kolonie-Nummer):
 | `sensor.acm_colony_3_next_task` | Name der nächsten Pflege, z. B. „Proteinfütterung“ |
 | `sensor.acm_colony_3_temperature`, `…_humidity` | letzter Messwert – nur, wenn die Kolonie Messwerte hat |
 
+**Aus Home Assistant heraus steuern:**
+
+| Entität | Wirkung in ACM |
+|---|---|
+| `button.acm_colony_3_water_done` (je Pflegeplan: `feeding`, `protein`, `carbohydrate`, `water`, `cleaning`, `check`, eigene: `custom_…`) | trägt die Pflege als erledigt ein – wie „Erledigt“ in der App: Wasser/Reinigung mit den zuletzt verwendeten Arten, Fütterungen wiederholen die letzte passende Fütterung |
+| `switch.acm_colony_3_hibernation` | Winterruhe heute beginnen (eine geplante wird gestartet) bzw. heute beenden |
+
+Ausgeführt wird das als ein sendender Benutzer, der die Kolonie bearbeiten darf. Wer auf dem Broker schreiben darf, kann diese Aktionen auslösen – den Broker also nicht offen ins Internet stellen.
+
 Summen (Gerät „Ameisen“): `sensor.acm_overdue`, `sensor.acm_due_today`, `sensor.acm_hibernating`, `sensor.acm_colonies`.
 
 Die Geräte hängen an der Kolonie, nicht an der Nummer: Umbenennen ändert nur den Anzeigenamen, die Entitäten bleiben. Entitäts-IDs kannst du in Home Assistant jederzeit selbst ändern.
+
+### Knopf am Formicarium: „Gefüttert“
+
+Ein Zigbee-Taster neben dem Formicarium trägt die Proteinfütterung ein:
+
+```yaml
+automation:
+  - alias: Taster – Messor gefüttert
+    triggers:
+      - trigger: device
+        domain: zha            # bzw. mqtt/deconz – wie der Taster eingebunden ist
+        device_id: …
+        type: remote_button_short_press
+    actions:
+      - action: button.press
+        target:
+          entity_id: button.acm_colony_3_protein_done
+```
 
 ### Heizmatte in der Winterruhe aus
 
@@ -116,6 +145,8 @@ Alle Nachrichten sind *retained* (QoS 1):
 | `ant-colony-manager/colony/<kolonie-id>/state` | Zustand einer Kolonie |
 | `ant-colony-manager/state` | Summen `{overdue, due_today, hibernating, colonies}` |
 | `ant-colony-manager/status` | `online` / `offline` |
+| `ant-colony-manager/colony/<kolonie-id>/done` | ← Pflegeplan-ID: Pflege erledigt |
+| `ant-colony-manager/colony/<kolonie-id>/hibernation/set` | ← `ON` / `OFF`: Winterruhe beginnen/beenden |
 
 Zustand einer Kolonie:
 

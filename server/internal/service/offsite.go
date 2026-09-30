@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -47,6 +48,13 @@ type storedOffsite struct {
 	User        string `json:"user"`
 	PasswordEnc string `json:"password_enc,omitempty"`
 	Keep        int    `json:"keep"`
+	// when it was switched on – the warning counts from here until the first success
+	EnabledAt *time.Time `json:"enabled_at,omitempty"`
+	// encryption (offsite_crypt.go)
+	Encrypt        bool   `json:"encrypt,omitempty"`
+	AgeRecipient   string `json:"age_recipient,omitempty"`
+	AgeIdentityEnc string `json:"age_identity_enc,omitempty"`
+	AgeKeyFile     []byte `json:"age_key_file,omitempty"` // key.age: private key under the passphrase
 }
 
 // OffsiteStatus is what the last runs did.
@@ -57,6 +65,7 @@ type OffsiteStatus struct {
 	LastErrorAt *time.Time `json:"last_error_at,omitempty"`
 	LastBytes   int64      `json:"last_bytes,omitempty"`
 	LastPhotos  int        `json:"last_photos,omitempty"`
+	LastWarned  *time.Time `json:"last_warned,omitempty"` // admins were told it fails
 	Running     bool       `json:"running"`
 	// the newest complete local backup (empty: backup folder not visible)
 	LocalLatest string `json:"local_latest,omitempty"`
@@ -72,6 +81,10 @@ type OffsiteSettings struct {
 	PasswordSet bool          `json:"password_set"`
 	Keep        int           `json:"keep"`
 	Status      OffsiteStatus `json:"status"`
+	// encryption: the passphrase is write-only and never stored
+	Encrypt       bool    `json:"encrypt"`
+	Passphrase    *string `json:"passphrase,omitempty"`
+	PassphraseSet bool    `json:"passphrase_set"`
 }
 
 var offsiteRun sync.Mutex
@@ -103,7 +116,8 @@ func (s *Service) GetOffsiteSettings(ctx context.Context, actor Actor) (*Offsite
 	if _, err := s.loadJSONSetting(ctx, offsiteKey, &st); err != nil {
 		return nil, err
 	}
-	out := &OffsiteSettings{Enabled: st.Enabled, Type: st.kind(), URL: st.URL, User: st.User, PasswordSet: st.PasswordEnc != "", Keep: st.Keep}
+	out := &OffsiteSettings{Enabled: st.Enabled, Type: st.kind(), URL: st.URL, User: st.User, PasswordSet: st.PasswordEnc != "", Keep: st.Keep,
+		Encrypt: st.Encrypt, PassphraseSet: st.AgeRecipient != ""}
 	if out.Keep == 0 {
 		out.Keep = 7
 	}
@@ -148,7 +162,40 @@ func (s *Service) SetOffsiteSettings(ctx context.Context, actor Actor, in Offsit
 	if _, err := s.loadJSONSetting(ctx, offsiteKey, &old); err != nil {
 		return nil, err
 	}
-	st := storedOffsite{Enabled: in.Enabled, Type: in.Type, URL: in.URL, User: in.User, Keep: in.Keep, PasswordEnc: old.PasswordEnc}
+	st := storedOffsite{Enabled: in.Enabled, Type: in.Type, URL: in.URL, User: in.User, Keep: in.Keep, PasswordEnc: old.PasswordEnc,
+		EnabledAt: old.EnabledAt, Encrypt: in.Encrypt,
+		AgeRecipient: old.AgeRecipient, AgeIdentityEnc: old.AgeIdentityEnc, AgeKeyFile: old.AgeKeyFile}
+	if in.Passphrase != nil && *in.Passphrase != "" {
+		if len([]rune(*in.Passphrase)) < minPassphrase || len(*in.Passphrase) > 500 {
+			return nil, Invalid("passphrase", "the passphrase needs at least %d characters", minPassphrase)
+		}
+		if old.AgeIdentityEnc == "" {
+			rec, id, keyFile, err := newOffsiteKey(*in.Passphrase)
+			if err != nil {
+				return nil, err
+			}
+			if st.AgeIdentityEnc, err = s.encryptSecret(id); err != nil {
+				return nil, err
+			}
+			st.AgeRecipient, st.AgeKeyFile = rec, keyFile
+		} else {
+			// same key, new passphrase: older remote backups stay readable with it
+			id, err := s.decryptSecret(old.AgeIdentityEnc)
+			if err != nil {
+				return nil, fmt.Errorf("stored backup key cannot be decrypted (INSTANCE_SECRET changed?): %w", err)
+			}
+			if st.AgeKeyFile, err = wrapOffsiteKey(id, *in.Passphrase); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if st.Encrypt && st.AgeRecipient == "" {
+		return nil, Invalid("passphrase", "choose a passphrase (at least %d characters) – it is needed to restore", minPassphrase)
+	}
+	if in.Enabled && (!old.Enabled || st.EnabledAt == nil) {
+		now := s.Now().UTC()
+		st.EnabledAt = &now
+	}
 	if in.Password != nil {
 		st.PasswordEnc = ""
 		if *in.Password != "" {
@@ -158,8 +205,9 @@ func (s *Service) SetOffsiteSettings(ctx context.Context, actor Actor, in Offsit
 			}
 		}
 	}
-	// another target: the photos there are unknown – send them all again
-	if old.URL != "" && (old.URL != st.URL || old.kind() != st.kind()) {
+	// another target or encryption switched: the photos there are unknown or
+	// in the other form – send them all again
+	if old.URL != "" && (old.URL != st.URL || old.kind() != st.kind() || old.Encrypt != st.Encrypt) {
 		if _, err := s.Pool.Exec(ctx, `DELETE FROM offsite_files`); err != nil {
 			return nil, err
 		}
@@ -179,18 +227,19 @@ func (st storedOffsite) kind() string {
 	return st.Type
 }
 
-// offsiteTarget is where the backups go. Paths are relative to the target
+// OffsiteTarget is where the backups go (methods internal to the service). Paths are relative to the target
 // folder and use "/".
-type offsiteTarget interface {
+type OffsiteTarget interface {
 	check(ctx context.Context) error // address, login; creates the folder if needed
 	mkdirAll(ctx context.Context, p string, known map[string]bool) error
 	put(ctx context.Context, p string, body io.Reader, size int64) error
 	delete(ctx context.Context, p string) error // a folder with everything in it
 	folders(ctx context.Context, p string) ([]string, error)
+	get(ctx context.Context, p string) (io.ReadCloser, error) // fs.ErrNotExist if missing
 	close()
 }
 
-func (s *Service) newOffsiteTarget(kind, raw, user, pass string) (offsiteTarget, error) {
+func (s *Service) newOffsiteTarget(kind, raw, user, pass string) (OffsiteTarget, error) {
 	switch kind {
 	case offsiteWebDAV:
 		return newWebdav(raw, user, pass)
@@ -203,7 +252,7 @@ func (s *Service) newOffsiteTarget(kind, raw, user, pass string) (offsiteTarget,
 }
 
 // offsiteClient returns the configured target (nil if none); close it after use.
-func (s *Service) offsiteClient(ctx context.Context) (offsiteTarget, *storedOffsite, error) {
+func (s *Service) offsiteClient(ctx context.Context) (OffsiteTarget, *storedOffsite, error) {
 	var st storedOffsite
 	found, err := s.loadJSONSetting(ctx, offsiteKey, &st)
 	if err != nil || !found || st.URL == "" {
@@ -325,7 +374,7 @@ func (s *Service) OffsiteSync(ctx context.Context, force bool) (bool, error) {
 	if name == state.LastName && !force {
 		return false, nil
 	}
-	bytes, photos, err := s.offsiteUpload(ctx, d, st.Keep, name)
+	bytes, photos, err := s.offsiteUpload(ctx, d, st, name)
 	if err != nil {
 		return false, s.offsiteFailed(ctx, &state, err)
 	}
@@ -345,10 +394,22 @@ func (s *Service) offsiteFailed(ctx context.Context, state *OffsiteStatus, err e
 	return err
 }
 
-func (s *Service) offsiteUpload(ctx context.Context, d offsiteTarget, keep int, name string) (int64, int, error) {
+func (s *Service) offsiteUpload(ctx context.Context, d OffsiteTarget, st *storedOffsite, name string) (int64, int, error) {
+	keep := st.Keep
 	local := filepath.Join(s.Cfg.BackupDir, name)
 	if err := d.check(ctx); err != nil {
 		return 0, 0, err
+	}
+	var crypt *offsiteCrypt
+	if st.Encrypt {
+		var err error
+		if crypt, err = newOffsiteCrypt(st.AgeRecipient); err != nil {
+			return 0, 0, err
+		}
+		// the key (under the passphrase) next to the backups – all a restore needs
+		if err := d.put(ctx, offsiteKeyFile, bytes.NewReader(st.AgeKeyFile), int64(len(st.AgeKeyFile))); err != nil {
+			return 0, 0, err
+		}
 	}
 	known := map[string]bool{}
 	var total int64
@@ -365,10 +426,17 @@ func (s *Service) offsiteUpload(ctx context.Context, d offsiteTarget, keep int, 
 		if err := d.mkdirAll(ctx, filepath.ToSlash(filepath.Dir(remote)), known); err != nil {
 			return err
 		}
-		if err := d.put(ctx, remote, f, fi.Size()); err != nil {
+		var body io.Reader = f
+		size := fi.Size()
+		if crypt != nil {
+			enc := crypt.reader(f)
+			defer enc.Close()
+			body, size, remote = enc, crypt.size(size), remote+".age"
+		}
+		if err := d.put(ctx, remote, body, size); err != nil {
 			return err
 		}
-		total += fi.Size()
+		total += size
 		return nil
 	}
 
@@ -442,4 +510,69 @@ func (s *Service) offsiteUpload(ctx context.Context, d offsiteTarget, keep int, 
 		}
 	}
 	return total, photos, nil
+}
+
+// offsiteWarnAfter: without a successful off-site backup for this long, the
+// administrators are told (again at most once a day).
+const offsiteWarnAfter = 48 * time.Hour
+
+// OffsiteWatch warns the administrators (e-mail and their ntfy) when the
+// off-site backup has not worked for 48 hours. Returns whether it warned.
+func (s *Service) OffsiteWatch(ctx context.Context) (bool, error) {
+	var st storedOffsite
+	if found, err := s.loadJSONSetting(ctx, offsiteKey, &st); err != nil || !found || !st.Enabled {
+		return false, err
+	}
+	var state OffsiteStatus
+	if _, err := s.loadJSONSetting(ctx, offsiteStateKey, &state); err != nil {
+		return false, err
+	}
+	since := st.EnabledAt
+	if state.LastSuccess != nil && (since == nil || state.LastSuccess.After(*since)) {
+		since = state.LastSuccess
+	}
+	now := s.Now()
+	if since == nil || now.Sub(*since) < offsiteWarnAfter ||
+		(state.LastWarned != nil && now.Sub(*state.LastWarned) < 24*time.Hour) {
+		return false, nil
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT u.id, u.email, us.locale, u.lang_hint,
+			COALESCE(np.ntfy_url, ''), COALESCE(np.ntfy_token, '')
+		FROM users u JOIN user_settings us ON us.id = u.id
+		LEFT JOIN notification_prefs np ON np.user_id = u.id
+		WHERE u.instance_role = 'admin' AND u.disabled_at IS NULL`)
+	if err != nil {
+		return false, err
+	}
+	admins, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (recipient, error) {
+		var r recipient
+		var locale, hint *string
+		err := row.Scan(&r.id, &r.email, &locale, &hint, &r.ntfyURL, &r.token)
+		r.lang = resolveLang(locale, hint)
+		return r, err
+	})
+	if err != nil {
+		return false, err
+	}
+	hours := int(now.Sub(*since).Hours())
+	warned := false
+	for _, r := range admins {
+		body := tl(r.lang, "Seit %d Stunden hat kein Backup außer Haus geklappt.", hours)
+		if state.LastError != "" {
+			body += " " + tl(r.lang, "Letzter Fehler: %s", state.LastError)
+		}
+		n := notice{Title: tl(r.lang, "Backup außer Haus fehlt"), Body: body, Priority: 4, Tags: []string{"warning"},
+			Click: s.publicURL() + "/settings/offsite"}
+		if s.deliver(ctx, r, true, true, n) {
+			warned = true
+		}
+	}
+	if warned {
+		state.LastWarned = &now
+		if err := s.saveJSONSetting(ctx, offsiteStateKey, state); err != nil {
+			return true, err
+		}
+		s.Log.Warn("off-site backup failing – administrators warned", "hours", hours)
+	}
+	return warned, nil
 }

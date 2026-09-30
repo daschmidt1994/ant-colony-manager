@@ -17,12 +17,198 @@ import (
 	"github.com/daschmidt1994/ant-colony-manager/server/internal/auth"
 )
 
-// Feeds: a read-only calendar subscription (iCal) of the user's colonies. It
-// authenticates with one secret per user ("acm_fk_<prefix>_<secret>") in the
-// address, because calendar apps cannot send headers. The same data feeds the
-// colony status that is sent to Home Assistant via MQTT (mqtt.go).
+// Feeds: read-only calendar subscriptions (iCal) of the user's colonies – up
+// to maxFeeds per user, each with a name, a choice of entry kinds and
+// optionally only some colonies. Each authenticates with its own secret
+// ("acm_fk_<prefix>_<secret>") in the address, because calendar apps cannot
+// send headers. The same data feeds the colony status that is sent to Home
+// Assistant via MQTT (mqtt.go).
 
 var errBadFeedToken = &Problem{Status: 404, Code: "feed.not_found", Title: "feed not found"}
+
+const maxFeeds = 10
+
+// Feed is one calendar subscription (never the token itself).
+type Feed struct {
+	ID         uuid.UUID  `json:"id"`
+	Name       string     `json:"name"`
+	CreatedAt  time.Time  `json:"created_at"`
+	LastUsedAt *time.Time `json:"last_used_at"`
+	// what the calendar shows; nil = everything / all colonies
+	CalendarTypes []string    `json:"calendar_types"`
+	ColonyIDs     []uuid.UUID `json:"colony_ids"`
+}
+
+// FeedInput changes a feed; nil fields stay as they are. An empty list
+// (not nil) in CalendarTypes is refused; ColonyIDs = [] means all colonies.
+type FeedInput struct {
+	Name          *string      `json:"name"`
+	CalendarTypes *[]string    `json:"calendar_types"`
+	ColonyIDs     *[]uuid.UUID `json:"colony_ids"`
+}
+
+// CalendarTypes: the care task types, winter rest start/end and one-off tasks.
+var CalendarTypes = []string{"protein", "carbohydrate", "feeding", "water", "cleaning", "check", "custom", "winter", "tasks"}
+
+const feedCols = `id, name, created_at, last_used_at, calendar_types, colony_ids`
+
+func scanFeed(r pgx.CollectableRow) (Feed, error) {
+	var f Feed
+	err := r.Scan(&f.ID, &f.Name, &f.CreatedAt, &f.LastUsedAt, &f.CalendarTypes, &f.ColonyIDs)
+	return f, err
+}
+
+func (s *Service) Feeds(ctx context.Context, actor Actor) ([]Feed, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT `+feedCols+` FROM feed_tokens WHERE user_id = $1 ORDER BY created_at, id`, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, scanFeed)
+}
+
+func (s *Service) feed(ctx context.Context, actor Actor, id uuid.UUID) (*Feed, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT `+feedCols+` FROM feed_tokens WHERE id = $1 AND user_id = $2`, id, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	f, err := pgx.CollectExactlyOneRow(rows, scanFeed)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, NotFound("feed")
+	}
+	return &f, err
+}
+
+// normalizeFeedInput checks the input; for types and colonies nil (all) is
+// stored when everything is chosen.
+func normalizeFeedInput(in *FeedInput) error {
+	if in.Name != nil {
+		n := strings.TrimSpace(*in.Name)
+		if n == "" || len([]rune(n)) > 60 || strings.ContainsAny(n, "\r\n") {
+			return Invalid("name", "the name needs 1–60 characters")
+		}
+		in.Name = &n
+	}
+	if in.CalendarTypes != nil && *in.CalendarTypes != nil {
+		types := *in.CalendarTypes
+		for _, t := range types {
+			if !slices.Contains(CalendarTypes, t) {
+				return Invalid("calendar_types", "unknown type %q", t)
+			}
+		}
+		var keep []string
+		for _, t := range CalendarTypes { // fixed order, no duplicates
+			if slices.Contains(types, t) {
+				keep = append(keep, t)
+			}
+		}
+		if len(keep) == 0 {
+			return Invalid("calendar_types", "choose at least one type")
+		}
+		if len(keep) == len(CalendarTypes) {
+			keep = nil
+		}
+		in.CalendarTypes = &keep
+	}
+	if in.ColonyIDs != nil {
+		ids := slices.Compact(slices.SortedFunc(slices.Values(*in.ColonyIDs), func(a, b uuid.UUID) int {
+			return strings.Compare(a.String(), b.String())
+		}))
+		if len(ids) > 500 {
+			return Invalid("colony_ids", "at most 500 colonies")
+		}
+		if len(ids) == 0 {
+			ids = nil
+		}
+		in.ColonyIDs = &ids
+	}
+	return nil
+}
+
+// CreateFeed issues a new calendar address; the token is returned only here.
+func (s *Service) CreateFeed(ctx context.Context, actor Actor, in FeedInput) (*Feed, string, error) {
+	if err := normalizeFeedInput(&in); err != nil {
+		return nil, "", err
+	}
+	var n int
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM feed_tokens WHERE user_id = $1`, actor.UserID).Scan(&n); err != nil {
+		return nil, "", err
+	}
+	if n >= maxFeeds {
+		return nil, "", Invalid("name", "at most %d calendars", maxFeeds)
+	}
+	name := tl(s.userLang(ctx, actor.UserID), "Ameisen")
+	if in.Name != nil {
+		name = *in.Name
+	}
+	var types []string
+	if in.CalendarTypes != nil {
+		types = *in.CalendarTypes
+	}
+	var colonies []uuid.UUID
+	if in.ColonyIDs != nil {
+		colonies = *in.ColonyIDs
+	}
+	prefix, secret := newSensorKey()
+	var id uuid.UUID
+	if err := s.Pool.QueryRow(ctx, `INSERT INTO feed_tokens (user_id, prefix, token_hash, name, calendar_types, colony_ids)
+		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+		actor.UserID, prefix, auth.HashToken(secret), name, types, colonies).Scan(&id); err != nil {
+		return nil, "", err
+	}
+	f, err := s.feed(ctx, actor, id)
+	return f, "acm_fk_" + prefix + "_" + secret, err
+}
+
+// UpdateFeed changes name and choice; it applies to the address at once.
+func (s *Service) UpdateFeed(ctx context.Context, actor Actor, id uuid.UUID, in FeedInput) (*Feed, error) {
+	if err := normalizeFeedInput(&in); err != nil {
+		return nil, err
+	}
+	f, err := s.feed(ctx, actor, id)
+	if err != nil {
+		return nil, err
+	}
+	if in.Name != nil {
+		f.Name = *in.Name
+	}
+	if in.CalendarTypes != nil {
+		f.CalendarTypes = *in.CalendarTypes
+	}
+	if in.ColonyIDs != nil {
+		f.ColonyIDs = *in.ColonyIDs
+	}
+	if _, err := s.Pool.Exec(ctx, `UPDATE feed_tokens SET name = $3, calendar_types = $4, colony_ids = $5
+		WHERE id = $1 AND user_id = $2`, id, actor.UserID, f.Name, f.CalendarTypes, f.ColonyIDs); err != nil {
+		return nil, err
+	}
+	return s.feed(ctx, actor, id)
+}
+
+// RotateFeed gives a feed a new address; the old one stops working.
+func (s *Service) RotateFeed(ctx context.Context, actor Actor, id uuid.UUID) (string, error) {
+	prefix, secret := newSensorKey()
+	tag, err := s.Pool.Exec(ctx, `UPDATE feed_tokens SET prefix = $3, token_hash = $4, created_at = now(), last_used_at = NULL
+		WHERE id = $1 AND user_id = $2`, id, actor.UserID, prefix, auth.HashToken(secret))
+	if err != nil {
+		return "", err
+	}
+	if tag.RowsAffected() == 0 {
+		return "", NotFound("feed")
+	}
+	return "acm_fk_" + prefix + "_" + secret, nil
+}
+
+func (s *Service) DeleteFeed(ctx context.Context, actor Actor, id uuid.UUID) error {
+	tag, err := s.Pool.Exec(ctx, `DELETE FROM feed_tokens WHERE id = $1 AND user_id = $2`, id, actor.UserID)
+	if err == nil && tag.RowsAffected() == 0 {
+		return NotFound("feed")
+	}
+	return err
+}
+
+// ---------------------------------------------------------------------------
+// Single-calendar API of app versions before several calendars existed: it
+// acts on the user's first calendar.
 
 // FeedInfo tells the app whether a feed address exists (never the token itself).
 type FeedInfo struct {
@@ -33,91 +219,85 @@ type FeedInfo struct {
 	CalendarTypes []string `json:"calendar_types"`
 }
 
-// CalendarTypes: the care task types, winter rest start/end and one-off tasks.
-var CalendarTypes = []string{"protein", "carbohydrate", "feeding", "water", "cleaning", "check", "custom", "winter", "tasks"}
-
-func (s *Service) FeedInfo(ctx context.Context, actor Actor) (*FeedInfo, error) {
-	var f FeedInfo
-	err := s.Pool.QueryRow(ctx, `SELECT created_at, last_used_at, calendar_types FROM feed_tokens WHERE user_id = $1`, actor.UserID).
-		Scan(&f.CreatedAt, &f.LastUsedAt, &f.CalendarTypes)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return &f, nil
+func (s *Service) firstFeed(ctx context.Context, actor Actor) (*Feed, error) {
+	list, err := s.Feeds(ctx, actor)
+	if err != nil || len(list) == 0 {
+		return nil, err
 	}
-	f.Active = err == nil
-	return &f, err
+	return &list[0], nil
 }
 
-// CreateFeedToken issues a new token; an existing one stops working.
+func (s *Service) FeedInfo(ctx context.Context, actor Actor) (*FeedInfo, error) {
+	f, err := s.firstFeed(ctx, actor)
+	if err != nil || f == nil {
+		return &FeedInfo{}, err
+	}
+	return &FeedInfo{Active: true, CreatedAt: &f.CreatedAt, LastUsedAt: f.LastUsedAt, CalendarTypes: f.CalendarTypes}, nil
+}
+
+// CreateFeedToken gives the first calendar a new address (or creates it).
 func (s *Service) CreateFeedToken(ctx context.Context, actor Actor) (string, error) {
-	prefix, secret := newSensorKey()
-	_, err := s.Pool.Exec(ctx, `
-		INSERT INTO feed_tokens (user_id, prefix, token_hash) VALUES ($1, $2, $3)
-		ON CONFLICT (user_id) DO UPDATE SET prefix = $2, token_hash = $3, created_at = now(), last_used_at = NULL`,
-		actor.UserID, prefix, auth.HashToken(secret))
+	f, err := s.firstFeed(ctx, actor)
 	if err != nil {
 		return "", err
 	}
-	return "acm_fk_" + prefix + "_" + secret, nil
+	if f != nil {
+		return s.RotateFeed(ctx, actor, f.ID)
+	}
+	_, tok, err := s.CreateFeed(ctx, actor, FeedInput{})
+	return tok, err
 }
 
-// SetCalendarTypes chooses what the calendar shows (all types = nil); it
-// applies to the existing address at once.
+// SetCalendarTypes chooses what the first calendar shows (all types = nil).
 func (s *Service) SetCalendarTypes(ctx context.Context, actor Actor, types []string) (*FeedInfo, error) {
-	var keep []string
-	for _, t := range CalendarTypes { // known values, in a fixed order, no duplicates
-		if slices.Contains(types, t) {
-			keep = append(keep, t)
-		}
-	}
-	for _, t := range types {
-		if !slices.Contains(CalendarTypes, t) {
-			return nil, Invalid("calendar_types", "unknown type %q", t)
-		}
-	}
-	if types != nil && len(keep) == 0 {
-		return nil, Invalid("calendar_types", "choose at least one type")
-	}
-	if len(keep) == len(CalendarTypes) {
-		keep = nil
-	}
-	tag, err := s.Pool.Exec(ctx, `UPDATE feed_tokens SET calendar_types = $2 WHERE user_id = $1`, actor.UserID, keep)
+	f, err := s.firstFeed(ctx, actor)
 	if err != nil {
 		return nil, err
 	}
-	if tag.RowsAffected() == 0 {
+	if f == nil {
 		return nil, NotFound("feed")
+	}
+	if types == nil {
+		types = CalendarTypes
+	}
+	if _, err := s.UpdateFeed(ctx, actor, f.ID, FeedInput{CalendarTypes: &types}); err != nil {
+		return nil, err
 	}
 	return s.FeedInfo(ctx, actor)
 }
 
+// DeleteFeedToken switches all calendars off.
 func (s *Service) DeleteFeedToken(ctx context.Context, actor Actor) error {
 	_, err := s.Pool.Exec(ctx, `DELETE FROM feed_tokens WHERE user_id = $1`, actor.UserID)
 	return err
 }
 
-// FeedUser resolves a token to its user; unknown tokens look like a missing page.
-func (s *Service) FeedUser(ctx context.Context, token string) (uuid.UUID, error) {
+// ---------------------------------------------------------------------------
+
+// FeedUser resolves a token to its user and feed; unknown tokens look like a
+// missing page.
+func (s *Service) FeedUser(ctx context.Context, token string) (uuid.UUID, uuid.UUID, error) {
 	parts := strings.SplitN(token, "_", 4)
 	if len(parts) != 4 || parts[0] != "acm" || parts[1] != "fk" || parts[2] == "" || parts[3] == "" {
-		return uuid.Nil, errBadFeedToken
+		return uuid.Nil, uuid.Nil, errBadFeedToken
 	}
-	var user uuid.UUID
+	var user, feed uuid.UUID
 	var hash []byte
-	err := s.Pool.QueryRow(ctx, `SELECT user_id, token_hash FROM feed_tokens WHERE prefix = $1`, parts[2]).Scan(&user, &hash)
+	err := s.Pool.QueryRow(ctx, `SELECT user_id, id, token_hash FROM feed_tokens WHERE prefix = $1`, parts[2]).Scan(&user, &feed, &hash)
 	if errors.Is(err, pgx.ErrNoRows) {
 		auth.HashToken(parts[3]) // keep timing similar
-		return uuid.Nil, errBadFeedToken
+		return uuid.Nil, uuid.Nil, errBadFeedToken
 	}
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, uuid.Nil, err
 	}
 	if subtle.ConstantTimeCompare(auth.HashToken(parts[3]), hash) != 1 {
-		return uuid.Nil, errBadFeedToken
+		return uuid.Nil, uuid.Nil, errBadFeedToken
 	}
 	// at most once a minute – polling every few seconds must not write constantly
 	_, _ = s.Pool.Exec(ctx, `UPDATE feed_tokens SET last_used_at = now()
-		WHERE user_id = $1 AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute')`, user)
-	return user, nil
+		WHERE id = $1 AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute')`, feed)
+	return user, feed, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -150,6 +330,9 @@ type FeedColony struct {
 	Temperature *float64     `json:"temperature"`
 	Humidity    *float64     `json:"humidity"`
 	MeasuredAt  *time.Time   `json:"measured_at"`
+
+	OwnerID uuid.UUID `json:"-"`
+	Care    []DueTask `json:"-"` // active care plans (Home Assistant buttons)
 }
 
 type FeedStatus struct {
@@ -180,7 +363,7 @@ type feedTask struct {
 func (s *Service) feedLoad(ctx context.Context, user uuid.UUID) (*feedData, error) {
 	d := &feedData{lang: s.userLang(ctx, user), prefs: s.userPrefs(ctx, s.Pool, user)}
 	rows, err := s.Pool.Query(ctx, `
-		SELECT c.id, c.number, c.name, COALESCE(sp.scientific_name, c.species_text, ''), c.status, c.last_measurement,
+		SELECT c.id, c.owner_id, c.number, c.name, COALESCE(sp.scientific_name, c.species_text, ''), c.status, c.last_measurement,
 		       w.planned_start_on::text, w.started_on::text, w.planned_end_on::text
 		FROM colonies c
 		JOIN colony_members m ON m.colony_id = c.id AND m.user_id = $1 AND m.deleted_at IS NULL AND m.role <> 'viewer'
@@ -197,7 +380,7 @@ func (s *Service) feedLoad(ctx context.Context, user uuid.UUID) (*feedData, erro
 		var c FeedColony
 		var measurement []byte
 		var w FeedWinter
-		if err := r.Scan(&c.ID, &c.Number, &c.Name, &c.Species, &c.Status, &measurement,
+		if err := r.Scan(&c.ID, &c.OwnerID, &c.Number, &c.Name, &c.Species, &c.Status, &measurement,
 			&w.PlannedStartOn, &w.StartedOn, &w.PlannedEndOn); err != nil {
 			return c, err
 		}
@@ -255,6 +438,7 @@ func (s *Service) colonyStatus(ctx context.Context, user uuid.UUID) (*FeedStatus
 	}
 	for i := range out.Colonies {
 		c := &out.Colonies[i]
+		c.Care = d.due[c.ID]
 		for _, t := range d.due[c.ID] {
 			if t.Status == DuePaused || t.NextDueAt == nil {
 				continue
@@ -284,16 +468,23 @@ func (s *Service) colonyStatus(ctx context.Context, user uuid.UUID) (*FeedStatus
 // FeedCalendar lists the next due date of every care plan (overdue ones
 // today), planned winter rest starts and ends, and open one-off tasks – as
 // far as the user chose them (calendar_types).
-func (s *Service) FeedCalendar(ctx context.Context, user uuid.UUID) ([]byte, error) {
+func (s *Service) FeedCalendar(ctx context.Context, user, feed uuid.UUID) ([]byte, error) {
 	d, err := s.feedLoad(ctx, user)
 	if err != nil {
 		return nil, err
 	}
+	var name string
 	var only []string
-	if err := s.Pool.QueryRow(ctx, `SELECT calendar_types FROM feed_tokens WHERE user_id = $1`, user).Scan(&only); err != nil {
+	var colonies []uuid.UUID
+	if err := s.Pool.QueryRow(ctx, `SELECT name, calendar_types, colony_ids FROM feed_tokens WHERE id = $1`, feed).
+		Scan(&name, &only, &colonies); err != nil {
 		return nil, err
 	}
 	show := func(kind string) bool { return only == nil || slices.Contains(only, kind) }
+	if colonies != nil {
+		d.colonies = slices.DeleteFunc(d.colonies, func(c FeedColony) bool { return !slices.Contains(colonies, c.ID) })
+		d.tasks = slices.DeleteFunc(d.tasks, func(t feedTask) bool { return t.colonyID == nil || !slices.Contains(colonies, *t.colonyID) })
+	}
 	now := s.Now()
 	today := now.In(d.prefs.Location)
 	stamp := now.UTC().Format("20060102T150405Z")
@@ -369,7 +560,7 @@ func (s *Service) FeedCalendar(ctx context.Context, user uuid.UUID) ([]byte, err
 	line("PRODID:-//Ant Colony Manager//" + d.lang + "//")
 	line("CALSCALE:GREGORIAN")
 	line("METHOD:PUBLISH")
-	line("X-WR-CALNAME:" + icalText(tl(d.lang, "Ameisen")))
+	line("X-WR-CALNAME:" + icalText(name))
 	line("X-WR-TIMEZONE:" + d.prefs.Location.String())
 	line("REFRESH-INTERVAL;VALUE=DURATION:PT1H")
 	line("X-PUBLISHED-TTL:PT1H")

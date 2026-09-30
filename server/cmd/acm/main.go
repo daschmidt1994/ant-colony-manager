@@ -5,10 +5,14 @@
 //	acm healthcheck                 exit 0 if the local server is ready (Docker HEALTHCHECK)
 //	acm user reset-link <email>     print a password reset link (no SMTP needed)
 //	acm user make-admin <email>     grant administrator rights
+//	acm offsite-restore [--list] [--to DIR] [NAME]
+//	                                download a backup from the off-site target
+//	                                (decrypted, checked) for scripts/restore.sh
 //	acm version
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -17,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -52,10 +57,12 @@ func main() {
 		err = healthcheck()
 	case "user":
 		err = userCmd(args)
+	case "offsite-restore":
+		err = offsiteRestore(args)
 	case "version", "--version", "-v":
 		fmt.Println(version)
 	default:
-		err = fmt.Errorf("unknown command %q (serve, migrate, healthcheck, user, version)", cmd)
+		err = fmt.Errorf("unknown command %q (serve, migrate, healthcheck, user, offsite-restore, version)", cmd)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -208,11 +215,15 @@ func serve() error {
 			if _, err := svc.OffsiteSync(ctx, false); err != nil && ctx.Err() == nil {
 				log.Error("off-site backup failed", "err", err)
 			}
+			if _, err := svc.OffsiteWatch(ctx); err != nil && ctx.Err() == nil {
+				log.Error("off-site backup warning failed", "err", err)
+			}
 		}
 	}()
 
 	// Home Assistant: colonies as devices via MQTT discovery (set up by the admin).
 	go svc.MQTTRun(ctx)
+	go svc.HARun(ctx)
 
 	httpSrv := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -330,4 +341,82 @@ func userCmd(args []string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown user command %q", args[0])
+}
+
+// offsiteRestore downloads a backup from the off-site target into DIR/NAME
+// (default /data/backups), ready for scripts/restore.sh. The target comes
+// from ACM_OFFSITE_TYPE/URL/USER/PASSWORD – for a new server without the old
+// settings – or else from the settings in the app. Encrypted backups need
+// ACM_OFFSITE_PASSPHRASE (or it is asked for). Prints the backup name last.
+func offsiteRestore(args []string) error {
+	to, name, list := "/data/backups", "", false
+	for i := 0; i < len(args); i++ {
+		switch a := args[i]; {
+		case a == "--list":
+			list = true
+		case a == "--to" && i+1 < len(args):
+			to = args[i+1]
+			i++
+		case strings.HasPrefix(a, "-"):
+			return fmt.Errorf("usage: acm offsite-restore [--list] [--to DIR] [NAME]")
+		default:
+			name = a
+		}
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	var d service.OffsiteTarget
+	var err error
+	if u := os.Getenv("ACM_OFFSITE_URL"); u != "" {
+		d, err = service.OpenOffsiteTarget(service.OffsiteTargetConfig{Type: os.Getenv("ACM_OFFSITE_TYPE"), URL: u,
+			User: os.Getenv("ACM_OFFSITE_USER"), Password: os.Getenv("ACM_OFFSITE_PASSWORD")})
+	} else {
+		cfg, log, pool, serr := setup(ctx)
+		if serr != nil {
+			return fmt.Errorf("%w\n(without the old database: give the target with ACM_OFFSITE_TYPE, ACM_OFFSITE_URL, ACM_OFFSITE_USER, ACM_OFFSITE_PASSWORD)", serr)
+		}
+		defer pool.Close()
+		svc, serr := service.New(ctx, pool, cfg, log, mail.New(config.SMTPConfig{}, log), nil)
+		if serr != nil {
+			return serr
+		}
+		d, err = svc.OffsiteTargetFromSettings(ctx)
+	}
+	if err != nil {
+		return err
+	}
+	defer service.CloseOffsiteTarget(d)
+
+	backups, encrypted, err := service.OffsiteRemoteBackups(ctx, d)
+	if err != nil {
+		return err
+	}
+	if list {
+		for _, b := range backups {
+			fmt.Println(b)
+		}
+		if encrypted {
+			fmt.Fprintln(os.Stderr, "(verschlüsselt – zum Wiederherstellen wird die Passphrase gebraucht)")
+		}
+		return nil
+	}
+	pass := os.Getenv("ACM_OFFSITE_PASSPHRASE")
+	if encrypted && pass == "" {
+		fmt.Fprint(os.Stderr, "Passphrase der verschlüsselten Backups: ")
+		line, rerr := bufio.NewReader(os.Stdin).ReadString('\n')
+		if rerr != nil && line == "" {
+			return fmt.Errorf("no passphrase: %w", rerr)
+		}
+		pass = strings.TrimRight(line, "\r\n")
+	}
+	got, err := service.OffsiteFetch(ctx, d, name, to, pass, func(step string) {
+		fmt.Fprintln(os.Stderr, "  "+step)
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "Backup %s liegt vollständig in %s\n", got, filepath.Join(to, got))
+	fmt.Println(got)
+	return nil
 }

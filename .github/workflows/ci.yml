@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - run: shellcheck -s sh -S warning scripts/*.sh deploy/backup/*.sh
+      - run: shellcheck -s sh -S warning scripts/*.sh deploy/backup/*.sh deploy/updater/*.sh
       - run: shellcheck -S warning fdroid/publish.sh
 
   stack:

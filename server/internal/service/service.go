@@ -28,6 +28,8 @@ type Service struct {
 	Now    func() time.Time
 	// MQTTDial connects to the MQTT broker (Home Assistant); tests replace it.
 	MQTTDial func(context.Context, MQTTOptions) (MQTTConn, error)
+	// AIBaseURL overrides the Anthropic API address (tests).
+	AIBaseURL string
 
 	mqtt       mqttState
 	columns    map[string]map[string]bool // table -> column set (loaded at start)
@@ -52,6 +54,7 @@ func New(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, log *slog.
 		imageSem: make(chan struct{}, 2),
 	}
 	s.mqtt.kick = make(chan struct{}, 1)
+	s.mqtt.haKick = make(chan struct{}, 1)
 	if err := s.loadColumns(ctx); err != nil {
 		return nil, err
 	}

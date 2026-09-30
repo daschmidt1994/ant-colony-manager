@@ -58,6 +58,12 @@ var enTexts = map[string]string{
 	"Nächste Pflege":  "Next care",
 	"Nächste Aufgabe": "Next task",
 	"Ameisenkolonie":  "Ant colony",
+	"%s erledigt":     "%s done",
+	// off-site backup warning
+	"Backup außer Haus fehlt":                              "Off-site backup missing",
+	"Seit %d Stunden hat kein Backup außer Haus geklappt.": "No off-site backup has worked for %d hours.",
+	"Letzter Fehler: %s":                                   "Last error: %s",
+	"Winterruhe an/aus":                                    "Hibernation on/off",
 	// snooze
 	"Auf morgen verschoben":              "Postponed to tomorrow",
 	"Nichts mehr fällig":                 "Nothing due any more",

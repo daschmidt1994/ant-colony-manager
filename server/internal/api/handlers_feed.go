@@ -62,11 +62,11 @@ func (s *Server) deleteFeed(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) feedCalendar(w http.ResponseWriter, r *http.Request) {
-	user, ok := s.feedUser(w, r)
+	user, feed, ok := s.feedUser(w, r)
 	if !ok {
 		return
 	}
-	ics, err := s.svc.FeedCalendar(r.Context(), user)
+	ics, err := s.svc.FeedCalendar(r.Context(), user, feed)
 	if err != nil {
 		s.problem(w, r, err)
 		return
@@ -77,15 +77,97 @@ func (s *Server) feedCalendar(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(ics)
 }
 
-func (s *Server) feedUser(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+func (s *Server) feedUser(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
 	if ok, retry := s.limAnon.Allow(clientIP(r).String()); !ok {
 		s.problem(w, r, service.RateLimited(retry))
-		return uuid.Nil, false
+		return uuid.Nil, uuid.Nil, false
 	}
-	u, err := s.svc.FeedUser(r.Context(), chi.URLParam(r, "token"))
+	u, feed, err := s.svc.FeedUser(r.Context(), chi.URLParam(r, "token"))
 	if err != nil {
 		s.problem(w, r, err)
-		return uuid.Nil, false
+		return uuid.Nil, uuid.Nil, false
 	}
-	return u, true
+	return u, feed, true
+}
+
+// ---------------------------------------------------------------------------
+// Several calendars
+
+func (s *Server) feedURL(tok string) string {
+	return s.cfg.PublicURL.String() + "/api/v1/feeds/" + tok + "/calendar.ics"
+}
+
+func (s *Server) listFeeds(w http.ResponseWriter, r *http.Request) {
+	list, err := s.svc.Feeds(r.Context(), actorOf(r))
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	if list == nil {
+		list = []service.Feed{}
+	}
+	s.writeJSON(w, http.StatusOK, list)
+}
+
+// newFeed creates a calendar; its address is returned only here.
+func (s *Server) newFeed(w http.ResponseWriter, r *http.Request) {
+	var in service.FeedInput
+	if r.ContentLength != 0 {
+		if err := decode(r, &in); err != nil {
+			s.problem(w, r, err)
+			return
+		}
+	}
+	f, tok, err := s.svc.CreateFeed(r.Context(), actorOf(r), in)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusCreated, map[string]any{"feed": f, "calendar_url": s.feedURL(tok)})
+}
+
+func (s *Server) updateFeed(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	var in service.FeedInput
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	f, err := s.svc.UpdateFeed(r.Context(), actorOf(r), id, in)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, f)
+}
+
+func (s *Server) rotateFeed(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	tok, err := s.svc.RotateFeed(r.Context(), actorOf(r), id)
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, map[string]string{"calendar_url": s.feedURL(tok)})
+}
+
+func (s *Server) removeFeed(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	if err := s.svc.DeleteFeed(r.Context(), actorOf(r), id); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

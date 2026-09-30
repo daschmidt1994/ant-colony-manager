@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/i18n.dart';
@@ -23,6 +24,8 @@ Map<String, dynamic> offsiteBody({
   required String keep,
   String password = '',
   bool removePassword = false,
+  bool encrypt = false,
+  String passphrase = '',
 }) => {
   'enabled': enabled,
   'type': type,
@@ -30,6 +33,8 @@ Map<String, dynamic> offsiteBody({
   if (type != 'folder') 'user': user.trim(),
   'keep': int.tryParse(keep.trim()) ?? 0,
   if (removePassword) 'password': '' else if (password.isNotEmpty) 'password': password,
+  'encrypt': encrypt,
+  if (passphrase.isNotEmpty) 'passphrase': passphrase,
 };
 
 /// Label, example and help for the address field of each target type.
@@ -99,6 +104,8 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
   late Map<String, dynamic> _s = widget.initial;
   late bool _enabled = _s['enabled'] == true;
   late String _type = _s['type'] as String? ?? 'webdav';
+  late bool _encrypt = _s['encrypt'] == true;
+  final _passphrase = TextEditingController();
   late final _url = TextEditingController(text: _s['url'] as String? ?? '');
   late final _user = TextEditingController(text: _s['user'] as String? ?? '');
   late final _keep = TextEditingController(text: '${_s['keep'] ?? 7}');
@@ -108,7 +115,7 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
 
   @override
   void dispose() {
-    for (final c in [_url, _user, _keep, _password]) {
+    for (final c in [_url, _user, _keep, _password, _passphrase]) {
       c.dispose();
     }
     super.dispose();
@@ -130,11 +137,14 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
               keep: _keep.text,
               password: _password.text,
               removePassword: _removePassword,
+              encrypt: _encrypt,
+              passphrase: _passphrase.text,
             ),
           );
       setState(() {
         _s = r as Map<String, dynamic>;
         _password.clear();
+        _passphrase.clear();
         _removePassword = false;
       });
       if (!quiet && mounted) showUndoSnack(context, tr('Gespeichert'));
@@ -259,6 +269,7 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
                     helperMaxLines: 3,
                   ),
                 ),
+                if (_type == 'folder') const _NfsHelp(),
                 if (_type != 'folder') ...[
                   const SizedBox(height: 12),
                   TextField(
@@ -296,6 +307,40 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
                     helperText: tr('Ältere werden dort gelöscht; Fotos bleiben.'),
                   ),
                 ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tr('Verschlüsselt speichern')),
+                  subtitle: Text(
+                    _encrypt
+                        ? tr(
+                            'Sinnvoll bei fremden Servern (Storage Box, Cloud). Zum Wiederherstellen wird die Passphrase '
+                            'gebraucht – ohne sie sind die Backups verloren. Die Dateien lassen sich nur mit ACM '
+                            '(restore.sh --from-offsite) oder dem Programm „age“ öffnen.',
+                          )
+                        : tr(
+                            'Aus: normale Dateien – am einfachsten wiederherzustellen, auch ohne ACM einfach zurückkopieren. '
+                            'Gut für das eigene NAS.',
+                          ),
+                  ),
+                  value: _encrypt,
+                  onChanged: (v) => setState(() => _encrypt = v),
+                ),
+                if (_encrypt)
+                  TextField(
+                    controller: _passphrase,
+                    obscureText: true,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      labelText: tr('Passphrase'),
+                      hintText: _s['passphrase_set'] == true ? tr('gesetzt – nur zum Ändern ausfüllen') : null,
+                      helperText: tr(
+                        'Mindestens 12 Zeichen. Wird nicht gespeichert – bitte sicher aufschreiben (Passwort-Manager). '
+                        'Ändern: ältere Backups öffnen sich dann mit der neuen.',
+                      ),
+                      helperMaxLines: 3,
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
@@ -330,6 +375,146 @@ class _OffsiteFormState extends ConsumerState<_OffsiteForm> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// compose.override.yml that mounts an NFS share at /offsite in the app
+/// container (Docker mounts it – the container itself runs without root).
+String nfsComposeSnippet({required String server, required String export, String version = '4'}) {
+  final addr = server.trim().isEmpty ? '192.168.178.10' : server.trim();
+  var path = export.trim().isEmpty ? '/volume1/acm-backup' : export.trim();
+  if (!path.startsWith('/')) path = '/$path';
+  return 'services:\n'
+      '  app:\n'
+      '    volumes:\n'
+      '      - offsite:/offsite\n'
+      'volumes:\n'
+      '  offsite:\n'
+      '    driver: local\n'
+      '    driver_opts:\n'
+      '      type: nfs\n'
+      '      o: "addr=$addr,rw,nfsvers=$version"\n'
+      '      device: ":$path"\n';
+}
+
+/// Step-by-step help for NFS with a generated compose.override.yml.
+class _NfsHelp extends StatefulWidget {
+  const _NfsHelp();
+  @override
+  State<_NfsHelp> createState() => _NfsHelpState();
+}
+
+class _NfsHelpState extends State<_NfsHelp> {
+  final _server = TextEditingController();
+  final _export = TextEditingController();
+  String _version = '4';
+
+  @override
+  void dispose() {
+    _server.dispose();
+    _export.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = TextStyle(color: context.colors.muted, fontSize: 13);
+    final snippet = nfsComposeSnippet(server: _server.text, export: _export.text, version: _version);
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      child: ExpansionTile(
+        leading: const Icon(Icons.help_outline),
+        title: Text(tr('NFS einrichten – Anleitung')),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            tr(
+              '1. Am NAS eine NFS-Freigabe anlegen und dem Docker-Host Schreibrecht geben. Geschrieben wird mit '
+              'PUID/PGID aus der .env (Standard 1000) – am NAS diese ID erlauben oder alle Zugriffe auf einen Benutzer '
+              'abbilden (Synology: Squash „Alle Benutzer zu admin zuordnen“, Unraid: all_squash).',
+            ),
+            style: muted,
+          ),
+          const SizedBox(height: 8),
+          Text(tr('2. Adresse und Pfad der Freigabe eintragen:'), style: muted),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _server,
+                  autocorrect: false,
+                  decoration: InputDecoration(labelText: tr('NAS-Adresse'), hintText: '192.168.178.10', isDense: true),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 8),
+              DropdownButton<String>(
+                value: _version,
+                items: const [
+                  DropdownMenuItem(value: '4', child: Text('NFS v4')),
+                  DropdownMenuItem(value: '3', child: Text('NFS v3')),
+                ],
+                onChanged: (v) => setState(() => _version = v!),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _export,
+            autocorrect: false,
+            decoration: InputDecoration(
+              labelText: tr('Freigabe-Pfad'),
+              hintText: '/volume1/acm-backup',
+              helperText: tr('Synology: /volume1/<Freigabe> · Unraid: /mnt/user/<Freigabe> · QNAP: /<Freigabe>'),
+              helperMaxLines: 2,
+              isDense: true,
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            tr('3. Neben der compose.yml als compose.override.yml speichern (Updates überschreiben sie nicht):'),
+            style: muted,
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Stack(
+              children: [
+                SelectableText(snippet, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: IconButton(
+                    tooltip: tr('Kopieren'),
+                    icon: const Icon(Icons.copy, size: 18),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: snippet));
+                      showUndoSnack(context, tr('Kopiert'));
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            tr(
+              '4. „docker compose up -d“ ausführen (Unraid/Portainer: Stack neu bereitstellen). Dann oben „/offsite“ '
+              'eintragen, speichern und „Verbindung testen“. USB-Platte statt NFS: unter volumes nur '
+              '„- /mnt/usb/acm:/offsite“.',
+            ),
+            style: muted,
           ),
         ],
       ),
