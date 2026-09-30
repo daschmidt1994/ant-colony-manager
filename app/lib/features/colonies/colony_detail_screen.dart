@@ -15,6 +15,7 @@ import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../actions/actions.dart';
+import '../actions/defer.dart';
 import '../photos/photos.dart';
 import '../reports/report_action.dart';
 import '../species/species_screens.dart';
@@ -149,6 +150,7 @@ class _ColonyPage extends ConsumerWidget {
                               );
                             }
                           : null,
+                      onDefer: canEdit ? () => showDeferSheet(context, ref, t) : null,
                     ),
                 if (canEdit) ...[
                   if (lastFeeding != null) ...[

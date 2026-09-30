@@ -1146,5 +1146,22 @@
  "Server: {0}": "Server: {0}",
  "Uhrzeit: {0}": "Time: {0}",
  "Zeitzone im Konto: {0}{1}": "Account time zone: {0}{1}",
- "⚠ Die Zeitzone im Konto passt nicht zum Gerät – Tages-Überblick und Erinnerungen kommen zur falschen Uhrzeit.": "⚠ The account's time zone does not match the device – daily overview and reminders come at the wrong time."
+ "⚠ Die Zeitzone im Konto passt nicht zum Gerät – Tages-Überblick und Erinnerungen kommen zur falschen Uhrzeit.": "⚠ The account's time zone does not match the device – daily overview and reminders come at the wrong time.",
+ "Anderer Grund": "Other reason",
+ "Aufgeschoben": "Deferred",
+ "Aufschieben": "Defer",
+ "Aufschieben mit Grund …": "Defer with a reason …",
+ "Futter nicht angenommen": "Food not accepted",
+ "Grund": "Reason",
+ "Keine Zeit": "No time",
+ "Kolonie in Ruhe lassen": "Leave the colony alone",
+ "Noch Futter übrig": "Food still left",
+ "Noch ausreichend Wasser": "Still enough water",
+ "Noch sauber": "Still clean",
+ "Pflege": "Care",
+ "Wieder fällig in": "Due again in",
+ "z. B. Reagenzglas noch halb voll": "e.g. test tube still half full",
+ "z. B. „Noch ausreichend Wasser“ – steht dann in der Chronik": "e.g. “Still enough water” – then shown in the timeline",
+ "{0} aufgeschoben: {1} ({2})": "{0} deferred: {1} ({2})",
+ "{0} aufschieben": "Defer {0}"
 }

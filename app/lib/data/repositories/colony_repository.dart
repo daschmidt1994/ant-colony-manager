@@ -634,6 +634,33 @@ class ColonyRepository {
     return previous;
   });
 
+  /// Deferral with a reason („Noch ausreichend Wasser“): documented as an
+  /// event, the care is not due before the start of the day in [days] days.
+  /// Returns the event and the previous snooze (for „Rückgängig“).
+  (ColonyEvent, String?)? deferSchedule(String scheduleId, {required String reason, required int days, String? note}) =>
+      _write(() {
+        final rec = db.record('care_schedules', scheduleId);
+        if (rec == null) return null;
+        final until = startOfTomorrow(now()).add(Duration(days: days - 1)).toUtc();
+        final e = logEvent(
+          rec.json['colony_id'] as String,
+          'care_deferred',
+          note: note,
+          details: {
+            'schedule_id': scheduleId,
+            'payload': {
+              'reason': reason,
+              'days': days,
+              'task_type': rec.json['task_type'],
+              'title': ?rec.json['title'],
+              'until': until.toIso8601String(),
+            },
+          },
+        );
+        final previous = setScheduleSnooze(scheduleId, until.toIso8601String());
+        return (e, previous);
+      });
+
   /// One-off task: due tomorrow at the start of the day.
   void snoozeTask(String taskId) => _write(() {
     if (db.record('tasks', taskId) == null) return;

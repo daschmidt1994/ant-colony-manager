@@ -1,6 +1,8 @@
+import 'package:ant_colony_manager/app/strings.dart';
 import 'package:ant_colony_manager/data/local/database.dart';
 import 'package:ant_colony_manager/data/repositories/colony_repository.dart';
 import 'package:ant_colony_manager/domain/due.dart';
+import 'package:ant_colony_manager/features/actions/defer.dart';
 import 'package:ant_colony_manager/features/reminders/reminder_actions.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -80,5 +82,35 @@ void main() {
     expect(repo.reminders().map((r) => r.payload['kind']).toSet(), {'due'});
     db.putRecord('user_settings', {'id': 'u1', 'notify_overdue': false, 'notify_winter_app': false});
     expect(repo.reminders(), isEmpty);
+  });
+
+  test('deferral with a reason: documented in the timeline, due after the chosen days, undo', () {
+    final c = repo.createColony({'name': 'A', 'species_text': 'x'}, intervals: {'water': 2});
+    now = now.add(const Duration(days: 4));
+    final t = repo.due(c).single;
+    expect(t.status, DueStatus.overdue);
+    final (e, previous) = repo.deferSchedule(t.schedule.id, reason: 'water_enough', days: 3, note: 'noch halb voll')!;
+    expect(previous, isNull);
+    expect(e.type, 'care_deferred');
+    expect(e.json['schedule_id'], t.schedule.id);
+    expect((e.json['payload'] as Map)['reason'], 'water_enough');
+    expect(S.eventSummary(e), 'Wasser aufgeschoben: Noch ausreichend Wasser (3 Tage) – noch halb voll');
+    // due again at the start of the day in 3 days
+    final after = repo.due(c).single;
+    expect(after.nextDue!.isAtSameMomentAs(startOfTomorrow(now).add(const Duration(days: 2))), isTrue);
+    expect(repo.reminders(), isEmpty);
+    // undo: event gone, overdue again
+    repo.deleteEvent(e.id);
+    repo.setScheduleSnooze(t.schedule.id, previous);
+    expect(repo.due(c).single.status, DueStatus.overdue);
+  });
+
+  test('deferral reasons fit the task, days fit the interval', () {
+    expect(S.deferReasonsFor('water').first, 'water_enough');
+    expect(S.deferReasonsFor('protein').take(2), ['food_refused', 'food_left']);
+    expect(S.deferReasonsFor('check').first, 'colony_calm');
+    expect(S.deferReasonsFor('cleaning'), contains('other'));
+    expect(deferDays(1), [1, 2]);
+    expect(deferDays(7), [1, 2, 3, 7]);
   });
 }
