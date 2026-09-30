@@ -203,8 +203,8 @@ class SettingsScreen extends ConsumerWidget {
             Card(
               child: ListTile(
                 leading: const Icon(Icons.event_available),
-                title: Text(tr('Kalender & Home Assistant')),
-                subtitle: Text(tr('Fälligkeiten als Kalender-Abo, Status für Home Assistant')),
+                title: Text(tr('Kalender-Abo')),
+                subtitle: Text(tr('Fälligkeiten in Google Kalender, Outlook oder Home Assistant')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/settings/feeds'),
               ),
@@ -259,6 +259,15 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/settings/offsite'),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.home_outlined),
+                  title: Text(tr('Home Assistant (MQTT)')),
+                  subtitle: Text(tr('Jede Kolonie als Gerät in Home Assistant – neue kommen von selbst dazu')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/mqtt'),
                 ),
               ),
             ],

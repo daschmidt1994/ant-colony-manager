@@ -136,3 +136,34 @@ func (s *Server) updates(w http.ResponseWriter, r *http.Request) {
 	}
 	s.writeJSON(w, http.StatusOK, s.svc.Updates(r.Context(), s.version, lang))
 }
+
+func (s *Server) getMQTT(w http.ResponseWriter, r *http.Request) {
+	st, err := s.svc.GetMQTTSettings(r.Context(), actorOf(r))
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, st)
+}
+
+func (s *Server) setMQTT(w http.ResponseWriter, r *http.Request) {
+	var in service.MQTTSettings
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	st, err := s.svc.SetMQTTSettings(r.Context(), actorOf(r), in, service.ClientMeta{IP: clientIP(r)})
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, st)
+}
+
+func (s *Server) testMQTT(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.TestMQTT(r.Context(), actorOf(r)); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

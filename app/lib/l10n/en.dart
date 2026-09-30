@@ -32,6 +32,8 @@ const table = <String, String>{
   'Abspielen': 'Play',
   'Adresse': 'Address',
   'Adresse aktiv': 'Address active',
+  'Adresse des Brokers, den Home Assistant nutzt – meist die Adresse von Home Assistant mit Port 1883. mqtts:// für TLS.':
+      'Address of the broker Home Assistant uses – usually the Home Assistant address with port 1883. mqtts:// for TLS.',
   'Adresse erzeugen': 'Create address',
   'Ahornsirup': 'Maple syrup',
   'Akku: keine Einschränkung': 'Battery: unrestricted',
@@ -67,8 +69,6 @@ const table = <String, String>{
       'Most reliable are feeder insects from pet shops or reptile breeders: house crickets, crickets, roaches (e.g. Shelfordella lateralis), fruit flies and mealworms. They come from controlled breeding and are free of pesticides.',
   'Ameisen': 'Ants',
   'Ameisen <ameisen@example.com>': 'Ants <ants@example.com>',
-  'Ameisen heute fällig': 'Ants due today',
-  'Ameisen überfällig': 'Ants overdue',
   'An Schwarmflugzeit erinnern': 'Remind me of the flight season',
   'Andere Art wählen': 'Choose another species',
   'Anderen Server verwenden': 'Use another server',
@@ -138,7 +138,10 @@ const table = <String, String>{
   'Aus – keine Benachrichtigung': 'Off – no notifications',
   'Aus, oder zu diesem Zeitpunkt ist nichts fällig.': 'Off, or nothing is due at that time.',
   'Ausblenden': 'Hide',
+  'Ausgeschaltet': 'Switched off',
   'Ausschalten': 'Switch off',
+  'Ausschalten entfernt die Geräte wieder aus Home Assistant.':
+      'Switching off removes the devices from Home Assistant again.',
   'Aussehen': 'Appearance',
   'Ausstehende Änderungen': 'Pending changes',
   'Auswertung': 'Insights',
@@ -225,10 +228,8 @@ const table = <String, String>{
       'The background check may be delayed. In App info, set “Battery” to “Unrestricted”.',
   'Die Kolonie und ihre Timeline verschwinden auf allen Geräten. Archivieren behält die Daten.':
       'The colony and its timeline disappear on all devices. Archiving keeps the data.',
-  'Die Konfiguration unten in configuration.yaml einfügen (bzw. zu einem vorhandenen „rest:“ ergänzen) und Home Assistant neu starten. Dann gibt es pro Kolonie „… Winterruhe“ (an/aus) und „… überfällig“ – z. B. als Auslöser, um die Heizmatte bei Winterruhe abzuschalten. Beispiele: docs/22-kalender-home-assistant.md.':
-      'Paste the configuration below into configuration.yaml (or add it to an existing “rest:”) and restart Home Assistant. You then get “… hibernation” (on/off) and “… overdue” per colony – e.g. as a trigger to switch the heat mat off during hibernation. Examples: docs/22-kalender-home-assistant.md.',
-  'Die bisherige Adresse funktioniert danach nicht mehr – Kalender und Home Assistant brauchen die neue.':
-      'The previous address stops working – calendar and Home Assistant need the new one.',
+  'Die bisherige Adresse funktioniert danach nicht mehr – der Kalender braucht die neue.':
+      'The previous address stops working – the calendar needs the new one.',
   'Die eigene Art verschwindet auf allen Geräten.': 'The own species disappears on all devices.',
   'Die lokal gespeicherten Daten werden von diesem Gerät entfernt. Auf dem Server bleibt alles erhalten.':
       'The locally stored data is removed from this device. Everything stays on the server.',
@@ -253,6 +254,7 @@ const table = <String, String>{
   'Dieses Gerät wurde abgemeldet. Die lokalen Daten wurden entfernt.':
       'This device was signed out. The local data was removed.',
   'Dieses Konto ist gesperrt.': 'This account is disabled.',
+  'Discovery-Präfix': 'Discovery prefix',
   'Dosen': 'cans',
   'Download fehlgeschlagen': 'Download failed',
   'Drosophila-Zucht': 'Drosophila culture',
@@ -279,8 +281,8 @@ const table = <String, String>{
   'Eine Benachrichtigung pro überfälliger Aufgabe – mit „Erledigt“': 'One notification per overdue task – with “Done”',
   'Eine Quelle pro Zeile': 'One source per line',
   'Eine Seite pro Etikett – nur für Etikettendrucker': 'One page per label – label printers only',
-  'Eine private Adresse, über die andere Programme deine Kolonien lesen können – nur lesen, nichts ändern. Kalender-Apps zeigen damit alle Fälligkeiten, Home Assistant den Status jeder Kolonie (z. B. Winterruhe → Heizung aus).':
-      'A private address through which other programs can read your colonies – read only, no changes. Calendar apps show all due dates with it, Home Assistant the status of every colony (e.g. hibernation → heating off).',
+  'Eine private Adresse, über die Kalender-Apps alle Fälligkeiten deiner Kolonien zeigen – nur lesen, nichts ändern.':
+      'A private address through which calendar apps show everything due for your colonies – read-only, nothing can be changed.',
   'Einheit': 'Unit',
   'Einladung erhalten? Konto erstellen': 'Got an invitation? Create account',
   'Einmal täglich: was heute ansteht': 'Once a day: what is due today',
@@ -309,8 +311,6 @@ const table = <String, String>{
   'Erneut': 'Retry',
   'Erneut prüfen': 'Check again',
   'Erneut versuchen': 'Try again',
-  'Erst eine Adresse erzeugen – dann erscheint hier die fertige Konfiguration.':
-      'Create an address first – the ready-made configuration then appears here.',
   'Erste Kolonie anlegen': 'Create first colony',
   'Ersteinrichtung': 'First setup',
   'Etikett drucken': 'Print label',
@@ -358,8 +358,8 @@ const table = <String, String>{
   'Futtervorrat': 'Food stock',
   'Futtervorrat: {0}': 'Food stock: {0}',
   'Fällig': 'Due',
-  'Fälligkeiten als Kalender-Abo, Status für Home Assistant':
-      'Due dates as a calendar subscription, status for Home Assistant',
+  'Fälligkeiten in Google Kalender, Outlook oder Home Assistant':
+      'Due dates in Google Calendar, Outlook or Home Assistant',
   'Färbung': 'Colouration',
   'Für diese E-Mail gibt es bereits ein Konto.': 'There is already an account for this e-mail.',
   'Für „Passwort vergessen“, den Tages-Überblick und Benachrichtigungen per E-Mail. Die Daten stehen bei deinem Mail-Anbieter (Postausgangsserver / SMTP). Bei Gmail, Outlook & Co. meist ein eigenes App-Passwort verwenden.':
@@ -390,6 +390,9 @@ const table = <String, String>{
   'Gesamt': 'All',
   'Geschenkt': 'Gift',
   'Geschlechtstiere': 'Alates',
+  'Gesendet werden die Kolonien von {0}.': 'The colonies of {0} are sent.',
+  'Gesendet werden die Kolonien, die du pflegst (Besitzer oder Pfleger). Entitäten z. B. binary_sensor.acm_colony_3_hibernation und sensor.acm_colony_3_overdue (3 = Kolonie-Nummer); Beispiele für Automationen in docs/22-kalender-home-assistant.md.':
+      'The colonies you care for are sent (owner or carer). Entities e.g. binary_sensor.acm_colony_3_hibernation and sensor.acm_colony_3_overdue (3 = colony number); automation examples in docs/22-kalender-home-assistant.md.',
   'Gespeichert': 'Saved',
   'Gespeichert – gilt ab sofort': 'Saved – applies immediately',
   'Gestern': 'Yesterday',
@@ -433,8 +436,9 @@ const table = <String, String>{
   'Hinweise erscheinen in der Übersicht und als App-Benachrichtigung (Thema „Überfällige Pflege“).':
       'Hints appear on the overview and as an app notification (topic “Overdue care”).',
   'Hochzeitsflug': 'Nuptial flight',
-  'Home Assistant': 'Home Assistant',
-  'Home Assistant (configuration.yaml)': 'Home Assistant (configuration.yaml)',
+  'Home Assistant (MQTT)': 'Home Assistant (MQTT)',
+  'Home Assistant: Integration „Remote Calendar“ mit der Kalender-Adresse. Den Status jeder Kolonie (z. B. Winterruhe → Heizung aus) bekommt Home Assistant über MQTT – einzurichten vom Administrator unter Mehr → Server-Verwaltung → Home Assistant (MQTT).':
+      'Home Assistant: “Remote Calendar” integration with the calendar address. Home Assistant gets the status of every colony (e.g. hibernation → heating off) via MQTT – set up by the administrator under More → Server administration → Home Assistant (MQTT).',
   'Honig': 'Honey',
   'Honigwasser': 'Honey water',
   'Händler-Steckbriefe und Foren liefern Praxiswerte zur Haltung. Sie sind hilfreich, aber nicht immer geprüft – mehrere Quellen vergleichen.':
@@ -457,6 +461,10 @@ const table = <String, String>{
   'JSON, CSV-Tabellen für Excel und alle Fotos – deine Daten gehören dir':
       'JSON, CSV tables for Excel and all photos – your data belongs to you',
   'Ja, speichern': 'Yes, save',
+  'Jede Kolonie als Gerät in Home Assistant – neue kommen von selbst dazu':
+      'Every colony as a device in Home Assistant – new ones are added automatically',
+  'Jede Kolonie erscheint in Home Assistant als eigenes Gerät – mit Winterruhe (an/aus), überfälliger und heute fälliger Pflege, nächster Pflege und letztem Messwert. Neue Kolonien kommen von selbst dazu, archivierte oder abgegebene verschwinden wieder. Voraussetzung: die MQTT-Integration in Home Assistant (z. B. mit dem Mosquitto-Add-on).':
+      'Every colony appears in Home Assistant as its own device – with hibernation (on/off), overdue care and care due today, next care and the latest measurement. New colonies are added automatically, archived or handed-over ones disappear. Requirement: the MQTT integration in Home Assistant (e.g. with the Mosquitto add-on).',
   'Jedes Backup zusätzlich in Nextcloud, auf ein NAS oder eine Storage Box (WebDAV)':
       'Every backup also to Nextcloud, a NAS or a storage box (WebDAV)',
   'Jelly': 'Jelly',
@@ -466,7 +474,7 @@ const table = <String, String>{
   'Jetzt prüfen': 'Check now',
   'Jetzt synchronisieren': 'Sync now',
   'Kalender': 'Calendar',
-  'Kalender & Home Assistant': 'Calendar & Home Assistant',
+  'Kalender-Abo': 'Calendar subscription',
   'Kalender-Adresse (iCal)': 'Calendar address (iCal)',
   'Kamera': 'Camera',
   'Kamera nicht verfügbar.': 'Camera not available.',
@@ -512,8 +520,6 @@ const table = <String, String>{
   'Kolonie dieser Art': 'Colony of this species',
   'Kolonie nicht gefunden': 'Colony not found',
   'Kolonie scannen': 'Scan colony',
-  'Kolonie {0} Winterruhe': 'Colony {0} hibernation',
-  'Kolonie {0} überfällig': 'Colony {0} overdue',
   'Kolonie öffnen': 'Open colony',
   'Kolonie-Etiketten': 'Colony labels',
   'Koloniebericht': 'Colony report',
@@ -525,6 +531,7 @@ const table = <String, String>{
   'Koloniegründung': 'Colony founding',
   'Kolonien': 'Colonies',
   'Kolonien ({0})': 'Colonies ({0})',
+  'Kolonien an Home Assistant senden': 'Send colonies to Home Assistant',
   'Kolonien auswählen': 'Select colonies',
   'Kolonien, Arten, Fütterungen, Verteilung nach Standort': 'Colonies, species, feedings, distribution by location',
   'Koloniewachstum': 'Colony growth',
@@ -573,6 +580,7 @@ const table = <String, String>{
   'Luftfeuchtigkeit': 'Humidity',
   'Löschen': 'Delete',
   'MHD {0}': 'best before {0}',
+  'MQTT-Broker': 'MQTT broker',
   'Mac OS': 'Mac OS',
   'Mach regelmäßig ein Foto aus demselben Blickwinkel – dann siehst du hier, wie die Kolonie wächst.':
       'Take a photo from the same angle regularly – then you can see here how the colony grows.',
@@ -596,6 +604,8 @@ const table = <String, String>{
   'Monate laut Steckbrief der Art (Richtwerte, v. a. Mitteleuropa). Wetter, Höhenlage und Region verschieben den Schwarmflug – meist an warmen, windstillen Tagen nach Regen. Die Glocke erinnert zu Beginn der Schwarmflugzeit.':
       'Months according to the species\' care sheet (guide values, mainly Central Europe). Weather, altitude and region shift the nuptial flight – usually on warm, calm days after rain. The bell reminds you at the start of the flight season.',
   'Morgen': 'Tomorrow',
+  'Mosquitto-Add-on: ein Home-Assistant-Benutzer (am besten ein eigener)':
+      'Mosquitto add-on: a Home Assistant user (ideally a dedicated one)',
   'Muss der Mail-Anbieter meist als Absender erlauben': 'Your mail provider usually has to allow it as sender',
   'Männchen': 'Males',
   'Müllplatz': 'Midden',
@@ -647,6 +657,7 @@ const table = <String, String>{
   'Nicht dabei? Lege sie als eigene Art mit Steckbrief an.':
       'Not listed? Create it as your own species with a care sheet.',
   'Nicht gescannt · {0}': 'Not scanned · {0}',
+  'Nicht verbunden': 'Not connected',
   'Nicht verfügbar': 'Not available',
   'Nichts fällig': 'Nothing due',
   'Nichts fällig – gut gemacht.': 'Nothing due – well done.',
@@ -676,6 +687,8 @@ const table = <String, String>{
       'Only visible now – copy it and treat it like a password.',
   'Nur mit Verbindung zum Server': 'Only with a connection to the server',
   'Nur noch {0} – nachbestellen': 'Only {0} left – reorder',
+  'Nur ändern, wenn es in Home Assistant geändert wurde (Standard: homeassistant)':
+      'Only change it if it was changed in Home Assistant (default: homeassistant)',
   'NÄCHSTE KOLONIE': 'NEXT COLONY',
   'Nächste Aufgaben': 'Next tasks',
   'Nächste Kolonie scannen': 'Scan next colony',
@@ -832,7 +845,6 @@ const table = <String, String>{
   'Statistiken': 'Statistics',
   'Status': 'Status',
   'Status geändert': 'Status changed',
-  'Status-Adresse (JSON)': 'Status address (JSON)',
   'Steckbrief aus dem Artenkatalog': 'Care sheet from the species catalogue',
   'Steckbrief aus dem Artenkatalog verknüpfen': 'Link a care sheet from the species catalogue',
   'Steckbrief öffnen': 'Open care sheet',
@@ -909,7 +921,9 @@ const table = <String, String>{
   'Verbinde …': 'Connecting …',
   'Verbindung klappt – Ordner ist bereit': 'Connection works – folder is ready',
   'Verbindung testen': 'Test connection',
+  'Verbindung zum MQTT-Broker klappt': 'Connection to the MQTT broker works',
   'Verbreitung': 'Distribution',
+  'Verbunden – {0} Kolonien in Home Assistant': 'Connected – {0} colonies in Home Assistant',
   'Vergleich': 'Comparison',
   'Verknüpft mit {0}': 'Linked with {0}',
   'Verknüpfung': 'Link',
@@ -996,6 +1010,7 @@ const table = <String, String>{
   'Zuckerwasser oder Honigwasser darf dauerhaft verfügbar sein. Protein nur so viel, wie in etwa einem Tag verbraucht wird: Zu viel Protein verkürzt die Lebensdauer der Arbeiterinnen (Dussutour & Simpson 2012).':
       'Sugar water or honey water may be available all the time. Protein only as much as is used in about a day: too much protein shortens the workers\' lifespan (Dussutour & Simpson 2012).',
   'Zufälliger Topic-Name': 'Random topic name',
+  'Zuletzt gesendet: {0}': 'Last sent: {0}',
   'Zuletzt {0} {1}': 'Last {0} {1}',
   'Zuletzt: {0}': 'Last: {0}',
   'Zur Anmeldung': 'To sign-in',

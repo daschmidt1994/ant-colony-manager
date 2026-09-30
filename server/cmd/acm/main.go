@@ -211,6 +211,9 @@ func serve() error {
 		}
 	}()
 
+	// Home Assistant: colonies as devices via MQTT discovery (set up by the admin).
+	go svc.MQTTRun(ctx)
+
 	httpSrv := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           srv.Handler(),

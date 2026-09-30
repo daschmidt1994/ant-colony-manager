@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,10 +16,10 @@ import (
 	"github.com/daschmidt1994/ant-colony-manager/server/internal/auth"
 )
 
-// Feeds: a read-only view of the user's colonies for other programs – a
-// calendar subscription (iCal) and a status document for Home Assistant.
-// Both authenticate with one secret per user ("acm_fk_<prefix>_<secret>")
-// in the address, because calendar apps cannot send headers.
+// Feeds: a read-only calendar subscription (iCal) of the user's colonies. It
+// authenticates with one secret per user ("acm_fk_<prefix>_<secret>") in the
+// address, because calendar apps cannot send headers. The same data feeds the
+// colony status that is sent to Home Assistant via MQTT (mqtt.go).
 
 var errBadFeedToken = &Problem{Status: 404, Code: "feed.not_found", Title: "feed not found"}
 
@@ -86,7 +85,7 @@ func (s *Service) FeedUser(ctx context.Context, token string) (uuid.UUID, error)
 }
 
 // ---------------------------------------------------------------------------
-// Status (Home Assistant)
+// Colony status (Home Assistant via MQTT)
 
 type FeedNextDue struct {
 	Task  string    `json:"task"`
@@ -118,12 +117,11 @@ type FeedColony struct {
 }
 
 type FeedStatus struct {
-	GeneratedAt time.Time              `json:"generated_at"`
-	Overdue     int                    `json:"overdue"`
-	DueToday    int                    `json:"due_today"`
-	Hibernating int                    `json:"hibernating"`
-	Colonies    []FeedColony           `json:"colonies"`
-	ByNumber    map[string]*FeedColony `json:"by_number"`
+	GeneratedAt time.Time    `json:"generated_at"`
+	Overdue     int          `json:"overdue"`
+	DueToday    int          `json:"due_today"`
+	Hibernating int          `json:"hibernating"`
+	Colonies    []FeedColony `json:"colonies"`
 }
 
 type feedData struct {
@@ -208,12 +206,14 @@ func (s *Service) feedLoad(ctx context.Context, user uuid.UUID) (*feedData, erro
 	return d, err
 }
 
-func (s *Service) FeedStatus(ctx context.Context, user uuid.UUID) (*FeedStatus, error) {
+// colonyStatus: per colony hibernating, overdue/due today, next due care and
+// last measurement, plus totals.
+func (s *Service) colonyStatus(ctx context.Context, user uuid.UUID) (*FeedStatus, error) {
 	d, err := s.feedLoad(ctx, user)
 	if err != nil {
 		return nil, err
 	}
-	out := &FeedStatus{GeneratedAt: s.Now().UTC(), Colonies: d.colonies, ByNumber: map[string]*FeedColony{}}
+	out := &FeedStatus{GeneratedAt: s.Now().UTC(), Colonies: d.colonies}
 	if out.Colonies == nil {
 		out.Colonies = []FeedColony{}
 	}
@@ -238,7 +238,6 @@ func (s *Service) FeedStatus(ctx context.Context, user uuid.UUID) (*FeedStatus, 
 		if c.Hibernating {
 			out.Hibernating++
 		}
-		out.ByNumber[strconv.Itoa(c.Number)] = c
 	}
 	return out, nil
 }

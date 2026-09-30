@@ -8,7 +8,7 @@ import (
 	"github.com/daschmidt1994/ant-colony-manager/server/internal/testenv"
 )
 
-func TestFeedStatusAndCalendar(t *testing.T) {
+func TestFeedCalendar(t *testing.T) {
 	env := testenv.New(t)
 	anna := env.User(t, "Anna")
 	messor := anna.CreateColony(t, map[string]any{"name": "Messor #12", "species_text": "Messor barbarus"})
@@ -30,35 +30,9 @@ func TestFeedStatusAndCalendar(t *testing.T) {
 	}
 	created := anna.Do("POST", "/api/v1/me/feed", nil).Must(t, 201).JSON()
 	token := created["token"].(string)
-	if !strings.HasPrefix(token, "acm_fk_") || !strings.HasSuffix(created["calendar_url"].(string), token+"/calendar.ics") {
+	if !strings.HasPrefix(token, "acm_fk_") || !strings.HasSuffix(created["calendar_url"].(string), token+"/calendar.ics") ||
+		created["status_url"] != nil {
 		t.Fatalf("created: %v", created)
-	}
-
-	var st struct {
-		Overdue, DueToday, Hibernating int
-		Colonies                       []struct {
-			Name        string
-			Hibernating bool
-			Overdue     int
-			NextDue     *struct{ Task string } `json:"next_due"`
-		}
-		ByNumber map[string]struct{ Name string } `json:"by_number"`
-	}
-	env.Anon().Do("GET", "/api/v1/feeds/"+token+"/status.json", nil).Must(t, 200).Decode(t, &st)
-	if st.Overdue != 1 || st.Hibernating != 1 || len(st.Colonies) != 2 || len(st.ByNumber) != 2 {
-		t.Fatalf("status: %+v", st)
-	}
-	for _, c := range st.Colonies {
-		switch c.Name {
-		case "Messor #12":
-			if c.Overdue != 1 || c.Hibernating || c.NextDue == nil || c.NextDue.Task != "Proteinfütterung" {
-				t.Fatalf("messor: %+v", c)
-			}
-		case "Lasius":
-			if !c.Hibernating || c.Overdue != 0 {
-				t.Fatalf("lasius: %+v", c)
-			}
-		}
 	}
 
 	r := env.Anon().Do("GET", "/api/v1/feeds/"+token+"/calendar.ics", nil).Must(t, 200)
@@ -84,19 +58,18 @@ func TestFeedStatusAndCalendar(t *testing.T) {
 
 	// A new address replaces the old one; a wrong secret looks like a missing page.
 	token2 := anna.Do("POST", "/api/v1/me/feed", nil).Must(t, 201).JSON()["token"].(string)
-	env.Anon().Do("GET", "/api/v1/feeds/"+token+"/status.json", nil).Must(t, 404)
-	env.Anon().Do("GET", "/api/v1/feeds/"+token2[:len(token2)-3]+"xyz/status.json", nil).Must(t, 404)
+	env.Anon().Do("GET", "/api/v1/feeds/"+token+"/calendar.ics", nil).Must(t, 404)
+	env.Anon().Do("GET", "/api/v1/feeds/"+token2[:len(token2)-3]+"xyz/calendar.ics", nil).Must(t, 404)
 	env.Anon().Do("GET", "/api/v1/feeds/nonsense/calendar.ics", nil).Must(t, 404)
 	env.Anon().Do("GET", "/api/v1/feeds/"+token2+"/calendar.ics", nil).Must(t, 200)
 
 	// Another user sees only their own colonies.
 	ben := env.User(t, "Ben")
 	benToken := ben.Do("POST", "/api/v1/me/feed", nil).Must(t, 201).JSON()["token"].(string)
-	env.Anon().Do("GET", "/api/v1/feeds/"+benToken+"/status.json", nil).Must(t, 200).Decode(t, &st)
-	if len(st.Colonies) != 0 || st.Overdue != 0 {
-		t.Fatalf("ben sees: %+v", st)
+	if ics := string(env.Anon().Do("GET", "/api/v1/feeds/"+benToken+"/calendar.ics", nil).Must(t, 200).Body); strings.Contains(ics, "Messor") {
+		t.Fatalf("ben sees: %s", ics)
 	}
 
 	anna.Do("DELETE", "/api/v1/me/feed", nil).Must(t, 204)
-	env.Anon().Do("GET", "/api/v1/feeds/"+token2+"/status.json", nil).Must(t, 404)
+	env.Anon().Do("GET", "/api/v1/feeds/"+token2+"/calendar.ics", nil).Must(t, 404)
 }

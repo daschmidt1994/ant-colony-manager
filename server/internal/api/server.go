@@ -112,7 +112,6 @@ func (s *Server) Handler() *chi.Mux {
 		r.Post("/sensors/{id}/measurements", s.ingestSensor)
 		// Calendar subscription and Home Assistant status: secret in the address.
 		r.Get("/feeds/{token}/calendar.ics", s.feedCalendar)
-		r.Get("/feeds/{token}/status.json", s.feedStatus)
 
 		r.Group(func(r chi.Router) {
 			r.Use(s.authenticated)
@@ -187,6 +186,9 @@ func (s *Server) Handler() *chi.Mux {
 				r.Put("/offsite", s.setOffsite)
 				r.With(s.rateLimitUser(s.limScan)).Post("/offsite/test", s.testOffsite)
 				r.With(s.rateLimitUser(s.limScan)).Post("/offsite/run", s.runOffsite)
+				r.Get("/mqtt", s.getMQTT)
+				r.Put("/mqtt", s.setMQTT)
+				r.With(s.rateLimitUser(s.limScan)).Post("/mqtt/test", s.testMQTT)
 			})
 
 			// Generic collections (locations, food-items, species, habitats, …)

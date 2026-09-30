@@ -125,7 +125,7 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 
 - [17-unraid-dockhand.md](17-unraid-dockhand.md) – Installation auf Unraid mit Dockhand/Portainer (fertige Compose-Datei)
 - [21-sprachen.md](21-sprachen.md) – Deutsch/Englisch umschalten, neue Sprache hinzufügen
-- [22-kalender-home-assistant.md](22-kalender-home-assistant.md) – Kalender-Abo (iCal) und Status für Home Assistant, Heizung folgt der Winterruhe
+- [22-kalender-home-assistant.md](22-kalender-home-assistant.md) – Kalender-Abo (iCal) und Home Assistant per MQTT (jede Kolonie als Gerät), Heizung folgt der Winterruhe
 - [23-futtervorrat.md](23-futtervorrat.md) – Futtervorrat und Futtertier-Zuchten mit Haltbarkeit, Nachbestell- und Versorgungs-Hinweisen
 - [24-artenkatalog.md](24-artenkatalog.md) – Steckbriefe auf Englisch, invasive Arten (EU-Warnung), Schwarmflug-Kalender mit Erinnerung
 - [25-backup-ausser-haus.md](25-backup-ausser-haus.md) – jedes Backup zusätzlich per WebDAV nach Nextcloud, NAS oder Storage Box; Wiederherstellen
