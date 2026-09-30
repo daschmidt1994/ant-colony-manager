@@ -195,6 +195,7 @@ Schritt für Schritt mit Test auf dem Handy: [docs/16-anleitung-installieren-tes
 | Port 8080 belegt | `APP_PORT` ändern (und `PUBLIC_APP_URL`) |
 | Backup-Dienst *unhealthy* | `docker compose logs backup`, `cat data/backups/status.json` |
 | Handy erreicht den Server nicht | gleiches WLAN? Firewall auf dem Server (Port `APP_PORT`)? |
+| Android-App: keine Erinnerungen, wenn die App geschlossen ist | Die App prüft im Hintergrund – das blockieren viele Hersteller. **Xiaomi/Redmi/POCO:** App-Infos → **„Autostart“ einschalten** und Akku → **„Keine Einschränkungen“**. Samsung: Akku → „Nicht eingeschränkt“. Die App nicht aus den letzten Apps wegwischen. Details und Test-Benachrichtigung: Mehr → Benachrichtigungen → „App auf diesem Gerät“ ([docs/20](docs/20-benachrichtigungen.md)) |
 
 Status auf einen Blick: `docker compose ps` · Logs: `docker compose logs -f` (enthalten keine Passwörter, Tokens oder Scan-Codes) · Diagnose: `http://<server>:8080/readyz`
 
