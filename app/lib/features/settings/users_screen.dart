@@ -14,18 +14,22 @@ typedef AdminUsers = ({List<Map<String, dynamic>> users, List<Map<String, dynami
 
 final adminUsersProvider = FutureProvider.autoDispose<AdminUsers>((ref) async {
   final api = ref.read(authProvider.notifier).api;
-  final users = (await api.get('/api/v1/admin/users') as Map<String, dynamic>)['users'] as List;
-  final inv = await api.get('/api/v1/invitations') as List;
+  return parseAdminUsers(await api.get('/api/v1/admin/users'), await api.get('/api/v1/invitations'), DateTime.now());
+});
+
+/// The server answers {users: […]} and {invitations: […]} (null when empty).
+/// Only open server invitations – colony invitations belong to their owners.
+AdminUsers parseAdminUsers(Object? users, Object? invitations, DateTime now) {
+  List<Map<String, dynamic>> list(Object? body, String key) =>
+      ((body is Map ? body[key] : body) as List? ?? const []).cast<Map<String, dynamic>>();
   return (
-    users: users.cast<Map<String, dynamic>>(),
-    // only open server invitations – colony invitations belong to their owners
-    invitations: inv
-        .cast<Map<String, dynamic>>()
+    users: list(users, 'users'),
+    invitations: list(invitations, 'invitations')
         .where((i) => i['accepted_at'] == null && i['colony_id'] == null)
-        .where((i) => DateTime.parse(i['expires_at'] as String).isAfter(DateTime.now()))
+        .where((i) => DateTime.parse(i['expires_at'] as String).isAfter(now))
         .toList(),
   );
-});
+}
 
 /// Request body of a new invitation.
 Map<String, dynamic> invitationBody(String email, int days) => {
