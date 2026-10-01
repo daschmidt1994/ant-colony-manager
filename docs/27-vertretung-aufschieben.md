@@ -18,6 +18,28 @@ Urlaub, Krankheit, Dienstreise: **Mehr → Pflegevertretung → „+ Vertretung�
 
 Schnittstelle: `GET/POST /api/v1/care-covers`, `GET/PATCH /api/v1/care-covers/{id}`, `POST /api/v1/care-covers/{id}/end`, `GET /api/v1/colonies/{id}/care-instructions`.
 
+## Pflegezettel zum Ausdrucken (ohne Konto)
+
+Nachbarn, Eltern oder Freunde brauchen weder App noch Konto: **Mehr → Pflegevertretung → „Pflegezettel drucken“**
+(Drucker-Symbol oben rechts) – oder bei einer eigenen Vertretung „Pflegezettel drucken“, dann sind Zeitraum,
+Anweisungen und Kolonien schon vorausgefüllt.
+
+| Feld | |
+|---|---|
+| Zeitraum | höchstens zwei Monate |
+| Pflegeanweisungen | stehen oben auf dem Zettel |
+| Erreichbar unter | z. B. deine Telefonnummer für Rückfragen (optional) |
+| Kolonien | alle aktiven Kolonien, die du pflegst; abwählbar |
+
+Auf dem Zettel steht je Kolonie Name, Art und Standort, die Intervalle („Protein: alle 3 Tage“) und eine Tabelle
+**Datum × Aufgabe**: ein Kästchen an jedem Tag, an dem etwas fällig ist – zum Abhaken –, und Platz für Notizen.
+Die Tage kommen aus deinen Pflegeintervallen: ab der nächsten Fälligkeit im Rhythmus des Intervalls; was schon vor
+dem Urlaub überfällig ist, steht am ersten Tag. Aufgaben, die in der Winterruhe pausieren, fehlen.
+
+Der Zettel entsteht in der App aus den Daten auf dem Gerät – auch offline. Im Web wird er als PDF heruntergeladen,
+auf Android öffnet sich die Vorschau mit Drucken/Teilen. Nach dem Urlaub die abgehakte Pflege bei Bedarf selbst
+nachtragen.
+
 ## Aufschieben mit Grund
 
 Nicht jede fällige Pflege ist nötig – das Reagenzglas ist noch halb voll, das Futter vom letzten Mal liegt noch da. Statt die Aufgabe nur zu verschieben: **langes Tippen auf eine fällige Aufgabe → „Aufschieben mit Grund …“**
