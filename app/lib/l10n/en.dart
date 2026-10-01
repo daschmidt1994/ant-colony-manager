@@ -237,6 +237,8 @@ const table = <String, String>{
   'Den Kamera-Scan gibt es in der Android-App.': 'Camera scanning is available in the Android app.',
   'Der Anbieter antwortet': 'The provider responds',
   'Der Browser ließ sich nicht öffnen.': 'The browser could not be opened.',
+  'Der Knopf „Mit … anmelden“ erscheint aber erst, wenn „Anmeldung mit SSO anbieten“ eingeschaltet und gespeichert ist.':
+      'But the “Sign in with …” button only appears once “Offer sign-in with SSO” is switched on and saved.',
   'Der Schlüssel wird nur jetzt angezeigt. Trage ihn im Sensor ein – geht er verloren, erzeugst du einfach einen neuen.':
       'The key is shown only now. Enter it in the sensor – if it gets lost, just create a new one.',
   'Der Server liest die Werte alle 5 Minuten aus Home Assistant':
@@ -338,6 +340,7 @@ const table = <String, String>{
   'Einladung erhalten? Konto erstellen': 'Got an invitation? Create account',
   'Einmal täglich: was heute ansteht': 'Once a day: what is due today',
   'Einmalige Aufgaben': 'One-off tasks',
+  'Einschalten und speichern': 'Switch on and save',
   'Einsteiger': 'Beginner',
   'Eintrag': 'Entry',
   'Eintrag bearbeiten': 'Edit entry',
@@ -367,6 +370,7 @@ const table = <String, String>{
   'Erneut': 'Retry',
   'Erneut prüfen': 'Check again',
   'Erneut versuchen': 'Try again',
+  'Erst damit erscheint der Knopf auf der Anmeldeseite': 'Only then does the button appear on the sign-in page',
   'Erste Kolonie anlegen': 'Create first colony',
   'Ersteinrichtung': 'First setup',
   'Etikett drucken': 'Print label',

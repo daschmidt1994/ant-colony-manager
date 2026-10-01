@@ -1216,5 +1216,8 @@
  "Neue Konten automatisch anlegen": "Create new accounts automatically",
  "Aus: nur wer schon ein Konto mit derselben E-Mail hat, kann sich anmelden. An: jede Person, die der Anbieter zulässt, bekommt ein Konto.": "Off: only people who already have an account with the same e-mail can sign in. On: everyone the provider admits gets an account.",
  "Beim Anbieter: Client vom Typ „OpenID Connect“, Weiterleitungs-URL von oben, Scopes openid, email, profile. Bestehende Konten werden über die (bestätigte) E-Mail-Adresse verknüpft. Anleitung: docs/28.": "At the provider: client of type “OpenID Connect”, redirect URL from above, scopes openid, email, profile. Existing accounts are linked via the (verified) e-mail address. Guide: docs/28.",
- "Authentik, Keycloak, Authelia, Google … (OpenID Connect)": "Authentik, Keycloak, Authelia, Google … (OpenID Connect)"
+ "Authentik, Keycloak, Authelia, Google … (OpenID Connect)": "Authentik, Keycloak, Authelia, Google … (OpenID Connect)",
+ "Der Knopf „Mit … anmelden“ erscheint aber erst, wenn „Anmeldung mit SSO anbieten“ eingeschaltet und gespeichert ist.": "But the “Sign in with …” button only appears once “Offer sign-in with SSO” is switched on and saved.",
+ "Einschalten und speichern": "Switch on and save",
+ "Erst damit erscheint der Knopf auf der Anmeldeseite": "Only then does the button appear on the sign-in page"
 }
