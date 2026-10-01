@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'sso.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../core/api_client.dart';
@@ -190,6 +191,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with _Busy {
         const SizedBox(height: 20),
         errorBox(),
         FilledButton(onPressed: busy ? null : _login, child: Text(busy ? tr('Anmelden …') : tr('Anmelden'))),
+        const SsoButton(),
         const SizedBox(height: 8),
         TextButton(onPressed: _forgot, child: Text(tr('Passwort vergessen?'))),
         TextButton(onPressed: () => context.go('/register'), child: Text(tr('Einladung erhalten? Konto erstellen'))),

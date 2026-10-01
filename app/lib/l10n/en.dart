@@ -90,8 +90,13 @@ const table = <String, String>{
   'Anhalten': 'Pause',
   'Anlegen': 'Create',
   'Anmelden': 'Sign in',
+  'Anmelden über einen eigenen Identity-Provider (OpenID Connect) – z. B. Authentik, Keycloak, Authelia, Google oder Microsoft. Die Anmeldung mit Passwort bleibt daneben möglich.':
+      'Sign in via your own identity provider (OpenID Connect) – e.g. Authentik, Keycloak, Authelia, Google or Microsoft. Signing in with a password remains possible.',
   'Anmelden …': 'Signing in …',
   'Anmeldung': 'Login',
+  'Anmeldung mit SSO': 'Sign-in with SSO',
+  'Anmeldung mit SSO anbieten': 'Offer sign-in with SSO',
+  'Anmeldung mit SSO fehlgeschlagen': 'Sign-in with SSO failed',
   'Annahme': 'Acceptance',
   'Ant Colony Manager': 'Ant Colony Manager',
   'AntCat': 'AntCat',
@@ -153,6 +158,8 @@ const table = <String, String>{
   'Aus, oder zu diesem Zeitpunkt ist nichts fällig.': 'Off, or nothing is due at that time.',
   'Aus: normale Dateien – am einfachsten wiederherzustellen, auch ohne ACM einfach zurückkopieren. Gut für das eigene NAS.':
       'Off: plain files – easiest to restore, can simply be copied back even without ACM. Good for your own NAS.',
+  'Aus: nur wer schon ein Konto mit derselben E-Mail hat, kann sich anmelden. An: jede Person, die der Anbieter zulässt, bekommt ein Konto.':
+      'Off: only people who already have an account with the same e-mail can sign in. On: everyone the provider admits gets an account.',
   'Ausblenden': 'Hide',
   'Ausgeschaltet': 'Switched off',
   'Ausschalten entfernt die Geräte wieder aus Home Assistant.':
@@ -160,6 +167,8 @@ const table = <String, String>{
   'Aussehen': 'Appearance',
   'Ausstehende Änderungen': 'Pending changes',
   'Auswertung': 'Insights',
+  'Authentik, Keycloak, Authelia, Google … (OpenID Connect)':
+      'Authentik, Keycloak, Authelia, Google … (OpenID Connect)',
   'Automatisch nach jedem Backup hochladen': 'Upload automatically after every backup',
   'Backup außer Haus': 'Off-site backup',
   'Backup {0} · {1} übertragen · {2} neue Fotos': 'Backup {0} · {1} transferred · {2} new photos',
@@ -174,6 +183,8 @@ const table = <String, String>{
   'Begonnen': 'Started',
   'Bei „Größe & Brut“ gibt es dann „Mit KI zählen“: Fotos wählen, die KI zählt die Ameisen auf jedem Foto, die Zahlen werden addiert. Dafür werden die gewählten Fotos an den gewählten Anbieter geschickt. Die Kosten gehen auf dein Konto dort – meist einige Cent pro Zählung.':
       '“Size & brood” then offers “Count with AI”: choose photos, the AI counts the ants on each photo, the numbers are added up. The chosen photos are sent to the chosen provider for this. The costs go to your account there – usually a few cents per count.',
+  'Beim Anbieter: Client vom Typ „OpenID Connect“, Weiterleitungs-URL von oben, Scopes openid, email, profile. Bestehende Konten werden über die (bestätigte) E-Mail-Adresse verknüpft. Anleitung: docs/28.':
+      'At the provider: client of type “OpenID Connect”, redirect URL from above, scopes openid, email, profile. Existing accounts are linked via the (verified) e-mail address. Guide: docs/28.',
   'Benachrichtigungen': 'Notifications',
   'Benachrichtigungen blockiert': 'Notifications blocked',
   'Benachrichtigungen erlaubt': 'Notifications allowed',
@@ -202,6 +213,9 @@ const table = <String, String>{
   'Brutentwicklung': 'Brood development',
   'Camponotus sp.': 'Camponotus sp.',
   'Chrome': 'Chrome',
+  'Chronik zeigen': 'Show timeline',
+  'Client-ID': 'Client ID',
+  'Client-Secret': 'Client secret',
   'Code oder Link': 'Code or link',
   'Danach gelten wieder die Werte aus der Docker-Konfiguration (SMTP_*).':
       'Then the values from the Docker configuration (SMTP_*) apply again.',
@@ -221,6 +235,8 @@ const table = <String, String>{
   'Deaktivierte Sensoren werden abgewiesen': 'Disabled sensors are rejected',
   'Deine Kolonien. Ein Scan.': 'Your colonies. One scan.',
   'Den Kamera-Scan gibt es in der Android-App.': 'Camera scanning is available in the Android app.',
+  'Der Anbieter antwortet': 'The provider responds',
+  'Der Browser ließ sich nicht öffnen.': 'The browser could not be opened.',
   'Der Schlüssel wird nur jetzt angezeigt. Trage ihn im Sensor ein – geht er verloren, erzeugst du einfach einen neuen.':
       'The key is shown only now. Enter it in the sensor – if it gets lost, just create a new one.',
   'Der Server liest die Werte alle 5 Minuten aus Home Assistant':
@@ -237,6 +253,8 @@ const table = <String, String>{
       'The tag cannot be written. You can register it by serial number – that works while the app is open.',
   'Details': 'Details',
   'Deutscher Name': 'Common name',
+  'Die Adresse, unter der /.well-known/openid-configuration liegt':
+      'The address under which /.well-known/openid-configuration is found',
   'Die Android-App erinnert zusätzlich selbst (Mehr → Erinnerungen). ntfy und E-Mail kommen vom Server – auch wenn das Handy aus ist.':
       'The Android app also reminds you itself (More → Reminders). ntfy and e-mail come from the server – even when the phone is off.',
   'Die App ist bereits in einem anderen Tab geöffnet.': 'The app is already open in another tab.',
@@ -253,6 +271,8 @@ const table = <String, String>{
   'Die Person braucht ein Konto auf diesem Server.': 'The person needs an account on this server.',
   'Die Person ist dann sofort nicht mehr Pfleger dieser Kolonien.':
       'The person then stops being a carer of these colonies right away.',
+  'Die Seite ist danach sofort nicht mehr erreichbar – auch in Forenbeiträgen.':
+      'The page will be unreachable immediately – also in forum posts.',
   'Die bisherige Adresse funktioniert danach nicht mehr – der Kalender braucht die neue.':
       'The previous address stops working – the calendar needs the new one.',
   'Die eigene Art verschwindet auf allen Geräten.': 'The own species disappears on all devices.',
@@ -312,6 +332,8 @@ const table = <String, String>{
   'Eine Quelle pro Zeile': 'One source per line',
   'Eine Schätzung der KI – bitte kurz prüfen.': 'An estimate by the AI – please check it briefly.',
   'Eine Seite pro Etikett – nur für Etikettendrucker': 'One page per label – label printers only',
+  'Eine Seite zum Ansehen ohne Anmeldung – etwa für einen Haltungsbericht im Forum. Nie darauf: Fundort, Verkäufer, Standort, dein Name oder deine E-Mail.':
+      'A page anyone can view without signing in – e.g. for a keeping report in a forum. Never on it: find location, seller, location, your name or your e-mail.',
   'Einheit': 'Unit',
   'Einladung erhalten? Konto erstellen': 'Got an invitation? Create account',
   'Einmal täglich: was heute ansteht': 'Once a day: what is due today',
@@ -361,6 +383,10 @@ const table = <String, String>{
   'Filtern (z. B. Regal A)': 'Filter (e.g. Shelf A)',
   'Firefox': 'Firefox',
   'Fliege': 'Fly',
+  'Forenbeitrag kopieren': 'Copy forum post',
+  'Forenbeitrag kopiert – einfach im Forum einfügen': 'Forum post copied – just paste it into the forum',
+  'Forenbeitrag: BBCode mit Fakten, Fotos und Link – für die meisten Ameisenforen.':
+      'Forum post: BBCode with facts, photos and link – for most ant forums.',
   'Format': 'Format',
   'Format: Titel | Link (Link optional)': 'Format: title | link (link optional)',
   'Format: sensor.name': 'Format: sensor.name',
@@ -378,6 +404,7 @@ const table = <String, String>{
       'Photos are downscaled before uploading and are visible offline too.',
   'Fotos wählen (bis zu {0}) – z. B. Vorder- und Rückseite des Nests. Jedes Foto wird einzeln gezählt, die Zahlen werden addiert. Die Fotos werden dafür an die KI ({1}) geschickt.':
       'Choose photos (up to {0}) – e.g. front and back of the nest. Each photo is counted on its own, the numbers are added up. The photos are sent to the AI ({1}) for this.',
+  'Fotos zeigen': 'Show photos',
   'Fotos · {0}': 'Photos · {0}',
   'Freigabe-Pfad': 'Share path',
   'Frisch': 'Fresh',
@@ -414,6 +441,7 @@ const table = <String, String>{
   'Fütterung von {0} angenommen?': 'Feeding from {0} accepted?',
   'Fütterungen': 'Feedings',
   'Fütterungen (12 Monate)': 'Feedings (12 months)',
+  'Fütterungen, Koloniegröße, Messwerte …': 'Feedings, colony size, measurements …',
   'Galerie': 'Gallery',
   'Galerie nicht verfügbar: {0}': 'Gallery not available: {0}',
   'Gattung (leer = aus dem Namen)': 'Genus (empty = from the name)',
@@ -509,6 +537,7 @@ const table = <String, String>{
   'Intervalle': 'Intervals',
   'Invasive gebietsfremde Art von unionsweiter Bedeutung: Halten, Züchten, Kaufen, Verkaufen, Transportieren und Freisetzen sind verboten (Verordnung (EU) Nr. 1143/2014).':
       'Invasive alien species of Union concern: keeping, breeding, buying, selling, transporting and releasing are prohibited (Regulation (EU) No 1143/2014).',
+  'Issuer-URL': 'Issuer URL',
   'JSON, CSV-Tabellen für Excel und alle Fotos – deine Daten gehören dir':
       'JSON, CSV tables for Excel and all photos – your data belongs to you',
   'Ja, speichern': 'Yes, save',
@@ -537,6 +566,7 @@ const table = <String, String>{
   'Kamera nicht verfügbar.': 'Camera not available.',
   'Kamera nicht verfügbar: {0}': 'Camera not available: {0}',
   'Katalog wird geladen …': 'Loading catalogue …',
+  'Kein Anmelde-Code erhalten.': 'No sign-in code received.',
   'Kein Browser gefunden': 'No browser found',
   'Kein Datum': 'No date',
   'Kein E-Mail-Versand eingerichtet': 'No e-mail set up',
@@ -618,6 +648,7 @@ const table = <String, String>{
       'According to the care sheet {0} – weather and region shift the date.',
   'Lebensdauer Königin': 'Queen lifespan',
   'Lebensraum': 'Habitat',
+  'Leer bei einem „öffentlichen“ Client (nur PKCE)': 'Empty for a “public” client (PKCE only)',
   'Leer lassen = keine Erinnerung.': 'Leave empty = no reminder.',
   'Lege das Administrator-Konto an. Den Setup-Code zeigt der Server beim Start an:\ndocker compose logs app | grep -A1 Setup-Code':
       'Create the administrator account. The server shows the setup code at startup:\ndocker compose logs app | grep -A1 Setup-Code',
@@ -635,6 +666,8 @@ const table = <String, String>{
   'Link konnte nicht geöffnet werden: {0}': 'Could not open link: {0}',
   'Link kopieren': 'Copy link',
   'Link kopiert': 'Link copied',
+  'Link widerrufen': 'Revoke link',
+  'Link widerrufen?': 'Revoke link?',
   'Linux': 'Linux',
   'Luftfeuchte': 'Humidity',
   'Luftfeuchte Arena': 'Outworld humidity',
@@ -671,6 +704,7 @@ const table = <String, String>{
   'Mindesthaltbarkeit abgelaufen ({0})': 'Best-before date passed ({0})',
   'Mit KI zählen': 'Count with AI',
   'Mit der Android-App scannen': 'Scan with the Android app',
+  'Mit {0} anmelden': 'Sign in with {0}',
   'Mit „+ Kalender“ die erste Adresse erzeugen.': 'Create the first address with “+ Calendar”.',
   'Modell': 'Model',
   'Modell-ID aus openrouter.ai/models mit Eingabe „image“, z. B. anthropic/… oder openai/… – OpenRouter leitet an viele Anbieter weiter.':
@@ -701,6 +735,7 @@ const table = <String, String>{
   'Nachtragen · {0} {1}': 'Add later · {0} {1}',
   'Nachtragen …': 'Add later …',
   'Name': 'Name',
+  'Name auf dem Knopf': 'Name on the button',
   'Name dieses Geräts': 'Name of this device',
   'Name, Art, Standort, #Nummer': 'Name, species, location, #number',
   'Name/Nr.': 'Name/no.',
@@ -721,6 +756,7 @@ const table = <String, String>{
   'Neue Adresse erzeugen': 'Create new address',
   'Neue Adresse erzeugen?': 'Create a new address?',
   'Neue Kolonie': 'New colony',
+  'Neue Konten automatisch anlegen': 'Create new accounts automatically',
   'Neue Vertretung': 'New care cover',
   'Neuen Schlüssel erzeugen': 'Create new key',
   'Neuer Eintrag': 'New entry',
@@ -766,6 +802,7 @@ const table = <String, String>{
   'Notiz (optional)': 'Note (optional)',
   'Notiz · {0}': 'Note · {0}',
   'Notizen': 'Notes',
+  'Notizen zeigen': 'Show notes',
   'Nur Buchstaben, Ziffern, _ und - (max. 64)': 'Only letters, digits, _ and - (max. 64)',
   'Nur Daten (ohne Fotos)': 'Data only (no photos)',
   'Nur Lesezugriff auf diese Kolonie.': 'Read-only access to this colony.',
@@ -894,6 +931,7 @@ const table = <String, String>{
   'Schwarmflugzeit: {0}': 'Flight season: {0}',
   'Schwarmflüge im {0}': 'Nuptial flights in {0}',
   'Schwierigkeit': 'Difficulty',
+  'Secret entfernen': 'Remove secret',
   'Seifert (2018): The Ants of Central and North Europe – das Standardwerk für heimische Arten.':
       'Seifert (2018): The Ants of Central and North Europe – the standard reference for native species.',
   'Seit {0} Tagen offen – ersetzen (hält {1} Tage)': 'Open for {0} days – replace (keeps {1} days)',
@@ -997,6 +1035,7 @@ const table = <String, String>{
   'Test-E-Mail gesendet an {0}': 'Test e-mail sent to {0}',
   'Testnachricht gesendet – schau in die ntfy-App': 'Test message sent – check the ntfy app',
   'Testnachricht senden': 'Send test message',
+  'Texte von Notizen, Kontrollen und Fotos': 'Texts of notes, checks and photos',
   'Themen': 'Topics',
   'Timeline': 'Timeline',
   'Timeline · {0}': 'Timeline · {0}',
@@ -1085,6 +1124,7 @@ const table = <String, String>{
   'WebDAV-Adresse (Ordner)': 'WebDAV address (folder)',
   'Weiter': 'Continue',
   'Weiteren Tag zuweisen': 'Assign another tag',
+  'Weiterleitungs-URL (beim Anbieter eintragen)': 'Redirect URL (enter it at the provider)',
   'Welche Kolonien?': 'Which colonies?',
   'Weniger': 'Less',
   'Wenn es ein Konto mit dieser Adresse gibt, ist eine E-Mail mit einem Link unterwegs.':
@@ -1092,6 +1132,7 @@ const table = <String, String>{
   'Wert außerhalb des gültigen Bereichs': 'Value outside the valid range',
   'Werte: metric „temperature“ (°C) oder „humidity“ (%), optional measured_at (ISO 8601). Bis zu 500 Werte pro Anfrage, doppelte Sendungen werden ignoriert.':
       'Values: metric “temperature” (°C) or “humidity” (%), optional measured_at (ISO 8601). Up to 500 values per request, duplicates are ignored.',
+  'Widerrufen': 'Revoke',
   'Wie letztes Mal': 'Same as last time',
   'Wie letztes Mal füttern': 'Feed like last time',
   'Wieder fällig in': 'Due again in',
@@ -1305,6 +1346,8 @@ const table = <String, String>{
   '{0}× Winterruhe beginnen?': '{0}× start hibernation?',
   'Ältere werden dort gelöscht; Fotos bleiben.': 'Older ones are deleted there; photos stay.',
   'Änderungen speichern?': 'Save changes?',
+  'Öffentlich teilen': 'Share publicly',
+  'Öffentlichen Link erstellen': 'Create public link',
   'Öffne in der Web-App „Mehr → Android-App verbinden“ und scanne den QR-Code.':
       'In the web app open “More → Connect Android app” and scan the QR code.',
   'Öffnen': 'Open',
@@ -1322,6 +1365,7 @@ const table = <String, String>{
   '– (oberste Ebene)': '– (top level)',
   '– keine –': '– none –',
   '„7 Kolonien brauchen heute Aufmerksamkeit“ – einmal täglich': '“7 colonies need attention today” – once a day',
+  '„Mit {0} anmelden“': '“Sign in with {0}”',
   '„{0}“ entfernt': '“{0}” removed',
   '… und {0} ältere Einträge (vollständig im JSON-/CSV-Export).':
       '… and {0} older entries (complete in the JSON/CSV export).',

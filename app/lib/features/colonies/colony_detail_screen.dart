@@ -17,6 +17,7 @@ import '../../shared/widgets.dart';
 import '../actions/actions.dart';
 import '../actions/defer.dart';
 import '../care_cover/care_cover_screen.dart';
+import 'public_share.dart';
 import '../photos/photos.dart';
 import '../reports/report_action.dart';
 import '../species/species_screens.dart';
@@ -98,6 +99,7 @@ class _ColonyPage extends ConsumerWidget {
               if (canEdit && ref.read(nfcControllerProvider) != NfcState.unsupported)
                 PopupMenuItem(value: 'nfc', child: Text(tr('NFC-Tag zuweisen'))),
               PopupMenuItem(value: 'label', child: Text(tr('Etikett drucken'))),
+              if (isOwner) PopupMenuItem(value: 'share', child: Text(tr('Öffentlich teilen'))),
               if (isOwner)
                 PopupMenuItem(
                   value: 'archive',
@@ -309,6 +311,8 @@ class _ColonyPage extends ConsumerWidget {
         context.push('/colonies/${colony.id}/nfc');
       case 'label':
         context.push('/settings/labels?colony=${colony.id}');
+      case 'share':
+        showPublicShareSheet(context, colony);
       case 'measure':
         showMeasurementSheet(context, ref, colony);
       case 'census':
