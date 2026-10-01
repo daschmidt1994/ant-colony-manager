@@ -635,14 +635,68 @@ func (s *Service) DeleteAccount(ctx context.Context, actor Actor, password strin
 	if actor.IsAdmin && admins == 0 {
 		return Conflict("user.last_admin", "the last administrator cannot delete their account")
 	}
-	// Owned colonies cascade (members of shared colonies lose access; their
-	// devices receive the colony_members deletion before the rows disappear).
-	return db.InTx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `UPDATE colony_members SET deleted_at = now()
-			WHERE colony_id IN (SELECT id FROM colonies WHERE owner_id = $1) AND deleted_at IS NULL AND user_id <> $1`, actor.UserID); err != nil {
+	return s.deleteUser(ctx, actor.UserID)
+}
+
+// AdminDeleteUser deletes another account with all its colonies, photos and
+// data. [confirmEmail] must repeat the account's e-mail – a guard against
+// deleting the wrong row. Never your own account.
+func (s *Service) AdminDeleteUser(ctx context.Context, actor Actor, id uuid.UUID, confirmEmail string, meta ClientMeta) error {
+	if err := requireAdmin(actor); err != nil {
+		return err
+	}
+	if id == actor.UserID {
+		return Invalid("id", "you cannot delete your own account here – another administrator can")
+	}
+	var email string
+	err := s.Pool.QueryRow(ctx, `SELECT email FROM users WHERE id = $1`, id).Scan(&email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return NotFound("user")
+	}
+	if err != nil {
+		return err
+	}
+	if !strings.EqualFold(strings.TrimSpace(confirmEmail), email) {
+		return Invalid("confirm_email", "type the e-mail address of the account to confirm")
+	}
+	if err := s.deleteUser(ctx, id); err != nil {
+		return err
+	}
+	s.Audit(ctx, &actor.UserID, "user_deleted", email, nil, meta.IP)
+	return nil
+}
+
+// deleteUser removes an account: owned colonies cascade (members of shared
+// colonies lose access; their devices receive the colony_members deletion
+// before the rows disappear), then the photo files nobody uses any more.
+func (s *Service) deleteUser(ctx context.Context, id uuid.UUID) error {
+	var keys []string
+	err := db.InTx(ctx, s.Pool, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, `SELECT unnest(ARRAY[storage_key, thumb_key, original_key]) FROM photos
+			WHERE owner_id = $1 OR colony_id IN (SELECT id FROM colonies WHERE owner_id = $1)`, id)
+		if err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `DELETE FROM users WHERE id = $1`, actor.UserID)
+		for rows.Next() {
+			var k *string
+			if err := rows.Scan(&k); err != nil {
+				rows.Close()
+				return err
+			}
+			if k != nil {
+				keys = append(keys, *k)
+			}
+		}
+		rows.Close()
+		if _, err := tx.Exec(ctx, `UPDATE colony_members SET deleted_at = now()
+			WHERE colony_id IN (SELECT id FROM colonies WHERE owner_id = $1) AND deleted_at IS NULL AND user_id <> $1`, id); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
 		return err
 	})
+	if err != nil {
+		return err
+	}
+	return s.deleteUnusedBlobs(ctx, keys)
 }

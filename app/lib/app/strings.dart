@@ -148,6 +148,18 @@ abstract final class S {
 
   static String time(DateTime t) => DateFormat('HH:mm', currentLanguage).format(t.toLocal());
   static String date(DateTime t) => _f('dd.MM.y', 'd MMM y').format(t.toLocal());
+
+  /// 1,5 MB
+  static String bytes(num bytes) {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    var v = bytes.toDouble(), i = 0;
+    while (v >= 1024 && i < units.length - 1) {
+      v /= 1024;
+      i++;
+    }
+    return '${i == 0 ? v.toStringAsFixed(0) : decimal(v)} ${units[i]}';
+  }
+
   static String dateTime(DateTime t) => _f('dd.MM.y, HH:mm', 'd MMM y, HH:mm').format(t.toLocal());
 
   /// Short day for charts and lists: „14.8.“ / „14 Aug“.

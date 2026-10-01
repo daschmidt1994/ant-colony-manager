@@ -225,6 +225,26 @@ func (s *Server) adminUpdateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (s *Server) adminDeleteUser(w http.ResponseWriter, r *http.Request) {
+	id, err := pathUUID(r, "id")
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	var in struct {
+		ConfirmEmail string `json:"confirm_email"`
+	}
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	if err := s.svc.AdminDeleteUser(r.Context(), actorOf(r), id, in.ConfirmEmail, service.ClientMeta{IP: clientIP(r)}); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) adminResetLink(w http.ResponseWriter, r *http.Request) {
 	id, err := pathUUID(r, "id")
 	if err != nil {

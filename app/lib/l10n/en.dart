@@ -6,6 +6,7 @@ const table = <String, String>{
   ' (winzig)': ' (tiny)',
   ' ({0} überfällig)': ' ({0} overdue)',
   ' · aufwecken am {0}': ' · wake up on {0}',
+  '(du)': '(you)',
   '+ Neuer Standort …': '+ New location …',
   '0 keine · 1 wenig · 2 mittel · 3 viel': '0 none · 1 a little · 2 medium · 3 a lot',
   '1 J': '1 yr',
@@ -39,6 +40,10 @@ const table = <String, String>{
   'Abmelden?': 'Sign out?',
   'Absender': 'Sender',
   'Abspielen': 'Play',
+  'Admin': 'Admin',
+  'Admin-Rechte entziehen': 'Remove admin rights',
+  'Admins verwalten den Server: Benutzer, E-Mail, Backups, SSO. Kolonien anderer sehen sie trotzdem nicht.':
+      'Admins manage the server: users, e-mail, backups, SSO. They still don\'t see other people\'s colonies.',
   'Adresse': 'Address',
   'Adresse des Brokers, den Home Assistant nutzt – meist die Adresse von Home Assistant mit Port 1883. mqtts:// für TLS.':
       'Address of the broker Home Assistant uses – usually the Home Assistant address with port 1883. mqtts:// for TLS.',
@@ -50,6 +55,7 @@ const table = <String, String>{
       'Active – from the Docker configuration (SMTP_*). Settings saved here take precedence.',
   'Aktiv – eingerichtet in der App': 'Active – set up in the app',
   'Aktiv: {0}': 'Active: {0}',
+  'Aktiviert': 'Enabled',
   'Aktivität': 'Activity',
   'Aktualisieren': 'Refresh',
   'Alle': 'All',
@@ -218,6 +224,8 @@ const table = <String, String>{
   'Client-ID': 'Client ID',
   'Client-Secret': 'Client secret',
   'Code oder Link': 'Code or link',
+  'Damit setzt die Person ein neues Passwort. Gültig 30 Minuten, nur einmal.':
+      'With it the person sets a new password. Valid for 30 minutes, once.',
   'Danach gelten wieder die Werte aus der Docker-Konfiguration (SMTP_*).':
       'Then the values from the Docker configuration (SMTP_*) apply again.',
   'Danach verschickt der Server keine E-Mails mehr.': 'Then the server no longer sends e-mails.',
@@ -225,6 +233,8 @@ const table = <String, String>{
   'Das Foto verschwindet auf allen Geräten.': 'The photo disappears on all devices.',
   'Das Gerät muss sich danach neu anmelden. Eine Android-App löscht dabei ihre lokalen Daten – noch nicht synchronisierte Einträge dieses Geräts gehen verloren.':
       'The device must sign in again. An Android app deletes its local data – entries of this device that were not synced yet are lost.',
+  'Das Konto wird mit allen eigenen Kolonien, Fotos, Chroniken und Einstellungen gelöscht – das lässt sich nicht rückgängig machen (nur über ein Backup). Mit anderen geteilte Kolonien verschwinden auch für sie. Nur sperren? Dann „Deaktivieren“.':
+      'The account is deleted with all its own colonies, photos, timelines and settings – this cannot be undone (only from a backup). Colonies shared with others disappear for them too. Only block it? Then use “Disable”.',
   'Das ist ein Code zum Verbinden der App – du bist bereits angemeldet.':
       'This is a code for connecting the app – you are already signed in.',
   'Das ist kein Kolonie-Code. Erwartet: 16 Zeichen oder ein Link mit /c/…':
@@ -234,6 +244,8 @@ const table = <String, String>{
   'Daten': 'Data',
   'Datum': 'Date',
   'Datum/Uhrzeit wählen …': 'Choose date/time …',
+  'Deaktivieren': 'Disable',
+  'Deaktiviert': 'Disabled',
   'Deaktivierte Sensoren werden abgewiesen': 'Disabled sensors are rejected',
   'Deine Kolonien. Ein Scan.': 'Your colonies. One scan.',
   'Den Kamera-Scan gibt es in der Android-App.': 'Camera scanning is available in the Android app.',
@@ -275,6 +287,8 @@ const table = <String, String>{
   'Die Person braucht ein Konto auf diesem Server.': 'The person needs an account on this server.',
   'Die Person ist dann sofort nicht mehr Pfleger dieser Kolonien.':
       'The person then stops being a carer of these colonies right away.',
+  'Die Person wird auf allen Geräten abgemeldet und kann sich nicht mehr anmelden. Ihre Daten bleiben erhalten.':
+      'The person is signed out on all devices and can no longer sign in. Their data is kept.',
   'Die Seite ist danach sofort nicht mehr erreichbar – auch in Forenbeiträgen.':
       'The page will be unreachable immediately – also in forum posts.',
   'Die bisherige Adresse funktioniert danach nicht mehr – der Kalender braucht die neue.':
@@ -314,6 +328,7 @@ const table = <String, String>{
       'Dussutour & Simpson (2009): Communal nutrition in ants. Current Biology 19',
   'Dussutour & Simpson (2012): Ant workers die young and colonies collapse when fed a high-protein diet. Proc. R. Soc. B 279':
       'Dussutour & Simpson (2012): Ant workers die young and colonies collapse when fed a high-protein diet. Proc. R. Soc. B 279',
+  'E-Mail (optional)': 'E-mail (optional)',
   'E-Mail der Vertretung': 'E-mail of the stand-in',
   'E-Mail ist nicht verfügbar: Der Server hat keinen E-Mail-Versand eingerichtet (Administrator: Mehr → Server-Verwaltung → E-Mail-Versand).':
       'E-mail is not available: the server has no e-mail set up (administrator: More → Server administration → E-mail).',
@@ -341,7 +356,11 @@ const table = <String, String>{
   'Eine Seite zum Ansehen ohne Anmeldung – etwa für einen Haltungsbericht im Forum. Nie darauf: Fundort, Verkäufer, Standort, dein Name oder deine E-Mail.':
       'A page anyone can view without signing in – e.g. for a keeping report in a forum. Never on it: find location, seller, location, your name or your e-mail.',
   'Einheit': 'Unit',
+  'Einladen': 'Invite',
+  'Einladen, deaktivieren, Admin-Rechte, Passwort-Link, löschen':
+      'Invite, disable, admin rights, password link, delete',
   'Einladung erhalten? Konto erstellen': 'Got an invitation? Create account',
+  'Einladungslink': 'Invitation link',
   'Einmal täglich: was heute ansteht': 'Once a day: what is due today',
   'Einmalige Aufgaben': 'One-off tasks',
   'Einschalten und speichern': 'Switch on and save',
@@ -356,6 +375,7 @@ const table = <String, String>{
   'Einzeletikett 38 × 25 mm': 'Single label 38 × 25 mm',
   'Einzeletikett 50 × 30 mm': 'Single label 50 × 30 mm',
   'Ende ändern': 'Change end',
+  'Endgültig löschen': 'Delete permanently',
   'Endgültig – der Tag kann dann nie mehr geändert werden.': 'Permanent – the tag can never be changed again.',
   'Entfernen': 'Remove',
   'Entfernt': 'Removed',
@@ -505,6 +525,7 @@ const table = <String, String>{
   'Gründung': 'Founding',
   'Gründungsdatum': 'Founding date',
   'Gynie': 'Gyny',
+  'Gültig': 'Valid',
   'Halte das Handy an den Tag': 'Hold the phone against the tag',
   'Haltung': 'Keeping',
   'Hat nicht geklappt': 'That didn\'t work',
@@ -646,9 +667,12 @@ const table = <String, String>{
       'Hand colonies to someone for the holidays – with care instructions',
   'Kolonien, Arten, Fütterungen, Verteilung nach Standort': 'Colonies, species, feedings, distribution by location',
   'Koloniewachstum': 'Colony growth',
+  'Konten auf diesem Server. Kolonien und Daten der Personen siehst du hier nicht – nur, wie viel sie belegen.':
+      'Accounts on this server. You don\'t see people\'s colonies and data here – only how much space they use.',
   'Konto': 'Account',
   'Konto anlegen': 'Create account',
   'Konto erstellen': 'Create account',
+  'Konto löschen': 'Delete account',
   'Kontrolle': 'Inspection',
   'Kontrolle · {0}': 'Inspection · {0}',
   'Kontrolle – alles in Ordnung': 'Inspection – all good',
@@ -672,6 +696,7 @@ const table = <String, String>{
   'Lebensraum': 'Habitat',
   'Leer bei einem „öffentlichen“ Client (nur PKCE)': 'Empty for a “public” client (PKCE only)',
   'Leer lassen = keine Erinnerung.': 'Leave empty = no reminder.',
+  'Leer: der Link gilt für jede Person, die ihn bekommt': 'Empty: the link works for anyone who gets it',
   'Lege das Administrator-Konto an. Den Setup-Code zeigt der Server beim Start an:\ndocker compose logs app | grep -A1 Setup-Code':
       'Create the administrator account. The server shows the setup code at startup:\ndocker compose logs app | grep -A1 Setup-Code',
   'Lege deine erste Kolonie an. Sie bekommt automatisch einen QR-Code.':
@@ -685,6 +710,8 @@ const table = <String, String>{
   'Liegt ein Messwert außerhalb, entsteht automatisch ein „Problem“-Eintrag bei der Kolonie und eine Benachrichtigung (höchstens alle 6 Stunden).':
       'If a reading is outside, a “Problem” entry is created for the colony automatically, plus a notification (at most every 6 hours).',
   'Liegt in': 'Inside',
+  'Link erstellen': 'Create link',
+  'Link für jede Person': 'Link for anyone',
   'Link konnte nicht geöffnet werden: {0}': 'Could not open link: {0}',
   'Link kopieren': 'Copy link',
   'Link kopiert': 'Link copied',
@@ -841,6 +868,7 @@ const table = <String, String>{
   'Nächste Kolonie scannen': 'Scan next colony',
   'Nächster Tages-Überblick: {0}': 'Next daily overview: {0}',
   'Offen · {0}': 'Open · {0}',
+  'Offene Einladungen': 'Open invitations',
   'Offline · {0} ausstehend': 'Offline · {0} pending',
   'Offline · {0} Änderung(en) warten': 'Offline · {0} change(s) waiting',
   'Offline – Foto noch nicht geladen': 'Offline – photo not loaded yet',
@@ -858,9 +886,12 @@ const table = <String, String>{
   'Passwort speichern': 'Save password',
   'Passwort vergessen?': 'Forgot password?',
   'Passwort zurücksetzen': 'Reset password',
+  'Passwort-Link erstellen': 'Create password link',
+  'Passwort-Link für {0}': 'Password link for {0}',
   'Pause – der Rundgang bleibt aktiv': 'Pause – the round stays active',
   'Per Seriennummer registrieren': 'Register by serial number',
   'Per Seriennummer registriert.': 'Registered by serial number.',
+  'Person einladen': 'Invite person',
   'Person, Zeitraum und mindestens eine Kolonie wählen': 'Choose a person, a period and at least one colony',
   'Pflege': 'Care',
   'Pflege heute': 'Care today',
@@ -945,6 +976,8 @@ const table = <String, String>{
   'Schalte NFC in den Android-Einstellungen ein und komm dann zurück.':
       'Switch on NFC in the Android settings and come back.',
   'Scheiben': 'Glass',
+  'Schick den Link der Person – damit legt sie ihr Konto an. Er wird nur jetzt angezeigt.':
+      'Send the link to the person – they create their account with it. It is only shown now.',
   'Schließen': 'Close',
   'Schlüssel (Header „Authorization: Bearer …“)': 'Key (header “Authorization: Bearer …”)',
   'Schlüssel entfernen': 'Remove key',
@@ -1164,6 +1197,7 @@ const table = <String, String>{
   'Widerrufen': 'Revoke',
   'Wie letztes Mal': 'Same as last time',
   'Wie letztes Mal füttern': 'Feed like last time',
+  'Wieder aktivieren': 'Enable again',
   'Wieder fällig in': 'Due again in',
   'Wild gefangene Insekten nur von unbehandelten Flächen – Pestizide und Parasiten sind das größte Risiko. Auch hier vorher einfrieren.':
       'Wild-caught insects only from untreated areas – pesticides and parasites are the biggest risk. Freeze them first as well.',
@@ -1208,9 +1242,12 @@ const table = <String, String>{
   'Zuletzt gesendet: {0}': 'Last sent: {0}',
   'Zuletzt {0} {1}': 'Last {0} {1}',
   'Zuletzt: {0}': 'Last: {0}',
+  'Zum Admin machen': 'Make admin',
   'Zur Anmeldung': 'To sign-in',
+  'Zur Bestätigung E-Mail eingeben': 'Type the e-mail to confirm',
   'Zur Liste': 'To the list',
   'Zur Übersicht': 'To the overview',
+  'Zurückziehen': 'Withdraw',
   'Zusammen: {0}': 'Together: {0}',
   'Zählen mit KI anbieten': 'Offer counting with AI',
   'Zählt … {0} s': 'Counting … {0} s',
@@ -1234,6 +1271,7 @@ const table = <String, String>{
   'bis {0} {1}': 'up to {0} {1}',
   'ca. {0}': 'approx. {0}',
   'claustral – Königin gründet ohne Futter': 'claustral – queen founds without food',
+  'deaktiviert': 'disabled',
   'diese Woche': 'this week',
   'dieser Monat': 'this month',
   'eigene Art': 'own species',
@@ -1247,6 +1285,7 @@ const table = <String, String>{
   'gesetzt – nur zum Ändern ausfüllen': 'set – fill in only to change it',
   'gespeichert – leer lassen zum Behalten': 'saved – leave empty to keep',
   'groß': 'large',
+  'gültig bis {0}': 'valid until {0}',
   'heute': 'today',
   'heute fällig oder überfällig': 'due today or overdue',
   'heute geöffnet': 'opened today',
@@ -1277,6 +1316,7 @@ const table = <String, String>{
   'noch keine Daten': 'no data yet',
   'noch nicht abgerufen': 'not fetched yet',
   'noch nicht synchronisiert': 'not synced yet',
+  'noch nie angemeldet': 'never signed in',
   'nur Seriennummer': 'serial number only',
   'nur einmal': 'only once',
   'nächste Versorgung {0}': 'next care {0}',
@@ -1328,6 +1368,7 @@ const table = <String, String>{
   '{0} / {1} Kolonien kontrolliert': '{0} / {1} colonies inspected',
   '{0} Ameisen': '{0} ants',
   '{0} Arbeiterinnen': '{0} workers',
+  '{0} Fotos ({1})': '{0} photos ({1})',
   '{0} Fotos gespeichert': '{0} photos saved',
   '{0} Fotos warten': '{0} photos waiting',
   '{0} Fotos zählen': 'Count {0} photos',
@@ -1354,7 +1395,10 @@ const table = <String, String>{
   '{0} aufschieben': 'Defer {0}',
   '{0} bewertet': '{0} rated',
   '{0} dazwischen': '{0} apart',
+  '{0} deaktivieren?': 'Disable {0}?',
+  '{0} endgültig löschen?': 'Delete {0} permanently?',
   '{0} erledigt': '{0} done',
+  '{0} gelöscht': '{0} deleted',
   '{0} gespeichert: {1}': '{0} saved: {1}',
   '{0} heute': '{0} today',
   '{0} ist fällig.': '{0} is due.',
@@ -1366,6 +1410,7 @@ const table = <String, String>{
   '{0} seit {1} Tagen überfällig.': '{0} overdue for {1} days.',
   '{0} vertritt dich': '{0} stands in for you',
   '{0} vertritt dich: {1}': '{0} stands in for you: {1}',
+  '{0} zum Admin machen?': 'Make {0} an admin?',
   '{0} zum Rundgang hinzugefügt': '{0} added to the round',
   '{0} · dieses Gerät': '{0} · this device',
   '{0} · erstellt am {1}': '{0} · created on {1}',
