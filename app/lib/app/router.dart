@@ -44,6 +44,31 @@ const _publicPaths = {
   '/sso',
 };
 
+/// Where the router sends [uri] for the sign-in state [auth] (null: stay).
+/// The way back from SSO (/sso?code=… or ?error=…) survives the splash
+/// screen while the session loads – the web app starts anew there.
+String? authRedirect(AuthState auth, Uri uri) {
+  final path = uri.path;
+  final target = uri.queryParameters['from'] ?? (_publicPaths.contains(path) && path != '/sso' ? null : uri.toString());
+  String withFrom(String p) => target == null || target == '/' ? p : '$p?from=${Uri.encodeComponent(target)}';
+  switch (auth) {
+    case AuthLoading():
+      return path == '/splash' ? null : withFrom('/splash');
+    case NeedsServer():
+      return path == '/connect' || path == '/connect/scan' ? null : withFrom('/connect');
+    case SignedOut(:final setupRequired):
+      const open = {'/register', '/reset-password', '/connect/scan', '/sso'};
+      if (open.contains(path)) return null;
+      if (target != null && Uri.parse(target).path == '/sso') return target;
+      final want = setupRequired ? '/setup' : '/login';
+      return path == want ? null : withFrom(want);
+    case SignedIn():
+      if (path == '/sso') return '/';
+      if (_publicPaths.contains(path)) return target != null && Uri.parse(target).path == '/sso' ? '/' : target ?? '/';
+      return null;
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.listen(authProvider, (_, _) => refresh.value++);
@@ -52,26 +77,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     refreshListenable: refresh,
-    redirect: (context, state) {
-      final auth = ref.read(authProvider);
-      final path = state.uri.path;
-      final target = state.uri.queryParameters['from'] ?? (_publicPaths.contains(path) ? null : state.uri.toString());
-      String withFrom(String p) => target == null || target == '/' ? p : '$p?from=${Uri.encodeComponent(target)}';
-      switch (auth) {
-        case AuthLoading():
-          return path == '/splash' ? null : withFrom('/splash');
-        case NeedsServer():
-          return path == '/connect' || path == '/connect/scan' ? null : withFrom('/connect');
-        case SignedOut(:final setupRequired):
-          const open = {'/register', '/reset-password', '/connect/scan', '/sso'};
-          if (open.contains(path)) return null;
-          final want = setupRequired ? '/setup' : '/login';
-          return path == want ? null : withFrom(want);
-        case SignedIn():
-          if (_publicPaths.contains(path)) return target ?? '/';
-          return null;
-      }
-    },
+    redirect: (context, state) => authRedirect(ref.read(authProvider), state.uri),
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const SplashScreen()),
       GoRoute(path: '/connect', builder: (_, _) => const ServerScreen()),
