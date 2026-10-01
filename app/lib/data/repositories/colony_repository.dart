@@ -467,6 +467,51 @@ class ColonyRepository {
     });
   });
 
+  /// Own activities of a colony (e.g. „Nest befeuchten“): custom schedules.
+  List<Schedule> customTasks(String colonyId) =>
+      schedules(colonyId: colonyId).where((s) => s.taskType == 'custom' && s.active).toList();
+
+  /// Sets the own activities of a colony: entries with an id are changed,
+  /// without one created, and own activities missing from [tasks] removed.
+  void setCustomTasks(String colonyId, List<({String? id, String title, double days})> tasks) => _write(() {
+    final existing = {for (final s in customTasks(colonyId)) s.id: s};
+    final keep = <String>{};
+    for (final t in tasks) {
+      final title = t.title.trim();
+      if (title.isEmpty || t.days <= 0) continue;
+      final s = t.id == null ? null : existing[t.id];
+      if (s == null) {
+        _create('care_schedules', {
+          'colony_id': colonyId,
+          'task_type': 'custom',
+          'title': title,
+          'interval_days': t.days,
+          'starts_at': now().toUtc().toIso8601String(),
+        });
+      } else {
+        keep.add(s.id);
+        if (s.title != title || s.intervalDays != t.days) {
+          _update('care_schedules', s.id, {'title': title, 'interval_days': t.days});
+        }
+      }
+    }
+    for (final id in existing.keys) {
+      if (!keep.contains(id)) _delete('care_schedules', id);
+    }
+  });
+
+  /// An own activity done – the name travels with the event.
+  ColonyEvent logCustomTask(String colonyId, Schedule task, {String? note, DateTime? at}) => logEvent(
+    colonyId,
+    'custom_task',
+    details: {
+      'schedule_id': task.id,
+      'payload': {'title': task.title ?? ''},
+    },
+    note: note,
+    at: at,
+  );
+
   void archiveColony(String id, bool archive) =>
       updateColony(id, {'archived_at': archive ? now().toUtc().toIso8601String() : null});
 
@@ -565,6 +610,10 @@ class ColonyRepository {
         ).where((e) => taskType == 'feeding' || e.items.any((i) => i.category == taskType)).firstOrNull;
         return last == null ? null : _repeatFeeding(last);
       default:
+        final task = scheduleId == null
+            ? null
+            : schedules(colonyId: colonyId).where((s) => s.id == scheduleId).firstOrNull;
+        if (task != null) return logCustomTask(colonyId, task);
         return logEvent(colonyId, 'custom_task', details: {'schedule_id': ?scheduleId});
     }
   });

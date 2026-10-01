@@ -18,9 +18,9 @@ import (
 // feeding, custom plans get a custom_task event.
 func (s *Service) MarkCareDone(ctx context.Context, actor Actor, schedule uuid.UUID) (OpResult, error) {
 	var colony uuid.UUID
-	var taskType string
-	err := s.Pool.QueryRow(ctx, `SELECT colony_id, task_type FROM care_schedules WHERE id = $1 AND deleted_at IS NULL`, schedule).
-		Scan(&colony, &taskType)
+	var taskType, title string
+	err := s.Pool.QueryRow(ctx, `SELECT colony_id, task_type, COALESCE(title, '') FROM care_schedules WHERE id = $1 AND deleted_at IS NULL`, schedule).
+		Scan(&colony, &taskType, &title)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return OpResult{}, NotFound("care_schedule")
 	}
@@ -62,7 +62,8 @@ func (s *Service) MarkCareDone(ctx context.Context, actor Actor, schedule uuid.U
 	case "check":
 		payload["type"] = "check"
 	default:
-		payload["type"], payload["schedule_id"] = "custom_task", schedule
+		// the task's name travels with the event (timeline, public page)
+		payload["type"], payload["schedule_id"], payload["payload"] = "custom_task", schedule, map[string]any{"title": title}
 	}
 	return rejectedAsError(s.ApplyOp(ctx, actor, Op{OpID: uuid.Must(uuid.NewV7()), Entity: "colony_events",
 		EntityID: uuid.Must(uuid.NewV7()), Op: "create", Payload: mustJSON(payload)}))

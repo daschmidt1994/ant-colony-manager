@@ -29,6 +29,7 @@ func TestPublicLink(t *testing.T) {
 	ev(now.AddDate(0, 0, -3), map[string]any{"type": "census", "census": map[string]any{"exact_count": 57}})
 	ev(now.AddDate(0, 0, -2), map[string]any{"type": "feeding", "feeding": map[string]any{"items": []any{map[string]any{"food_name": "Heimchen", "category": "protein"}}}})
 	ev(now.AddDate(0, 0, -1), map[string]any{"type": "note", "note": "Geheimer Standort im Keller"})
+	ev(now.AddDate(0, 0, -1), map[string]any{"type": "custom_task", "payload": map[string]any{"title": "Nest befeuchten"}})
 	photo := testenv.NewID()
 	anna.Do("POST", "/api/v1/photos", map[string]any{"id": photo, "colony_id": colony}).Must(t, 201)
 	img := testJPEG(t, 300, 200, 1)
@@ -45,7 +46,7 @@ func TestPublicLink(t *testing.T) {
 	path := url[len("https://ants.test"):]
 	page := env.Anon().Do("GET", path, nil).Must(t, 200)
 	html := string(page.Body)
-	for _, want := range []string{"Messor Königsberg", "Messor barbarus", "57", "Heimchen", "Koloniegröße", path + "/photos/" + photo.String() + "/thumb.jpg", "<polyline"} {
+	for _, want := range []string{"Messor Königsberg", "Messor barbarus", "57", "Heimchen", "Koloniegröße", "Nest befeuchten", path + "/photos/" + photo.String() + "/thumb.jpg", "<polyline"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("page lacks %q", want)
 		}

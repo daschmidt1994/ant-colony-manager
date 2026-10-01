@@ -311,7 +311,8 @@ func TestHomeAssistantActionsAndSensors(t *testing.T) {
 	wait("water event", `SELECT count(*) FROM colony_events e JOIN waterings w ON w.event_id = e.id
 		WHERE e.colony_id = $1 AND w.kinds = '{drinker_refilled}'`, 1, messor)
 	press("ant-colony-manager/colony/"+messor.String()+"/done", custom.String())
-	wait("custom event", `SELECT count(*) FROM colony_events WHERE colony_id = $1 AND type = 'custom_task' AND schedule_id = $2`, 1, messor, custom)
+	wait("custom event", `SELECT count(*) FROM colony_events WHERE colony_id = $1 AND type = 'custom_task' AND schedule_id = $2
+		AND payload->>'title' = 'Nest befeuchten'`, 1, messor, custom)
 	// a care plan of another colony is refused
 	press("ant-colony-manager/colony/"+bens.String()+"/done", water.String())
 	press("ant-colony-manager/colony/"+messor.String()+"/hibernation/set", "ON")
