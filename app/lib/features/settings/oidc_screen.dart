@@ -118,7 +118,34 @@ class _OidcFormState extends ConsumerState<_OidcForm> {
     setState(() => _busy = true);
     try {
       await ref.read(authProvider.notifier).api.post('/api/v1/admin/oidc/test');
-      if (mounted) showUndoSnack(context, tr('Der Anbieter antwortet'));
+      if (!mounted) return;
+      if (_enabled) {
+        showUndoSnack(context, tr('Der Anbieter antwortet'));
+      } else {
+        await showDialog<void>(
+          context: context,
+          builder: (d) => AlertDialog(
+            title: Text(tr('Der Anbieter antwortet')),
+            content: Text(
+              tr(
+                'Der Knopf „Mit … anmelden“ erscheint aber erst, wenn „Anmeldung mit SSO anbieten“ eingeschaltet '
+                'und gespeichert ist.',
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(d), child: Text(tr('Später'))),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(d);
+                  setState(() => _enabled = true);
+                  _save();
+                },
+                child: Text(tr('Einschalten und speichern')),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -169,6 +196,7 @@ class _OidcFormState extends ConsumerState<_OidcForm> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(tr('Anmeldung mit SSO anbieten')),
+                  subtitle: Text(tr('Erst damit erscheint der Knopf auf der Anmeldeseite')),
                   value: _enabled,
                   onChanged: (v) => setState(() => _enabled = v),
                 ),
