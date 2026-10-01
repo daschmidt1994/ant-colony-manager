@@ -8,6 +8,7 @@ import '../../app/theme.dart';
 import '../../core/session.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
+import 'care_sheet_dialog.dart';
 
 /// Pflegevertretung: hand chosen colonies to a person for a period – with
 /// care instructions – and see what they documented. During the period the
@@ -72,7 +73,16 @@ class CareCoverScreen extends ConsumerWidget {
     final covers = ref.watch(careCoversProvider);
     final muted = TextStyle(color: context.colors.muted);
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Pflegevertretung'))),
+      appBar: AppBar(
+        title: Text(tr('Pflegevertretung')),
+        actions: [
+          IconButton(
+            tooltip: tr('Pflegezettel drucken'),
+            icon: const Icon(Icons.print_outlined),
+            onPressed: () => showCareSheetDialog(context),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showModalBottomSheet<void>(
           context: context,
@@ -108,6 +118,15 @@ class CareCoverScreen extends ConsumerWidget {
                     style: muted,
                   ),
                   const SizedBox(height: 12),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.print_outlined),
+                      title: Text(tr('Pflegezettel drucken')),
+                      subtitle: Text(tr('Für jemanden ohne Konto: was an welchem Tag zu tun ist, zum Abhaken')),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => showCareSheetDialog(context),
+                    ),
+                  ),
                   if (list.isEmpty)
                     Card(
                       child: ListTile(
@@ -405,6 +424,24 @@ class _CoverSheetState extends ConsumerState<_CoverSheet> {
               ),
             ),
           const SizedBox(height: 16),
+          if (mine && c['state'] != 'ended')
+            OutlinedButton.icon(
+              onPressed: () => showCareSheetDialog(
+                context,
+                range: DateTimeRange(
+                  start: DateTime.parse(c['starts_on'] as String),
+                  end: DateTime.parse(c['ends_on'] as String),
+                ),
+                instructions: c['instructions'] as String? ?? '',
+                colonies: {
+                  for (final x in (c['colonies'] as List).cast<Map<String, dynamic>>())
+                    x['colony_id'] as String: x['instructions'] as String? ?? '',
+                },
+              ),
+              icon: const Icon(Icons.print_outlined),
+              label: Text(tr('Pflegezettel drucken')),
+            ),
+          const SizedBox(height: 8),
           if (c['state'] != 'ended') ...[
             if (mine)
               OutlinedButton.icon(onPressed: _extend, icon: const Icon(Icons.event), label: Text(tr('Ende ändern'))),

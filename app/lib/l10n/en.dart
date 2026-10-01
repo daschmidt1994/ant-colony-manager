@@ -181,6 +181,7 @@ const table = <String, String>{
   'Beginn': 'Start',
   'Beginnen bei Feld (angebrochener Bogen)': 'Start at field (partly used sheet)',
   'Begonnen': 'Started',
+  'Bei Fragen oder Problemen: {0}': 'Questions or problems: {0}',
   'Bei „Größe & Brut“ gibt es dann „Mit KI zählen“: Fotos wählen, die KI zählt die Ameisen auf jedem Foto, die Zahlen werden addiert. Dafür werden die gewählten Fotos an den gewählten Anbieter geschickt. Die Kosten gehen auf dein Konto dort – meist einige Cent pro Zählung.':
       '“Size & brood” then offers “Count with AI”: choose photos, the AI counts the ants on each photo, the numbers are added up. The chosen photos are sent to the chosen provider for this. The costs go to your account there – usually a few cents per count.',
   'Beim Anbieter: Client vom Typ „OpenID Connect“, Weiterleitungs-URL von oben, Scopes openid, email, profile. Bestehende Konten werden über die (bestätigte) E-Mail-Adresse verknüpft. Anleitung: docs/28.':
@@ -231,6 +232,7 @@ const table = <String, String>{
   'Das ist kein Verbindungs-Code. In der Web-App: „Mehr → Android-App verbinden“.':
       'This is not a connection code. In the web app: “More → Connect Android app”.',
   'Daten': 'Data',
+  'Datum': 'Date',
   'Datum/Uhrzeit wählen …': 'Choose date/time …',
   'Deaktivierte Sensoren werden abgewiesen': 'Disabled sensors are rejected',
   'Deine Kolonien. Ein Scan.': 'Your colonies. One scan.',
@@ -370,9 +372,11 @@ const table = <String, String>{
   'Erneut': 'Retry',
   'Erneut prüfen': 'Check again',
   'Erneut versuchen': 'Try again',
+  'Erreichbar unter (optional)': 'Reachable at (optional)',
   'Erst damit erscheint der Knopf auf der Anmeldeseite': 'Only then does the button appear on the sign-in page',
   'Erste Kolonie anlegen': 'Create first colony',
   'Ersteinrichtung': 'First setup',
+  'Erstellt am {0} mit Ant Colony Manager': 'Created on {0} with Ant Colony Manager',
   'Etikett drucken': 'Print label',
   'Etiketten': 'Labels',
   'Etiketten drucken': 'Print labels',
@@ -434,7 +438,11 @@ const table = <String, String>{
   'Färbung': 'Colouration',
   'Für NFS oder eine USB-Platte: Docker bindet die Freigabe als Volume unter diesem Pfad ein (Beispiel für compose.yml in docs/25). Der Ordner muss existieren.':
       'For NFS or a USB disk: Docker mounts the share as a volume at this path (compose.yml example in docs/25). The folder must exist.',
+  'Für Nachbarn oder Familie ohne Konto: ein Zettel mit allem, was an welchem Tag zu tun ist – aus deinen Pflegeintervallen, zum Abhaken.':
+      'For neighbours or family without an account: a sheet with everything to do on which day – from your care intervals, to tick off.',
   'Für diese E-Mail gibt es bereits ein Konto.': 'There is already an account for this e-mail.',
+  'Für jemanden ohne Konto: was an welchem Tag zu tun ist, zum Abhaken':
+      'For someone without an account: what to do on which day, to tick off',
   'Für „Passwort vergessen“, den Tages-Überblick und Benachrichtigungen per E-Mail. Die Daten stehen bei deinem Mail-Anbieter (Postausgangsserver / SMTP). Bei Gmail, Outlook & Co. meist ein eigenes App-Passwort verwenden.':
       'For “Forgot password”, the daily overview and e-mail notifications. You get the details from your mail provider (outgoing mail server / SMTP). With Gmail, Outlook & co. usually use a separate app password.',
   'Füttern': 'Feed',
@@ -524,6 +532,7 @@ const table = <String, String>{
   'Honigwasser': 'Honey water',
   'Händler-Steckbriefe und Foren liefern Praxiswerte zur Haltung. Sie sind hilfreich, aber nicht immer geprüft – mehrere Quellen vergleichen.':
       'Dealer care sheets and forums provide practical keeping values. They are helpful but not always verified – compare several sources.',
+  'Höchstens zwei Monate auf einmal': 'At most two months at a time',
   'Im Artenkatalog kannst du sie als eigene Art mit Steckbrief anlegen.':
       'In the species catalogue you can create it as your own species with a care sheet.',
   'Im Heimnetz z. B. http://192.168.1.50:8080': 'On the home network e.g. http://192.168.1.50:8080',
@@ -535,6 +544,7 @@ const table = <String, String>{
   'In der EU verboten': 'Prohibited in the EU',
   'In der Web-App: „Mehr → Android-App verbinden“ – dann ist kein Passwort nötig.':
       'In the web app: “More → Connect Android app” – then no password is needed.',
+  'In diesem Zeitraum ist nichts fällig.': 'Nothing is due in this period.',
   'Inhalt': 'Content',
   'Interner Code': 'Internal code',
   'Intervall': 'Interval',
@@ -598,6 +608,8 @@ const table = <String, String>{
   'Keine Zahl': 'Not a number',
   'Keine Zeit': 'No time',
   'Keine passende Art': 'No matching species',
+  'Keine regelmäßigen Aufgaben – nur nachsehen, ob alles in Ordnung ist.':
+      'No regular tasks – just check that everything is fine.',
   'Kennung {0} · {1}': 'ID {0} · {1}',
   'Klima': 'Climate',
   'Kohlenhydrate': 'Carbohydrates',
@@ -642,6 +654,8 @@ const table = <String, String>{
   'Kopiert jedes neue nächtliche Backup zusätzlich an einen anderen Ort – per WebDAV (Nextcloud, Storage Box), auf eine SMB-Freigabe (Windows, NAS) oder in einen per NFS eingebundenen Ordner. So bleiben die Daten erhalten, wenn der Server selbst ausfällt. Fotos werden nur einmal übertragen, danach nur neue.':
       'Copies every new nightly backup to another place as well – via WebDAV (Nextcloud, storage box), to an SMB share (Windows, NAS) or into a folder mounted via NFS. So the data survives if the server itself fails. Photos are transferred only once, afterwards only new ones.',
   'Kritisch': 'Critical',
+  'Kästchen = an diesem Tag zu tun, nach dem Erledigen abhaken. Auffälligkeiten bitte bei „Notiz“ eintragen.':
+      'Box = to do on this day, tick it off when done. Please write anything unusual under “Note”.',
   'Königin': 'Queen',
   'Königinnen': 'Queens',
   'Königinnen: {0}': 'Queens: {0}',
@@ -853,6 +867,9 @@ const table = <String, String>{
   'Pflegeintervalle (Tage)': 'Care intervals (days)',
   'Pflegeplan': 'Care plan',
   'Pflegevertretung': 'Care cover',
+  'Pflegezettel': 'Care sheet',
+  'Pflegezettel drucken': 'Print care sheet',
+  'Pflegezettel erstellen': 'Create care sheet',
   'Plan löschen': 'Delete plan',
   'Plan ändern': 'Change plan',
   'Planen': 'Plan',
@@ -1163,6 +1180,7 @@ const table = <String, String>{
   'Zeitpunkt': 'Time',
   'Zeitraffer': 'Time-lapse',
   'Zeitraum': 'Period',
+  'Zeitraum und mindestens eine Kolonie wählen': 'Choose a period and at least one colony',
   'Zeitraum wählen': 'Choose period',
   'Zeitzone des Servers: {0}': 'Server time zone: {0}',
   'Zeitzone im Konto: {0}{1}': 'Account time zone: {0}{1}',
@@ -1277,6 +1295,7 @@ const table = <String, String>{
   'verkauft': 'sold',
   'verstorben': 'deceased',
   'viel': 'a lot',
+  'von {0}': 'from {0}',
   'wenig': 'a little',
   'winzig': 'tiny',
   'wird hochgeladen, sobald Verbindung besteht': 'uploaded as soon as there is a connection',
@@ -1286,6 +1305,7 @@ const table = <String, String>{
       'e.g. protein only every other day, refill honey water',
   'z. B. Reagenzglas noch halb voll': 'e.g. test tube still half full',
   'z. B. Regal A oben': 'e.g. Shelf A top',
+  'z. B. Telefonnummer': 'e.g. phone number',
   'z. B. erste Larven sichtbar': 'e.g. first larvae visible',
   'z. B. nachts keine Meldungen': 'e.g. no notifications at night',
   'z. B. „Noch ausreichend Wasser“ – steht dann in der Chronik':

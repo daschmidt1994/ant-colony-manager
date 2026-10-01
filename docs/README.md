@@ -131,7 +131,7 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 - [25-backup-ausser-haus.md](25-backup-ausser-haus.md) – jedes Backup zusätzlich per WebDAV, SMB oder NFS nach Nextcloud, NAS oder Storage Box; Wiederherstellen
 - [26-ki-zaehlung.md](26-ki-zaehlung.md) – Ameisen auf Fotos mit KI zählen (Claude, ChatGPT, OpenRouter), auch über mehrere Fotos addiert
 - [28-sso-share.md](28-sso-share.md) – Anmeldung mit SSO (OpenID Connect) und öffentlicher Share-Link pro Kolonie mit Forenbeitrag
-- [27-vertretung-aufschieben.md](27-vertretung-aufschieben.md) – Pflegevertretung für den Urlaub mit Anweisungen; Aufgaben mit Grund aufschieben
+- [27-vertretung-aufschieben.md](27-vertretung-aufschieben.md) – Pflegevertretung für den Urlaub mit Anweisungen, Pflegezettel zum Ausdrucken; Aufgaben mit Grund aufschieben
 - [20-benachrichtigungen.md](20-benachrichtigungen.md) – Benachrichtigungen per ntfy (auch eigener Server) und E-Mail: Themen, Häufigkeit, Ruhezeiten
 - [19-testinstanz.md](19-testinstanz.md) – zweite Instanz (`edge`) und Test-App „ACM Test“ zum Ausprobieren vor einem Release
 - [18-fdroid.md](18-fdroid.md) – Android-App über ein eigenes F-Droid-Repo installieren und aktualisieren
