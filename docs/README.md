@@ -130,6 +130,7 @@ Details und Testabdeckung: [05-sync.md §11](05-sync.md#11-umsetzungsstand-phase
 - [24-artenkatalog.md](24-artenkatalog.md) – Steckbriefe auf Englisch, invasive Arten (EU-Warnung), Schwarmflug-Kalender mit Erinnerung
 - [25-backup-ausser-haus.md](25-backup-ausser-haus.md) – jedes Backup zusätzlich per WebDAV, SMB oder NFS nach Nextcloud, NAS oder Storage Box; Wiederherstellen
 - [26-ki-zaehlung.md](26-ki-zaehlung.md) – Ameisen auf Fotos mit KI zählen (Claude, ChatGPT, OpenRouter), auch über mehrere Fotos addiert
+- [30-benutzer-verwalten.md](30-benutzer-verwalten.md) – Admins: Benutzer einladen, deaktivieren, Admin-Rechte, Passwort-Link, Konto löschen
 - [29-eigene-taetigkeiten.md](29-eigene-taetigkeiten.md) – eigene Tätigkeiten mit Intervall, z. B. Nest befeuchten
 - [28-sso-share.md](28-sso-share.md) – Anmeldung mit SSO (OpenID Connect) und öffentlicher Share-Link pro Kolonie mit Forenbeitrag
 - [27-vertretung-aufschieben.md](27-vertretung-aufschieben.md) – Pflegevertretung für den Urlaub mit Anweisungen, Pflegezettel zum Ausdrucken; Aufgaben mit Grund aufschieben

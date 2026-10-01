@@ -59,15 +59,7 @@ Map<String, dynamic> offsiteBody({
   ),
 };
 
-String _size(num bytes) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  var v = bytes.toDouble(), i = 0;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return '${i == 0 ? v.toStringAsFixed(0) : S.decimal(v)} ${units[i]}';
-}
+String _size(num bytes) => S.bytes(bytes);
 
 class OffsiteScreen extends ConsumerWidget {
   const OffsiteScreen({super.key});

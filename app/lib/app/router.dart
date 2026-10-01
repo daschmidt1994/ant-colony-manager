@@ -20,6 +20,7 @@ import '../features/settings/feeds_screen.dart';
 import '../features/care_cover/care_cover_screen.dart';
 import '../features/settings/ai_screen.dart';
 import '../features/settings/oidc_screen.dart';
+import '../features/settings/users_screen.dart';
 import '../features/settings/mqtt_screen.dart';
 import '../features/settings/offsite_screen.dart';
 import '../features/food_stock/food_stock_screen.dart';
@@ -207,6 +208,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'mqtt', builder: (_, _) => const MqttScreen()),
                   GoRoute(path: 'ai', builder: (_, _) => const AiScreen()),
                   GoRoute(path: 'oidc', builder: (_, _) => const OidcScreen()),
+                  GoRoute(path: 'users', builder: (_, _) => const UsersScreen()),
                   GoRoute(path: 'care-covers', builder: (_, _) => const CareCoverScreen()),
                   GoRoute(path: 'devices', builder: (_, _) => const DevicesScreen()),
                   GoRoute(

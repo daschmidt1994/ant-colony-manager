@@ -255,6 +255,15 @@ class SettingsScreen extends ConsumerWidget {
               SectionHeader(tr('Server-Verwaltung')),
               Card(
                 child: ListTile(
+                  leading: const Icon(Icons.group_outlined),
+                  title: Text(tr('Benutzer')),
+                  subtitle: Text(tr('Einladen, deaktivieren, Admin-Rechte, Passwort-Link, löschen')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/users'),
+                ),
+              ),
+              Card(
+                child: ListTile(
                   leading: const Icon(Icons.outgoing_mail),
                   title: const Text('E-Mail-Versand'),
                   subtitle: Text(tr('Postausgangsserver für Passwort vergessen, Überblick und Benachrichtigungen')),

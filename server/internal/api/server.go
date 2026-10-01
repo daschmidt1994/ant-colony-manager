@@ -202,6 +202,7 @@ func (s *Server) Handler() *chi.Mux {
 				r.Get("/users", s.adminUsers)
 				r.Patch("/users/{id}", s.adminUpdateUser)
 				r.Post("/users/{id}/password-reset-link", s.adminResetLink)
+				r.With(s.rateLimitUser(s.limSensitive)).Post("/users/{id}/delete", s.adminDeleteUser)
 				r.Get("/system", s.adminSystem)
 				r.Get("/smtp", s.getSMTP)
 				r.Put("/smtp", s.setSMTP)
