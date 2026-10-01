@@ -31,6 +31,8 @@ class MainActivity : FlutterActivity() {
                     result.success(pm.isIgnoringBatteryOptimizations(packageName))
                 }
                 "manufacturer" -> result.success(Build.MANUFACTURER)
+                // the way back after sign-in with SSO: <app id>://acm/sso
+                "packageName" -> result.success(packageName)
                 "openNotificationSettings" -> {
                     open(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
                     result.success(null)

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"net/netip"
 	"sync"
 	"time"
@@ -31,8 +32,11 @@ type Service struct {
 	MQTTDial func(context.Context, MQTTOptions) (MQTTConn, error)
 	// AIBaseURL overrides the Anthropic API address (tests).
 	AIBaseURL string
+	// OIDCClient talks to the SSO provider (tests replace it).
+	OIDCClient *http.Client
 
 	mqtt       mqttState
+	oidc       oidcRuntime
 	aiJobsMu   sync.Mutex
 	aiJobs     map[uuid.UUID]*aiJob
 	columns    map[string]map[string]bool // table -> column set (loaded at start)

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/session.dart';
 import '../features/auth/auth_screens.dart';
+import '../features/auth/sso.dart';
 import '../features/colonies/colony_detail_screen.dart';
 import '../features/colonies/colony_form_screen.dart';
 import '../features/colonies/colony_list_screen.dart';
@@ -18,6 +19,7 @@ import '../features/sensors/sensors_screen.dart';
 import '../features/settings/feeds_screen.dart';
 import '../features/care_cover/care_cover_screen.dart';
 import '../features/settings/ai_screen.dart';
+import '../features/settings/oidc_screen.dart';
 import '../features/settings/mqtt_screen.dart';
 import '../features/settings/offsite_screen.dart';
 import '../features/food_stock/food_stock_screen.dart';
@@ -31,7 +33,16 @@ import '../features/stats/stats_screens.dart';
 import '../features/timeline/timeline_screen.dart';
 
 /// Paths reachable without an account.
-const _publicPaths = {'/connect', '/connect/scan', '/login', '/setup', '/register', '/reset-password', '/splash'};
+const _publicPaths = {
+  '/connect',
+  '/connect/scan',
+  '/login',
+  '/setup',
+  '/register',
+  '/reset-password',
+  '/splash',
+  '/sso',
+};
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -52,7 +63,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         case NeedsServer():
           return path == '/connect' || path == '/connect/scan' ? null : withFrom('/connect');
         case SignedOut(:final setupRequired):
-          if (path == '/register' || path == '/reset-password' || path == '/connect/scan') return null;
+          const open = {'/register', '/reset-password', '/connect/scan', '/sso'};
+          if (open.contains(path)) return null;
           final want = setupRequired ? '/setup' : '/login';
           return path == want ? null : withFrom(want);
         case SignedIn():
@@ -65,6 +77,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/connect', builder: (_, _) => const ServerScreen()),
       GoRoute(path: '/connect/scan', builder: (_, _) => const ConnectScanScreen()),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
+      GoRoute(
+        path: '/sso',
+        builder: (_, s) => SsoLandingScreen(code: s.uri.queryParameters['code'], error: s.uri.queryParameters['error']),
+      ),
       GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
       GoRoute(
         path: '/register',
@@ -184,6 +200,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'offsite', builder: (_, _) => const OffsiteScreen()),
                   GoRoute(path: 'mqtt', builder: (_, _) => const MqttScreen()),
                   GoRoute(path: 'ai', builder: (_, _) => const AiScreen()),
+                  GoRoute(path: 'oidc', builder: (_, _) => const OidcScreen()),
                   GoRoute(path: 'care-covers', builder: (_, _) => const CareCoverScreen()),
                   GoRoute(path: 'devices', builder: (_, _) => const DevicesScreen()),
                   GoRoute(
