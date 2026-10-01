@@ -23,6 +23,12 @@ Microsoft – kann ACM daran anbinden. Auf der Anmeldeseite (App und Web) ersche
 
 `PUBLIC_APP_URL` muss die Adresse sein, unter der der Browser ACM erreicht – sonst passt die Weiterleitung nicht.
 
+### Pocket ID
+
+Pocket ID meldet E-Mail-Adressen standardmäßig als **nicht bestätigt**. Dann erscheint „… marks the e-mail address
+… as not verified“. Abhilfe in Pocket ID: *Anwendungskonfiguration → „Emails Verified“* einschalten (oder beim
+einzelnen Benutzer die E-Mail als bestätigt markieren).
+
 ### Welches Konto wird angemeldet?
 
 1. Hat sich die Person schon einmal per SSO angemeldet, gilt diese Verknüpfung (auch wenn sich die E-Mail beim
