@@ -59,6 +59,18 @@ var enTexts = map[string]string{
 	"Nächste Aufgabe": "Next task",
 	"Ameisenkolonie":  "Ant colony",
 	"%s erledigt":     "%s done",
+	// public colony page
+	"Notiz":               "Note",
+	"Messung":             "Measurement",
+	"Koloniegröße":        "Colony size",
+	"Brut":                "Brood",
+	"Umzug":               "Move",
+	"Königin":             "Queen",
+	"Winterruhe begonnen": "Hibernation started",
+	"Winterruhe beendet":  "Hibernation ended",
+	"Aufgabe erledigt":    "Task done",
+	"Aufgeschoben":        "Deferred",
+	"über %d":             "over %d",
 	// AI counting
 	"Kein Guthaben bei Anthropic – unter console.anthropic.com → Billing aufladen": "No credit at Anthropic – top it up at console.anthropic.com → Billing",
 	"Die KI lehnt den API-Schlüssel ab – in Server-Verwaltung → KI-Zählung prüfen": "The AI refuses the API key – check it in Server administration → AI counting",

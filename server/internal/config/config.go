@@ -18,7 +18,6 @@ type Config struct {
 	ListenAddr   string
 	InstanceName string
 	BackupDir    string // read-only view of backup status (admin UI)
-	UpdateDir    string // request/status of the optional updater (update button)
 
 	PublicURL  *url.URL
 	LegacyURLs []*url.URL
@@ -152,7 +151,6 @@ func LoadFrom(getenv Getenv) (*Config, error) {
 		ListenAddr:         str("LISTEN_ADDR", ":8080"),
 		InstanceName:       str("INSTANCE_NAME", "Ant Colony Manager"),
 		BackupDir:          str("BACKUP_STATUS_DIR", "/data/backups"),
-		UpdateDir:          str("UPDATE_DIR", "/data/update"),
 		StoragePath:        str("STORAGE_PATH", "/data/uploads"),
 		UploadMaxBytes:     int64(integer("UPLOAD_MAX_MB", 20)) << 20,
 		PhotoKeepOriginal:  boolean("PHOTO_KEEP_ORIGINAL", false),

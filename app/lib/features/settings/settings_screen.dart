@@ -291,6 +291,15 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => context.push('/settings/ai'),
                 ),
               ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.key_outlined),
+                  title: Text(tr('Anmeldung mit SSO')),
+                  subtitle: Text(tr('Authentik, Keycloak, Authelia, Google … (OpenID Connect)')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/oidc'),
+                ),
+              ),
             ],
             SectionHeader(tr('Etiketten')),
             Card(
@@ -374,7 +383,6 @@ class SettingsScreen extends ConsumerWidget {
                     },
                   ),
                   const ServerClockTile(),
-                  if (auth.user.isAdmin) const UpdateNowTile(),
                   if (!kIsWeb)
                     ListTile(
                       leading: const Icon(Icons.swap_horiz),

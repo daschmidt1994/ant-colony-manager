@@ -262,6 +262,35 @@ class AuthController extends Notifier<AuthState> {
     await _signIn('/api/v1/auth/device-link/redeem', {'code': code});
   }
 
+  /// Sign-in with SSO, step 2: the one-time code from the way back (/sso?code=…).
+  Future<void> redeemSso(String code) => _signIn('/api/v1/auth/oidc/redeem', {'code': code});
+
+  /// Sign-in with SSO, step 1: where to open the browser – the server sends it
+  /// to the provider and back to this app ([app] = Android app id).
+  Uri ssoStartUrl({String? app}) {
+    final url = switch (state) {
+      SignedOut(:final serverUrl) => serverUrl,
+      SignedIn(:final serverUrl) => serverUrl,
+      _ => kIsWeb ? Uri.base.origin : '',
+    };
+    return Uri.parse('$url/api/v1/auth/oidc/start').replace(queryParameters: {'app': ?app});
+  }
+
+  /// Public server information (e.g. whether sign-in with SSO is offered).
+  Future<Map<String, dynamic>?> instanceInfo() async {
+    final url = switch (state) {
+      SignedOut(:final serverUrl) => serverUrl,
+      SignedIn(:final serverUrl) => serverUrl,
+      _ => kIsWeb ? Uri.base.origin : null,
+    };
+    if (url == null) return null;
+    try {
+      return await _client(url).public('GET', '/api/v1/instance') as Map<String, dynamic>;
+    } on Exception {
+      return null;
+    }
+  }
+
   /// Called when the server rejected the session (sync reports loginRequired).
   Future<void> sessionExpired() async {
     final s = state;

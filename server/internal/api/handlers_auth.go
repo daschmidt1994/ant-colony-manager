@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -53,6 +55,7 @@ func (s *Server) instance(w http.ResponseWriter, r *http.Request) {
 		"registration_mode": s.cfg.RegistrationMode,
 		"setup_required":    setup,
 		"password_reset":    s.svc.Mail.Enabled(),
+		"sso":               s.svc.OIDCInfo(r.Context()),
 		// server clock and time zone (TZ) – the app shows them and warns when
 		// the device clock is off
 		"server_time": s.svc.Now().UTC(),
@@ -395,4 +398,67 @@ func (s *Server) deleteMe(w http.ResponseWriter, r *http.Request) {
 	}
 	s.clearRefreshCookie(w)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// ---------------------------------------------------------------------------
+// Sign-in with OIDC/SSO
+
+// oidcStart sends the browser to the SSO provider (?app=<Android app id>
+// for the way back into the app).
+func (s *Server) oidcStart(w http.ResponseWriter, r *http.Request) {
+	if ok, retry := s.limAnon.Allow(clientIP(r).String()); !ok {
+		s.problem(w, r, service.RateLimited(retry))
+		return
+	}
+	to, err := s.svc.OIDCStart(r.Context(), r.URL.Query().Get("app"))
+	if err != nil {
+		var p *service.Problem
+		if errors.As(err, &p) {
+			http.Redirect(w, r, s.cfg.PublicURL.String()+"/sso?error="+url.QueryEscape(p.Title), http.StatusFound)
+			return
+		}
+		s.problem(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	http.Redirect(w, r, to, http.StatusFound)
+}
+
+// oidcCallback: the provider sends the browser back here.
+func (s *Server) oidcCallback(w http.ResponseWriter, r *http.Request) {
+	if ok, retry := s.limAnon.Allow(clientIP(r).String()); !ok {
+		s.problem(w, r, service.RateLimited(retry))
+		return
+	}
+	q := r.URL.Query()
+	providerErr := q.Get("error_description")
+	if providerErr == "" {
+		providerErr = q.Get("error")
+	}
+	to := s.svc.OIDCCallback(r.Context(), q.Get("state"), q.Get("code"), providerErr, s.meta(r, nil))
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	http.Redirect(w, r, to, http.StatusFound)
+}
+
+// oidcRedeem exchanges the one-time code for a session.
+func (s *Server) oidcRedeem(w http.ResponseWriter, r *http.Request) {
+	if ok, retry := s.limLoginIP.Allow(clientIP(r).String()); !ok {
+		s.problem(w, r, service.RateLimited(retry))
+		return
+	}
+	var in struct {
+		Code   string              `json:"code"`
+		Device *service.DeviceInfo `json:"device,omitempty"`
+	}
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	sess, err := s.svc.RedeemSSOCode(r.Context(), in.Code, s.meta(r, in.Device))
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.respondSession(w, r, http.StatusOK, sess)
 }

@@ -60,6 +60,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="${appLinkHost}" android:pathPrefix="/c/" />
             </intent-filter>
+            <!-- Back from sign-in with SSO: the server redirects the browser to
+                 <app id>://acm/sso?code=… (only this app's id is accepted there). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="${applicationId}" android:host="acm" android:pathPrefix="/sso" />
+            </intent-filter>
             <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
         </activity>
         <!-- Don't delete the meta-data below.

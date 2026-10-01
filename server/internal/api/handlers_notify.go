@@ -201,24 +201,6 @@ func (s *Server) setHomeAssistantMe(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusOK, st)
 }
 
-func (s *Server) getUpdater(w http.ResponseWriter, r *http.Request) {
-	st, err := s.svc.UpdaterStatus(r.Context(), actorOf(r))
-	if err != nil {
-		s.problem(w, r, err)
-		return
-	}
-	s.writeJSON(w, http.StatusOK, st)
-}
-
-func (s *Server) startUpdate(w http.ResponseWriter, r *http.Request) {
-	st, err := s.svc.StartUpdate(r.Context(), actorOf(r), service.ClientMeta{IP: clientIP(r)})
-	if err != nil {
-		s.problem(w, r, err)
-		return
-	}
-	s.writeJSON(w, http.StatusAccepted, st)
-}
-
 func (s *Server) getAI(w http.ResponseWriter, r *http.Request) {
 	st, err := s.svc.GetAISettings(r.Context(), actorOf(r))
 	if err != nil {
@@ -240,4 +222,35 @@ func (s *Server) setAI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.writeJSON(w, http.StatusOK, st)
+}
+
+func (s *Server) getOIDC(w http.ResponseWriter, r *http.Request) {
+	st, err := s.svc.GetOIDCSettings(r.Context(), actorOf(r))
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, st)
+}
+
+func (s *Server) setOIDC(w http.ResponseWriter, r *http.Request) {
+	var in service.OIDCSettings
+	if err := decode(r, &in); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	st, err := s.svc.SetOIDCSettings(r.Context(), actorOf(r), in, service.ClientMeta{IP: clientIP(r)})
+	if err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, st)
+}
+
+func (s *Server) testOIDC(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.TestOIDC(r.Context(), actorOf(r)); err != nil {
+		s.problem(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

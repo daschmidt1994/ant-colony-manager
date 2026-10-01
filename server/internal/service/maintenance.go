@@ -26,6 +26,7 @@ func (s *Service) Maintenance(ctx context.Context) error {
 		`DELETE FROM sessions WHERE expires_at < now() - interval '7 days' OR revoked_at < now() - interval '30 days'`,
 		`DELETE FROM device_link_codes WHERE expires_at < now() - interval '1 day'`,
 		`DELETE FROM password_resets WHERE expires_at < now() - interval '1 day'`,
+		`DELETE FROM sso_codes WHERE expires_at < now()`,
 		`DELETE FROM invitations WHERE accepted_at IS NULL AND expires_at < now() - interval '30 days'`,
 		`DELETE FROM audit_log WHERE at < now() - interval '180 days'`,
 		`DELETE FROM sync_conflicts WHERE created_at < now() - interval '90 days'`,
