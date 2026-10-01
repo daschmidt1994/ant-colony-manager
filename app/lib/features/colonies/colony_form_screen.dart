@@ -12,6 +12,9 @@ import '../../shared/widgets.dart';
 import '../species/species_screens.dart';
 import '../../app/i18n.dart';
 
+/// Suggested own activities (name, days) – one tap in the colony form.
+List<(String, int)> get customTaskSuggestions => [(tr('Nest befeuchten'), 7)];
+
 /// Default care intervals for new colonies (days).
 const defaultIntervals = {'protein': 3.0, 'carbohydrate': 5.0, 'water': 2.0, 'cleaning': 7.0};
 
@@ -34,6 +37,9 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
   final _seller = TextEditingController();
   final _findLocation = TextEditingController();
   final _intervals = <String, TextEditingController>{for (final t in defaultIntervals.keys) t: TextEditingController()};
+
+  /// Own activities with their own interval, e.g. „Nest befeuchten“ every 7 days.
+  final _custom = <({String? id, TextEditingController title, TextEditingController days})>[];
   String _status = 'active';
   String _gyne = 'unknown';
   String? _origin;
@@ -67,6 +73,10 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
     _species.removeListener(_suggestName);
     _species.removeListener(_dropStaleLink);
     _speciesFocus.dispose();
+    for (final t in _custom) {
+      t.title.dispose();
+      t.days.dispose();
+    }
     super.dispose();
   }
 
@@ -104,7 +114,21 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
       final ctl = _intervals[s.taskType];
       if (ctl != null) ctl.text = _fmt(s.intervalDays);
     }
+    for (final s in repo.customTasks(c.id)) {
+      _addCustom(id: s.id, title: s.title ?? '', days: s.intervalDays);
+    }
   }
+
+  void _addCustom({String? id, String title = '', double? days}) => _custom.add((
+    id: id,
+    title: TextEditingController(text: title),
+    days: TextEditingController(text: days == null ? '' : _fmt(days)),
+  ));
+
+  List<({String? id, String title, double days})> get _customTasks => [
+    for (final t in _custom)
+      (id: t.id, title: t.title.text, days: double.tryParse(t.days.text.trim().replaceAll(',', '.')) ?? 0),
+  ];
 
   static String _fmt(double d) => d == d.roundToDouble() ? d.toInt().toString() : S.decimal(d);
 
@@ -339,6 +363,69 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
                     tr('Leer lassen = keine Erinnerung.'),
                     style: TextStyle(color: context.colors.muted, fontSize: 12),
                   ),
+                  SectionHeader(tr('Eigene Tätigkeiten')),
+                  for (final t in _custom)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextFormField(
+                              controller: t.title,
+                              textCapitalization: TextCapitalization.sentences,
+                              maxLength: 60,
+                              decoration: InputDecoration(labelText: tr('Tätigkeit'), counterText: ''),
+                              validator: (v) => (v ?? '').trim().isEmpty ? tr('Name fehlt') : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: t.days,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+                              decoration: InputDecoration(labelText: tr('alle … Tage')),
+                              validator: (v) => (double.tryParse((v ?? '').trim().replaceAll(',', '.')) ?? 0) <= 0
+                                  ? tr('Tage?')
+                                  : null,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: tr('Entfernen'),
+                            icon: const Icon(Icons.close),
+                            onPressed: () => setState(() {
+                              _custom.remove(t);
+                              t.title.dispose();
+                              t.days.dispose();
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final (name, days) in customTaskSuggestions)
+                        if (!_custom.any((t) => t.title.text.trim().toLowerCase() == name.toLowerCase()))
+                          ActionChip(
+                            avatar: const Icon(Icons.add, size: 18),
+                            label: Text(tr('{0} (alle {1} Tage)', [name, days])),
+                            onPressed: () => setState(() => _addCustom(title: name, days: days.toDouble())),
+                          ),
+                      ActionChip(
+                        avatar: const Icon(Icons.add, size: 18),
+                        label: Text(tr('Eigene Tätigkeit')),
+                        onPressed: () => setState(() => _addCustom()),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tr('Erscheinen als Schnellaktion, mit Erinnerung, im Kalender und in Home Assistant.'),
+                    style: TextStyle(color: context.colors.muted, fontSize: 12),
+                  ),
                   const SizedBox(height: 8),
                   ExpansionTile(
                     tilePadding: EdgeInsets.zero,
@@ -483,6 +570,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
             if (e.value > 0) e.key: e.value,
         },
       );
+      repo.setCustomTasks(id, _customTasks);
       if (_workers != null) {
         repo.logEvent(
           id,
@@ -501,6 +589,7 @@ class _ColonyFormScreenState extends ConsumerState<ColonyFormScreen> {
       };
       if (changed.isNotEmpty) repo.updateColony(c.id, changed);
       repo.setIntervals(c.id, intervals);
+      repo.setCustomTasks(c.id, _customTasks);
       context.pop();
     }
   }

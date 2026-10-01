@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../app/strings.dart';
 import '../../app/theme.dart';
 import '../../data/repositories/colony_repository.dart';
+import '../../domain/due.dart';
 import '../../domain/models.dart';
 import '../../shared/widgets.dart';
 import '../../app/i18n.dart';
@@ -61,6 +62,18 @@ void quickWater(BuildContext context, WidgetRef ref, Colony colony) {
     },
   );
   _undoable(ScaffoldMessenger.of(context), repo, e, details: () => showWaterSheet(context, ref, colony, edit: e));
+}
+
+/// An own activity („Nest befeuchten“) in one tap.
+void quickCustomTask(BuildContext context, WidgetRef ref, Colony colony, Schedule task) {
+  final repo = _repo(ref);
+  _undoable(ScaffoldMessenger.of(context), repo, repo.logCustomTask(colony.id, task));
+}
+
+/// Icon of an own activity: a drop for anything with water, else a tick.
+IconData customTaskIcon(String? title) {
+  final t = (title ?? '').toLowerCase();
+  return RegExp(r'feucht|spr\u00fch|wasser|nass|moist|spray|water|mist').hasMatch(t) ? Icons.opacity : Icons.task_alt;
 }
 
 void quickCheck(BuildContext context, WidgetRef ref, Colony colony) {
