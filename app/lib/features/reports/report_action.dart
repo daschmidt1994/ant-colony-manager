@@ -37,25 +37,30 @@ Future<void> openColonyReport(BuildContext context, WidgetRef ref, Colony colony
     );
     final name = 'koloniebericht-${colony.name.replaceAll(RegExp(r'[^A-Za-z0-9äöüÄÖÜß_-]+'), '-')}.pdf';
     if (!context.mounted) return;
-    if (kIsWeb) {
-      downloadFile(name, bytes, 'application/pdf');
-      return;
-    }
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(tr('Koloniebericht'))),
-          body: PdfPreview(
-            build: (_) async => bytes,
-            canChangeOrientation: false,
-            canChangePageFormat: false,
-            canDebug: false,
-            pdfFileName: name,
-          ),
-        ),
-      ),
-    );
+    await showPdf(context, bytes, name: name, title: tr('Koloniebericht'));
   } catch (e) {
     if (context.mounted) showError(context, e);
   }
+}
+
+/// Web downloads the PDF, Android shows a preview with print/share.
+Future<void> showPdf(BuildContext context, Uint8List bytes, {required String name, required String title}) async {
+  if (kIsWeb) {
+    downloadFile(name, bytes, 'application/pdf');
+    return;
+  }
+  await Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: PdfPreview(
+          build: (_) async => bytes,
+          canChangeOrientation: false,
+          canChangePageFormat: false,
+          canDebug: false,
+          pdfFileName: name,
+        ),
+      ),
+    ),
+  );
 }

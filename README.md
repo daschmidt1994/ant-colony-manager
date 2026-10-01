@@ -11,7 +11,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 **Pflege**
 - **NFC-Tags und QR-Etiketten** pro Kolonie, **Pflege-Rundgang** für viele Kolonien nacheinander
 - **Fälligkeiten mit Ampel**, „Morgen“ oder **Aufschieben mit Grund** („Noch ausreichend Wasser“) – [docs/27](docs/27-vertretung-aufschieben.md)
-- **Pflegevertretung** – Kolonien für den Urlaub zeitlich begrenzt mit Anweisungen abgeben – [docs/27](docs/27-vertretung-aufschieben.md)
+- **Pflegevertretung** – Kolonien für den Urlaub zeitlich begrenzt mit Anweisungen abgeben, oder ein **Pflegezettel zum Ausdrucken** für Helfer ohne Konto – [docs/27](docs/27-vertretung-aufschieben.md)
 - **Timeline, Fotos** (Wachstumsvergleich, Zeitraffer), **Statistik**, Koloniebericht als PDF, Winterruhe
 - **Ameisen mit KI zählen** – Claude, ChatGPT oder OpenRouter, auch über mehrere Fotos addiert – [docs/26](docs/26-ki-zaehlung.md)
 - **Artenkatalog** mit Steckbriefen (Deutsch/Englisch), EU-Verbotsliste, Schwarmflug-Kalender – [docs/24](docs/24-artenkatalog.md)

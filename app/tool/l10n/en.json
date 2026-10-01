@@ -1219,5 +1219,21 @@
  "Authentik, Keycloak, Authelia, Google … (OpenID Connect)": "Authentik, Keycloak, Authelia, Google … (OpenID Connect)",
  "Der Knopf „Mit … anmelden“ erscheint aber erst, wenn „Anmeldung mit SSO anbieten“ eingeschaltet und gespeichert ist.": "But the “Sign in with …” button only appears once “Offer sign-in with SSO” is switched on and saved.",
  "Einschalten und speichern": "Switch on and save",
- "Erst damit erscheint der Knopf auf der Anmeldeseite": "Only then does the button appear on the sign-in page"
+ "Erst damit erscheint der Knopf auf der Anmeldeseite": "Only then does the button appear on the sign-in page",
+ "Pflegezettel drucken": "Print care sheet",
+ "Für jemanden ohne Konto: was an welchem Tag zu tun ist, zum Abhaken": "For someone without an account: what to do on which day, to tick off",
+ "Pflegezettel": "Care sheet",
+ "Keine regelmäßigen Aufgaben – nur nachsehen, ob alles in Ordnung ist.": "No regular tasks – just check that everything is fine.",
+ "In diesem Zeitraum ist nichts fällig.": "Nothing is due in this period.",
+ "Datum": "Date",
+ "Erstellt am {0} mit Ant Colony Manager": "Created on {0} with Ant Colony Manager",
+ "von {0}": "from {0}",
+ "Bei Fragen oder Problemen: {0}": "Questions or problems: {0}",
+ "Kästchen = an diesem Tag zu tun, nach dem Erledigen abhaken. Auffälligkeiten bitte bei „Notiz“ eintragen.": "Box = to do on this day, tick it off when done. Please write anything unusual under “Note”.",
+ "Zeitraum und mindestens eine Kolonie wählen": "Choose a period and at least one colony",
+ "Höchstens zwei Monate auf einmal": "At most two months at a time",
+ "Für Nachbarn oder Familie ohne Konto: ein Zettel mit allem, was an welchem Tag zu tun ist – aus deinen Pflegeintervallen, zum Abhaken.": "For neighbours or family without an account: a sheet with everything to do on which day – from your care intervals, to tick off.",
+ "Erreichbar unter (optional)": "Reachable at (optional)",
+ "z. B. Telefonnummer": "e.g. phone number",
+ "Pflegezettel erstellen": "Create care sheet"
 }
