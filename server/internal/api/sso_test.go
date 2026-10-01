@@ -26,6 +26,7 @@ type fakeIdP struct {
 	mu     sync.Mutex
 	nonce  string
 	claims map[string]any // email, email_verified, name, sub
+	info   map[string]any // answer of the userinfo endpoint
 }
 
 func newFakeIdP(t *testing.T) *fakeIdP {
@@ -38,11 +39,21 @@ func newFakeIdP(t *testing.T) *fakeIdP {
 	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{
 			"issuer": p.srv.URL, "authorization_endpoint": p.srv.URL + "/authorize", "token_endpoint": p.srv.URL + "/token",
-			"jwks_uri": p.srv.URL + "/jwks", "id_token_signing_alg_values_supported": []string{"RS256"},
+			"jwks_uri": p.srv.URL + "/jwks", "userinfo_endpoint": p.srv.URL + "/userinfo", "id_token_signing_alg_values_supported": []string{"RS256"},
 		})
 	})
 	mux.HandleFunc("/jwks", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{Key: &key.PublicKey, KeyID: "k1", Algorithm: "RS256", Use: "sig"}}})
+	})
+	mux.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		if r.Header.Get("Authorization") != "Bearer at" || p.info == nil {
+			w.WriteHeader(401)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(p.info)
 	})
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
@@ -148,8 +159,22 @@ func TestSSO(t *testing.T) {
 	}
 	// unverified e-mail is never matched
 	back = signIn("", map[string]any{"sub": "u-x", "email": anna.Email, "email_verified": false})
-	if back.Query().Get("code") != "" {
-		t.Fatal("unverified e-mail signed in")
+	if back.Query().Get("code") != "" || !strings.Contains(back.Query().Get("error"), "not verified") {
+		t.Fatalf("unverified e-mail: %v", back)
+	}
+	// e-mail only from the userinfo endpoint (not in the ID token)
+	idp.mu.Lock()
+	idp.info = map[string]any{"sub": "u-anna2", "email": anna.Email, "email_verified": true}
+	idp.mu.Unlock()
+	back = signIn("", map[string]any{"sub": "u-anna2"})
+	if back.Query().Get("code") == "" {
+		t.Fatalf("e-mail from userinfo not used: %v", back)
+	}
+	idp.mu.Lock()
+	idp.info = nil
+	idp.mu.Unlock()
+	if back = signIn("", map[string]any{"sub": "u-y"}); !strings.Contains(back.Query().Get("error"), "scope") {
+		t.Fatalf("no e-mail at all: %v", back)
 	}
 	admin.Do("PUT", "/api/v1/admin/oidc", map[string]any{"enabled": true, "issuer": idp.srv.URL, "client_id": "acm",
 		"label": "Authentik", "allow_signup": true}).Must(t, 200)

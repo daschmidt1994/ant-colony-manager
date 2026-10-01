@@ -294,7 +294,13 @@ func (s *Service) OIDCCallback(ctx context.Context, state, code, providerError s
 	if err := idt.Claims(&claims); err != nil {
 		return fail("the answer of the SSO provider is not readable", err)
 	}
-	user, err := s.ssoUser(ctx, conf, idt.Issuer, idt.Subject, claims.Email, claims.EmailVerified == nil || *claims.EmailVerified,
+	verified := claims.EmailVerified == nil || *claims.EmailVerified
+	if claims.Email == "" { // some providers send it only from the userinfo endpoint
+		if ui, err := p.UserInfo(hctx, oauth2.StaticTokenSource(tok)); err == nil && ui.Email != "" {
+			claims.Email, verified = ui.Email, ui.EmailVerified
+		}
+	}
+	user, err := s.ssoUser(ctx, conf, idt.Issuer, idt.Subject, claims.Email, verified,
 		firstNonEmpty(claims.Name, claims.Username), meta)
 	if err != nil {
 		var p *Problem
@@ -333,8 +339,12 @@ func (s *Service) ssoUser(ctx context.Context, conf storedOIDC, issuer, subject,
 			return err
 		}
 		email = strings.ToLower(strings.TrimSpace(email))
-		if email == "" || !verified {
-			return Invalid("email", "the SSO provider sends no verified e-mail address – it is needed to find the account")
+		if email == "" {
+			return Invalid("email", "the SSO provider sends no e-mail address – allow the scope \"email\" for this client there")
+		}
+		if !verified {
+			return Invalid("email", "the SSO provider marks the e-mail address %s as not verified – mark it as verified there "+
+				"(Pocket ID: Application Configuration → Emails Verified)", email)
 		}
 		err = tx.QueryRow(ctx, `SELECT id FROM users WHERE email = $1`, email).Scan(&user)
 		switch {
