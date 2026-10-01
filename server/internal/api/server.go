@@ -94,6 +94,9 @@ func (s *Server) Handler() *chi.Mux {
 			r.Post("/password/forgot", s.forgotPassword)
 			r.Post("/password/reset", s.resetPassword)
 			r.Post("/device-link/redeem", s.redeemDeviceLink)
+			r.Get("/oidc/start", s.oidcStart)
+			r.Get("/oidc/callback", s.oidcCallback)
+			r.Post("/oidc/redeem", s.oidcRedeem)
 			r.Group(func(r chi.Router) {
 				r.Use(s.authenticated)
 				r.Post("/logout", s.logout)
@@ -164,6 +167,10 @@ func (s *Server) Handler() *chi.Mux {
 			r.Post("/colonies/{id}/feedings/repeat-last", s.repeatLastFeeding)
 			r.With(s.rateLimitUser(s.limScan)).Post("/colonies/{id}/ai-count", s.aiCount)
 			r.Get("/ai", s.aiInfo)
+			r.Get("/colonies/{id}/public-links", s.listPublicLinks)
+			r.Post("/colonies/{id}/public-links", s.createPublicLink)
+			r.Patch("/public-links/{id}", s.updatePublicLink)
+			r.Delete("/public-links/{id}", s.revokePublicLink)
 			r.Get("/care-covers", s.listCareCovers)
 			r.Post("/care-covers", s.createCareCover)
 			r.Get("/care-covers/{id}", s.getCareCover)
@@ -208,6 +215,9 @@ func (s *Server) Handler() *chi.Mux {
 				r.With(s.rateLimitUser(s.limScan)).Post("/mqtt/test", s.testMQTT)
 				r.With(s.rateLimitUser(s.limScan)).Post("/home-assistant/test", s.testHomeAssistant)
 				r.Get("/ai", s.getAI)
+				r.Get("/oidc", s.getOIDC)
+				r.Put("/oidc", s.setOIDC)
+				r.With(s.rateLimitUser(s.limScan)).Post("/oidc/test", s.testOIDC)
 				r.Put("/ai", s.setAI)
 			})
 
@@ -225,6 +235,9 @@ func (s *Server) Handler() *chi.Mux {
 	})
 
 	r.Get("/c/{token}", s.scanLanding)
+	r.Get("/p/{token}", s.publicPage)
+	r.Get("/p/{token}/forum.txt", s.publicForum)
+	r.Get("/p/{token}/photos/{id}/{variant}", s.publicPhoto)
 	r.NotFound(s.webApp)
 	return r
 }

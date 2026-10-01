@@ -66,12 +66,36 @@ paths:
       summary: "Scan landing page (QR/NFC without app). Contains no colony data."
       parameters: [{ $ref: "#/components/parameters/Token" }]
       responses: { "200": { description: "HTML" } }
+  /p/{token}:
+    get:
+      tags: [colonies]
+      security: []
+      summary: "Public read-only page of a colony (share link): facts, growth, photos and timeline as chosen by the owner; no scripts, noindex"
+      parameters: [{ name: token, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: "HTML" }, "404": { description: "unknown or revoked" } }
+  /p/{token}/forum.txt:
+    get:
+      tags: [colonies]
+      security: []
+      summary: "Forum post (BBCode) for the public page: facts, up to 6 photos, latest entries, link"
+      parameters: [{ name: token, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: "text/plain" }, "404": { description: "unknown or revoked" } }
+  /p/{token}/photos/{id}/{variant}:
+    get:
+      tags: [colonies]
+      security: []
+      summary: "Photo of a public page: thumb.jpg or display.jpg (only when the page shows photos)"
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: variant, in: path, required: true, schema: { type: string, enum: [thumb.jpg, display.jpg] } }
+      responses: { "200": { description: "image/jpeg" }, "404": { description: "not found" } }
 
   /api/v1/instance:
     get:
       tags: [system]
       security: []
-      summary: "Public instance information (used by the app when connecting), also server_time (UTC) and time_zone (TZ of the server)"
+      summary: "Public instance information (used by the app when connecting), also server_time (UTC), time_zone (TZ of the server) and sso {enabled, label}"
       responses:
         "200":
           description: "ok"
@@ -461,6 +485,20 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses: { "200": { description: "list" }, "404": { description: "colony not found" } }
+  /api/v1/admin/oidc:
+    get:
+      tags: [admin]
+      summary: "Sign-in with OIDC/SSO: {enabled, issuer, client_id, client_secret_set, label, allow_signup, redirect_url (to register at the provider)}"
+      responses: { "200": { description: "settings" }, "403": { description: "not an administrator" } }
+    put:
+      tags: [admin]
+      summary: "Save {enabled, issuer, client_id, client_secret (omitted = keep, \"\" = remove), label, allow_signup (unknown people get an account)}"
+      responses: { "200": { description: "settings" }, "422": { description: "invalid" } }
+  /api/v1/admin/oidc/test:
+    post:
+      tags: [admin]
+      summary: "Check the provider discovery with the saved settings"
+      responses: { "204": { description: "reachable" }, "502": { description: "discovery failed (title explains)" } }
   /api/v1/admin/home-assistant/test:
     post:
       tags: [admin]
@@ -537,6 +575,50 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses: { "200": { description: "{calendar_url}" }, "404": { description: "not found" } }
+  /api/v1/auth/oidc/start:
+    get:
+      tags: [auth]
+      security: []
+      summary: "Sign-in with OIDC/SSO: redirects to the provider (authorization code + PKCE). ?app=<Android app id> to return into the app"
+      responses: { "302": { description: "to the provider (or /sso?error=… if not set up)" } }
+  /api/v1/auth/oidc/callback:
+    get:
+      tags: [auth]
+      security: []
+      summary: "The provider returns here; redirects to /sso?code=… (web) or <app id>://acm/sso?code=… with a one-time code (2 minutes), or ?error=…"
+      responses: { "302": { description: "back to the app" } }
+  /api/v1/auth/oidc/redeem:
+    post:
+      tags: [auth]
+      security: []
+      summary: "Exchange the one-time SSO code for a session {code, device?}"
+      responses: { "200": { description: "session" }, "401": { description: "code invalid or expired" } }
+  /api/v1/colonies/{id}/public-links:
+    get:
+      tags: [colonies]
+      summary: "Public share links of a colony (owner): [{id, url, forum_url, options{photos, timeline, notes}, created_at}]"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "200": { description: "list" }, "404": { description: "not found or not the owner" } }
+    post:
+      tags: [colonies]
+      summary: "New public read-only page /p/<token> {photos?, timeline?, notes?} (default photos + timeline, no notes); at most 5 per colony"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "201": { description: "link" }, "422": { description: "too many" } }
+  /api/v1/public-links/{id}:
+    patch:
+      tags: [colonies]
+      summary: "Change what the page shows {photos, timeline, notes}"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "204": { description: "changed" }, "404": { description: "not found" } }
+    delete:
+      tags: [colonies]
+      summary: "Revoke a public link – the page is gone at once"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses: { "204": { description: "revoked" }, "404": { description: "not found" } }
   /api/v1/feeds/{token}/calendar.ics:
     get:
       tags: [colonies]
