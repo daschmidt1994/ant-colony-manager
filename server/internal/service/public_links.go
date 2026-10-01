@@ -298,9 +298,15 @@ func (s *Service) publicEvents(ctx context.Context, colony uuid.UUID, lang strin
 				Metric string  `json:"metric"`
 				Value  float64 `json:"value"`
 			} `json:"measurements"`
+			Payload struct {
+				Title string `json:"title"`
+			} `json:"payload"`
 		}
 		_ = json.Unmarshal(raw, &d)
 		var parts []string
+		if typ == "custom_task" && d.Payload.Title != "" {
+			parts = append(parts, d.Payload.Title)
+		}
 		if d.Feeding != nil {
 			for _, it := range d.Feeding.Items {
 				parts = append(parts, it.FoodName)

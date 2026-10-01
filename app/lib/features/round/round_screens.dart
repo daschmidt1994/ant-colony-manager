@@ -570,6 +570,12 @@ class _ColonyCard extends ConsumerWidget {
                     onTap: () => quickCheck(context, ref, colony),
                     onLongPress: () => showNoteSheet(context, ref, colony, type: 'check'),
                   ),
+                  for (final t in ref.read(repositoryProvider)!.customTasks(colony.id))
+                    QuickActionTile(
+                      icon: customTaskIcon(t.title),
+                      label: t.title ?? tr('Aufgabe'),
+                      onTap: () => quickCustomTask(context, ref, colony, t),
+                    ),
                   QuickActionTile(
                     icon: Icons.sticky_note_2_outlined,
                     label: tr('Notiz'),

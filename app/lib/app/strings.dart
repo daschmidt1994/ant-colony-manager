@@ -240,6 +240,10 @@ abstract final class S {
           days == 1 ? tr('1 Tag') : tr('{0} Tage', [days]),
         ]);
         return e.note?.isNotEmpty == true ? '$text – ${e.note}' : text;
+      case 'custom_task':
+        final title = ((e.json['payload'] as Map?)?['title'] as String?) ?? '';
+        final text = title.isEmpty ? eventTypes[e.type]! : tr('{0} erledigt', [title]);
+        return e.note?.isNotEmpty == true ? '$text – ${e.note}' : text;
       case 'note':
       case 'problem':
         return e.note ?? eventTypes[e.type]!;

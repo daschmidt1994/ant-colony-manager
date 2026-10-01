@@ -1235,5 +1235,15 @@
  "Für Nachbarn oder Familie ohne Konto: ein Zettel mit allem, was an welchem Tag zu tun ist – aus deinen Pflegeintervallen, zum Abhaken.": "For neighbours or family without an account: a sheet with everything to do on which day – from your care intervals, to tick off.",
  "Erreichbar unter (optional)": "Reachable at (optional)",
  "z. B. Telefonnummer": "e.g. phone number",
- "Pflegezettel erstellen": "Create care sheet"
+ "Pflegezettel erstellen": "Create care sheet",
+ "{0} erledigt": "{0} done",
+ "Nest befeuchten": "Moisten nest",
+ "Eigene Tätigkeiten": "Own activities",
+ "Tätigkeit": "Activity",
+ "Name fehlt": "Name missing",
+ "alle … Tage": "every … days",
+ "Tage?": "Days?",
+ "{0} (alle {1} Tage)": "{0} (every {1} days)",
+ "Eigene Tätigkeit": "Own activity",
+ "Erscheinen als Schnellaktion, mit Erinnerung, im Kalender und in Home Assistant.": "Shown as a quick action, with reminder, in the calendar and in Home Assistant."
 }
