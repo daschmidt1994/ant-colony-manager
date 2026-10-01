@@ -28,6 +28,7 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 
 **Betrieb**
 - **Android-App** (offline-fähig) und **Web-App** mit denselben Daten, Deutsch und Englisch
+- **Benutzerverwaltung** für Admins: einladen, deaktivieren, Admin-Rechte, Passwort-Link, löschen – [docs/30](docs/30-benutzer-verwalten.md)
 - **Anmeldung mit SSO** (OpenID Connect: Authentik, Keycloak, Authelia, Google …) neben Passwort – [docs/28](docs/28-sso-share.md)
 - **Selbst gehostet** mit einem `docker compose` – keine Cloud, keine Telemetrie (nur eine abschaltbare Update-Prüfung gegen GitHub, `UPDATE_CHECK=false`)
 - **Deine Daten:** Export (JSON, CSV, Fotos), nächtliche Backups als normale Dateien, auf Wunsch **außer Haus** per WebDAV, SMB oder NFS, optional verschlüsselt – [docs/25](docs/25-backup-ausser-haus.md)

@@ -89,8 +89,13 @@ func (s *Service) collectTombstones(ctx context.Context, cutoff time.Time) error
 	if err != nil {
 		return err
 	}
-	// Files are content-addressed and may be shared by several photo rows.
-	for _, k := range orphanKeys {
+	return s.deleteUnusedBlobs(ctx, orphanKeys)
+}
+
+// deleteUnusedBlobs removes files no photo row refers to any more – files
+// are content-addressed and may be shared by several photo rows.
+func (s *Service) deleteUnusedBlobs(ctx context.Context, keys []string) error {
+	for _, k := range keys {
 		var used bool
 		if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM photos WHERE storage_key = $1 OR thumb_key = $1 OR original_key = $1)`, k).Scan(&used); err != nil {
 			return err

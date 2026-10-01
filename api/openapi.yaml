@@ -855,6 +855,14 @@ paths:
       requestBody:
         content: { application/json: { schema: { type: object, properties: { disabled: { type: boolean }, instance_role: { enum: [admin, user] } } } } }
       responses: { "204": { description: "updated" } }
+  /api/v1/admin/users/{id}/delete:
+    post:
+      tags: [admin]
+      summary: "Delete another account with all its colonies, photos and data (not yourself)"
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content: { application/json: { schema: { type: object, required: [confirm_email], properties: { confirm_email: { type: string, description: "the account's e-mail, as confirmation" } } } } }
+      responses: { "204": { description: "deleted" }, "403": { $ref: "#/components/responses/Problem" }, "422": { $ref: "#/components/responses/Problem" } }
   /api/v1/admin/users/{id}/password-reset-link:
     post: { tags: [admin], summary: "Reset link without e-mail (30 min)", parameters: [{ $ref: "#/components/parameters/Id" }], responses: { "201": { description: "link" } } }
   /api/v1/admin/system:
