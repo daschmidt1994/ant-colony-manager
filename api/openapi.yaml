@@ -397,15 +397,6 @@ paths:
       tags: [admin]
       summary: "Save the MQTT broker (and optionally ha_url + ha_token for sensor values; ha_token omitted = keep, \"\" = remove) (url: host, host:port or mqtt(s)://host:port; prefix: discovery prefix, default homeassistant); password omitted = keep, \"\" = remove. From now on the colonies of this administrator are announced to Home Assistant (MQTT discovery); switching off removes them there"
       responses: { "200": { description: "saved settings" }, "422": { description: "invalid value" } }
-  /api/v1/admin/update:
-    get:
-      tags: [admin]
-      summary: "Update button: {available (updater service runs), state idle|requested|running|done|failed, message, at, log (after a failure)}"
-      responses: { "200": { description: "status" }, "403": { description: "not an administrator" } }
-    post:
-      tags: [admin]
-      summary: "Update now: the optional updater service backs up, pulls the images and restarts (like scripts/update.sh)"
-      responses: { "202": { description: "requested" }, "409": { description: "no updater or already running" } }
   /api/v1/admin/ai:
     get:
       tags: [admin]

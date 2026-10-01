@@ -32,9 +32,6 @@ if [ -f /etc/unraid-version ]; then
 elif [ "$(id -u)" != 0 ]; then
   sed -i "s#^PUID=.*#PUID=$(id -u)#; s#^PGID=.*#PGID=$(id -g)#" .env
 fi
-# for the optional update button (COMPOSE_PROFILES=updater)
-if grep -q '^ACM_PROJECT_DIR=' .env; then sed -i "s#^ACM_PROJECT_DIR=.*#ACM_PROJECT_DIR=$ROOT#" .env
-else printf '\nACM_PROJECT_DIR=%s\n' "$ROOT" >> .env; fi
 chmod 600 .env
 say ".env erstellt – öffentliche Adresse: $url"
 echo "Secrets werden beim ersten Start automatisch erzeugt (data/secrets/)."

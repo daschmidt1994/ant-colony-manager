@@ -201,24 +201,6 @@ func (s *Server) setHomeAssistantMe(w http.ResponseWriter, r *http.Request) {
 	s.writeJSON(w, http.StatusOK, st)
 }
 
-func (s *Server) getUpdater(w http.ResponseWriter, r *http.Request) {
-	st, err := s.svc.UpdaterStatus(r.Context(), actorOf(r))
-	if err != nil {
-		s.problem(w, r, err)
-		return
-	}
-	s.writeJSON(w, http.StatusOK, st)
-}
-
-func (s *Server) startUpdate(w http.ResponseWriter, r *http.Request) {
-	st, err := s.svc.StartUpdate(r.Context(), actorOf(r), service.ClientMeta{IP: clientIP(r)})
-	if err != nil {
-		s.problem(w, r, err)
-		return
-	}
-	s.writeJSON(w, http.StatusAccepted, st)
-}
-
 func (s *Server) getAI(w http.ResponseWriter, r *http.Request) {
 	st, err := s.svc.GetAISettings(r.Context(), actorOf(r))
 	if err != nil {
