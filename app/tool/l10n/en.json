@@ -1097,16 +1097,6 @@
  "alle Kolonien": "all colonies",
  "alles": "everything",
  "{0} Kolonien": "{0} colonies",
- "Der Server macht ein Backup, holt die neuen Images und startet neu – die App ist dabei etwa eine Minute nicht erreichbar.": "The server makes a backup, pulls the new images and restarts – the app is unreachable for about a minute.",
- "Jetzt aktualisieren": "Update now",
- "Jetzt aktualisieren?": "Update now?",
- "Letztes Update abgeschlossen": "Last update finished",
- "Letztes Update fehlgeschlagen – Protokoll antippen": "Last update failed – tap for the log",
- "Update angefordert …": "Update requested …",
- "Update läuft: {0}": "Update running: {0}",
- "Update mit Knopf": "Update with a button",
- "Update-Protokoll": "Update log",
- "⚠ Diese Version hat Breaking Changes – vorher die Hinweise lesen.": "⚠ This version has breaking changes – read the notes first.",
  "Ameisen auf Fotos zählen lassen (Anthropic Claude)": "Have ants counted on photos (Anthropic Claude)",
  "Andere Fotos": "Other photos",
  "Eine Schätzung der KI – bitte kurz prüfen.": "An estimate by the AI – please check it briefly.",
@@ -1134,7 +1124,6 @@
  "Die KI hat zu lange gebraucht – weniger Fotos wählen": "The AI took too long – choose fewer photos",
  "Die KI ist nicht erreichbar": "The AI is not reachable",
  "Zählt … {0} s": "Counting … {0} s",
- "Noch nicht eingerichtet: in der .env COMPOSE_PROFILES=updater und ACM_PROJECT_DIR setzen, dann „docker compose up -d“. Danach geht das Update hier per Knopf.": "Not set up yet: set COMPOSE_PROFILES=updater and ACM_PROJECT_DIR in the .env, then “docker compose up -d”. After that the update works here with a button.",
  "Serverzeit: {0}": "Server time: {0}",
  "Zeitzone des Servers: {0}": "Server time zone: {0}",
  "{0} Min.": "{0} min",
@@ -1191,7 +1180,5 @@
  "läuft": "running",
  "z. B. Proteinfutter nur jeden zweiten Tag, Honigwasser nachfüllen": "e.g. protein only every other day, refill honey water",
  "{0} vertritt dich": "{0} stands in for you",
- "{0} vertritt dich: {1}": "{0} stands in for you: {1}",
- "Bereits aktuell – kein Update nötig": "Already up to date – no update needed",
- "Aktuell – keine neuere Version": "Up to date – no newer version"
+ "{0} vertritt dich: {1}": "{0} stands in for you: {1}"
 }

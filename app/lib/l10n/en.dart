@@ -52,7 +52,6 @@ const table = <String, String>{
   'Aktiv: {0}': 'Active: {0}',
   'Aktivität': 'Activity',
   'Aktualisieren': 'Refresh',
-  'Aktuell – keine neuere Version': 'Up to date – no newer version',
   'Alle': 'All',
   'Alle Einträge werden zuerst auf diesem Gerät gespeichert und im Hintergrund übertragen – auch ohne Internet geht nichts verloren.':
       'Every entry is saved on this device first and sent in the background – nothing gets lost without internet.',
@@ -179,7 +178,6 @@ const table = <String, String>{
   'Benachrichtigungen blockiert': 'Notifications blocked',
   'Benachrichtigungen erlaubt': 'Notifications allowed',
   'Benutzer': 'User',
-  'Bereits aktuell – kein Update nötig': 'Already up to date – no update needed',
   'Bereits geöffnet – Ant Colony Manager': 'Already open – Ant Colony Manager',
   'Bericht als PDF': 'Report as PDF',
   'Bericht wird erstellt …': 'Creating report …',
@@ -229,8 +227,6 @@ const table = <String, String>{
       'The server reads the values from Home Assistant every 5 minutes',
   'Der Server liest die Werte alle 5 Minuten aus Home Assistant (Adresse und Zugriffstoken: Server-Verwaltung → Home Assistant (MQTT)).':
       'The server reads the values from Home Assistant every 5 minutes (address and access token: Server administration → Home Assistant (MQTT)).',
-  'Der Server macht ein Backup, holt die neuen Images und startet neu – die App ist dabei etwa eine Minute nicht erreichbar.':
-      'The server makes a backup, pulls the new images and restarts – the app is unreachable for about a minute.',
   'Der Setup-Code stimmt nicht (siehe docker compose logs app).':
       'The setup code is wrong (see docker compose logs app).',
   'Der Tag ist schreibgeschützt.': 'The tag is write-protected.',
@@ -526,8 +522,6 @@ const table = <String, String>{
       'Every backup also to Nextcloud, a NAS or a storage box (WebDAV, SMB, NFS)',
   'Jelly': 'Jelly',
   'Jetzt': 'Now',
-  'Jetzt aktualisieren': 'Update now',
-  'Jetzt aktualisieren?': 'Update now?',
   'Jetzt ein Foto aufnehmen': 'Take a photo now',
   'Jetzt hochladen': 'Upload now',
   'Jetzt prüfen': 'Check now',
@@ -635,8 +629,6 @@ const table = <String, String>{
   'Letzte Prüfung: {0}': 'Last check: {0}',
   'Letzte Rundgänge': 'Recent rounds',
   'Letzte Synchronisierung': 'Last sync',
-  'Letztes Update abgeschlossen': 'Last update finished',
-  'Letztes Update fehlgeschlagen – Protokoll antippen': 'Last update failed – tap for the log',
   'Liegt ein Messwert außerhalb, entsteht automatisch ein „Problem“-Eintrag bei der Kolonie und eine Benachrichtigung (höchstens alle 6 Stunden).':
       'If a reading is outside, a “Problem” entry is created for the colony automatically, plus a notification (at most every 6 hours).',
   'Liegt in': 'Inside',
@@ -765,8 +757,6 @@ const table = <String, String>{
   'Noch keine Sensoren': 'No sensors yet',
   'Noch keine Vertretung': 'No care cover yet',
   'Noch keine hochgeladenen Fotos dieser Kolonie.': 'No uploaded photos of this colony yet.',
-  'Noch nicht eingerichtet: in der .env COMPOSE_PROFILES=updater und ACM_PROJECT_DIR setzen, dann „docker compose up -d“. Danach geht das Update hier per Knopf.':
-      'Not set up yet: set COMPOSE_PROFILES=updater and ACM_PROJECT_DIR in the .env, then “docker compose up -d”. After that the update works here with a button.',
   'Noch nichts eingetragen.': 'Nothing documented yet.',
   'Noch nichts hochgeladen': 'Nothing uploaded yet',
   'Noch nie synchronisiert': 'Never synced',
@@ -1034,13 +1024,9 @@ const table = <String, String>{
   'Unbekanntes Gerät': 'Unknown device',
   'Ungültiger Code.': 'Invalid code.',
   'Unterfamilie': 'Subfamily',
-  'Update angefordert …': 'Update requested …',
-  'Update läuft: {0}': 'Update running: {0}',
-  'Update mit Knopf': 'Update with a button',
   'Update {0} verfügbar': 'Update {0} available',
   'Update {0} verfügbar – ⚠ Breaking Change, vorher Backup': 'Update {0} available – ⚠ breaking change, back up first',
   'Update {0}: Breaking Change': 'Update {0}: breaking change',
-  'Update-Protokoll': 'Update log',
   'Upload gestartet – Status mit ↻ aktualisieren': 'Upload started – refresh the status with ↻',
   'Urlaub oder krank? Gib ausgewählte Kolonien für einen Zeitraum an jemanden ab – mit Pflegeanweisungen. In dieser Zeit ist die Person Pfleger dieser Kolonien, danach nicht mehr. Du siehst, was sie erledigt hat.':
       'On holiday or ill? Hand chosen colonies to someone for a period – with care instructions. During that time the person is a carer of these colonies, afterwards no longer. You see what they did.',
@@ -1345,6 +1331,4 @@ const table = <String, String>{
   '⚠ Die Uhr dieses Geräts geht {0} vor – Uhrzeit prüfen': '⚠ This device\'s clock is {0} ahead – check the time',
   '⚠ Die Zeitzone im Konto passt nicht zum Gerät – Tages-Überblick und Erinnerungen kommen zur falschen Uhrzeit.':
       '⚠ The account\'s time zone does not match the device – daily overview and reminders come at the wrong time.',
-  '⚠ Diese Version hat Breaking Changes – vorher die Hinweise lesen.':
-      '⚠ This version has breaking changes – read the notes first.',
 };

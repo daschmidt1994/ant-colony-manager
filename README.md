@@ -28,7 +28,6 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
 - **Android-App** (offline-fähig) und **Web-App** mit denselben Daten, Deutsch und Englisch
 - **Selbst gehostet** mit einem `docker compose` – keine Cloud, keine Telemetrie (nur eine abschaltbare Update-Prüfung gegen GitHub, `UPDATE_CHECK=false`)
 - **Deine Daten:** Export (JSON, CSV, Fotos), nächtliche Backups als normale Dateien, auf Wunsch **außer Haus** per WebDAV, SMB oder NFS, optional verschlüsselt – [docs/25](docs/25-backup-ausser-haus.md)
-- **Update per Knopf** in der App (optional)
 
 ## Screenshots
 
@@ -50,7 +49,6 @@ Selbst gehostete Verwaltung von Ameisenkolonien – gebaut für den echten Pfleg
   NFC/QR)      ├──────────────────────► │  app     Go-Server: API + Web-App + Realtime   │
  Web-App ──────┘   /c/<code>  (QR/NFC)  │  db      PostgreSQL 18                         │
                                         │  backup  nächtliche Backups + Restore          │
-                                        │  updater Update per Knopf (optional)           │
                                         │  init    legt Verzeichnisse und Secrets an     │
                                         └──────────────── ./data ───────────────────────┘
 ```
@@ -100,7 +98,7 @@ Alles steht kommentiert in [`.env.example`](.env.example) (Heimnetz) bzw. [`.env
 | `PUID` / `PGID` | Besitzer der Dateien (Synology meist `1026`/`100`, Unraid `99`/`100`) |
 | `REGISTRATION_MODE` | `invite` (Standard) · `open` · `closed` |
 | `BACKUP_*` | Zeitplan und Aufbewahrung |
-| `COMPOSE_PROFILES` | `proxy` (HTTPS mit Caddy, dazu `ACM_DOMAIN`), `updater` (Update per Knopf, dazu `ACM_PROJECT_DIR`) – mehrere mit Komma |
+| `COMPOSE_PROFILES=proxy`, `ACM_DOMAIN` | eingebauter HTTPS-Proxy (Caddy) |
 | `ACM_VERSION` | `latest` oder eine feste Version wie `1.4.0` |
 
 E-Mail-Versand, Backup außer Haus, Home Assistant und KI-Zählung richtet der Administrator in der App ein: **Mehr → Server-Verwaltung**.
@@ -113,7 +111,6 @@ data/
 ├── uploads/    Fotos
 ├── backups/    Backups (ein Ordner pro Backup)
 ├── secrets/    automatisch erzeugte Secrets – mit sichern!
-├── update/     Aufträge für den Update-Dienst
 └── caddy/      Zertifikate (nur mit Proxy)
 ```
 
@@ -145,12 +142,6 @@ Das Restore prüft die Prüfsummen, legt vorher ein Sicherheits-Backup an, spiel
 ```
 
 Backup → `git pull` → neue Images → Neustart → warten bis *healthy*. Datenbank-Migrationen laufen beim Start automatisch; eine ältere App-Version startet nicht gegen ein neueres Schema.
-
-**Update per Knopf (optional):** `COMPOSE_PROFILES=updater` und `ACM_PROJECT_DIR` (setzt `init-env.sh`) in der `.env`, dann `docker compose up -d`. Unter **Mehr → Server → „Jetzt aktualisieren“** gilt dann:
-- der Knopf erscheint nur, wenn eine neuere Version verfügbar ist;
-- Backup und Neustart gibt es nur, wenn ein neueres Image da ist – sonst „Bereits aktuell“;
-- der Dienst `updater` hat dafür den Docker-Socket (= root auf dem Host); die App selbst nicht, sie legt nur einen Auftrag in `data/update/`;
-- Änderungen an der `compose.yml` selbst holt weiterhin nur `./scripts/update.sh`.
 
 ## Android-App
 
