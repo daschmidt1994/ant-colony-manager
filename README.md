@@ -178,6 +178,7 @@ cp .env.example .env
 docker compose -f compose.yml -f compose.dev.yml up   # Hot Reload, Mailpit (http://localhost:8025)
 ./scripts/test-server.sh      # Backend-Tests gegen Wegwerf-PostgreSQL 18
 ./scripts/test-stack.sh       # End-to-End: Docker-Stack, Backup, Restore, Proxy
+git config core.hooksPath .githooks   # einmalig: Formatprüfung wie in der CI vor jedem Commit
 ```
 
 Go ist lokal nicht nötig (`./scripts/go.sh go …` nutzt einen Container); mehr in [server/README.md](server/README.md) und [app/README.md](app/README.md). Die CI testet Backend (mit Race-Detector), App, Web-App im Browser, ShellCheck und den Docker-Stack und baut Multi-Arch-Images nach GHCR.
