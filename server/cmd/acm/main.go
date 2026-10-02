@@ -159,6 +159,7 @@ func serve() error {
 	broker := api.NewBroker(pool, svc, log)
 	go broker.Run(ctx)
 	srv := api.NewServer(svc, cfg, log, version, webui.FS(), broker)
+	go srv.WarmWebCache()
 
 	go func() {
 		t := time.NewTicker(time.Hour)

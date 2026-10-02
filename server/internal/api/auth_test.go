@@ -289,3 +289,11 @@ func TestSignedOutDeviceIsToldToWipeAndCanSignInAgain(t *testing.T) {
 	c := &testenv.Client{Env: env, Token: again["access_token"].(string), Headers: map[string]string{}}
 	c.Do("POST", "/api/v1/sync/push", map[string]any{"device_id": device["device_id"], "platform": "android", "ops": []any{}}).Must(t, 200)
 }
+
+func TestAPICompressesJSON(t *testing.T) {
+	env := testenv.New(t)
+	r := env.Anon().Do("GET", "/api/v1/instance", nil, "Accept-Encoding", "gzip")
+	if r.Status != 200 || r.Header.Get("Content-Encoding") != "gzip" {
+		t.Fatalf("instance: %d %v", r.Status, r.Header)
+	}
+}

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 
 	"github.com/daschmidt1994/ant-colony-manager/server/internal/auth"
@@ -84,6 +85,8 @@ func (s *Server) Handler() *chi.Mux {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(s.bodyLimit)
+		// JSON answers (sync snapshot, timeline, lists) – SSE and files untouched
+		r.Use(middleware.Compress(5, "application/json", "application/problem+json", "text/plain", "text/calendar", "text/csv"))
 		r.Get("/instance", s.instance)
 		r.Post("/setup", s.setup)
 
