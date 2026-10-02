@@ -32,13 +32,17 @@ final archivedColoniesProvider = StreamProvider<List<Colony>>(
   (ref) => _watch(ref, (r) => r.colonies(includeArchived: true).where((c) => c.archived).toList()),
 );
 
-final colonyProvider = StreamProvider.autoDispose.family<Colony?, String>((ref, id) => _watch(ref, (r) => r.colony(id)));
+final colonyProvider = StreamProvider.autoDispose.family<Colony?, String>(
+  (ref, id) => _watch(ref, (r) => r.colony(id)),
+);
 
 final colonyEventsProvider = StreamProvider.autoDispose.family<List<ColonyEvent>, String>(
   (ref, id) => _watch(ref, (r) => r.events(id)),
 );
 
-final colonyDueProvider = StreamProvider.autoDispose.family<List<DueTask>, String>((ref, id) => _watch(ref, (r) => r.due(id)));
+final colonyDueProvider = StreamProvider.autoDispose.family<List<DueTask>, String>(
+  (ref, id) => _watch(ref, (r) => r.due(id)),
+);
 
 final colonyWinterProvider = StreamProvider.autoDispose.family<WinterRest?, String>(
   (ref, id) => _watch(ref, (r) => r.winterRest(id)),
@@ -66,7 +70,9 @@ final schedulesProvider = StreamProvider.autoDispose.family<List<Schedule>, Stri
 
 final speciesListProvider = StreamProvider<List<Species>>((ref) => _watch(ref, (r) => r.species()));
 
-final speciesProvider = StreamProvider.autoDispose.family<Species?, String>((ref, id) => _watch(ref, (r) => r.speciesById(id)));
+final speciesProvider = StreamProvider.autoDispose.family<Species?, String>(
+  (ref, id) => _watch(ref, (r) => r.speciesById(id)),
+);
 
 /// Species names already used – suggestions for the colony form.
 final speciesSuggestionsProvider = StreamProvider<List<String>>(
@@ -95,7 +101,9 @@ final recentRoundsProvider = StreamProvider<List<RoundSummary>>(
   (ref) => _watch(ref, (r) => [for (final c in r.recentRounds()) ?r.roundSummary(c.id)]),
 );
 
-final colonyPhotosProvider = StreamProvider.autoDispose.family<List<Photo>, String>((ref, id) => _watch(ref, (r) => r.photos(id)));
+final colonyPhotosProvider = StreamProvider.autoDispose.family<List<Photo>, String>(
+  (ref, id) => _watch(ref, (r) => r.photos(id)),
+);
 
 final settingsProvider = StreamProvider<UserSettings>((ref) => _watch(ref, (r) => r.settings()));
 
