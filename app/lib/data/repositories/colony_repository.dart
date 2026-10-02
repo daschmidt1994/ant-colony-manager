@@ -184,40 +184,41 @@ class ColonyRepository {
     return r.isEmpty ? 'owner' : r.first['role'] as String;
   }
 
-  /// Last care per colony, computed in SQLite (JSON1) – fast for many colonies.
-  Map<String, LastCare> lastCare() {
-    DateTime? t(Object? v) => v == null ? null : DateTime.fromMillisecondsSinceEpoch(v as int);
-    const hasCategory =
-        "EXISTS (SELECT 1 FROM json_each(data, '\$.feeding.items') WHERE json_extract(value, '\$.category') = ?)";
-    final rows = db.select(
-      '''
-      SELECT colony_id,
-        max(CASE WHEN type = 'feeding' THEN ts END) AS feeding,
-        max(CASE WHEN type = 'feeding' AND $hasCategory THEN ts END) AS protein,
-        max(CASE WHEN type = 'feeding' AND $hasCategory THEN ts END) AS carbohydrate,
-        max(CASE WHEN type = 'water' THEN ts END) AS water,
-        max(CASE WHEN type = 'cleaning' THEN ts END) AS cleaning,
-        max(CASE WHEN type IN ('check', 'feeding', 'water', 'cleaning', 'census', 'brood') THEN ts END) AS chk
-      FROM (SELECT colony_id, ts, data, json_extract(data, '\$.type') AS type FROM records WHERE entity = 'colony_events')
-      GROUP BY colony_id''',
-      ['protein', 'carbohydrate'],
-    );
-    final bySchedule = <String, Map<String, DateTime>>{};
-    for (final r in db.select('''
-      SELECT colony_id, json_extract(data, '\$.schedule_id') AS sid, max(ts) AS last FROM records
-      WHERE entity = 'colony_events' AND json_extract(data, '\$.schedule_id') IS NOT NULL GROUP BY colony_id, sid''')) {
-      (bySchedule[r['colony_id'] as String] ??= {})[r['sid'] as String] = t(r['last'])!;
+  /// Last care per colony. Each value is the newest matching event, read
+  /// backwards along the (entity, colony_id, ts) index and stopped at the
+  /// first hit – no scan of the whole history, so it stays fast however
+  /// long the timeline gets. [colonyIds]: only these colonies.
+  Map<String, LastCare> lastCare({Iterable<String>? colonyIds, Iterable<Schedule>? schedules}) {
+    final ids = colonyIds?.toSet() ?? {for (final c in colonies(includeArchived: true)) c.id};
+    final custom = <String, List<String>>{};
+    for (final s in schedules ?? this.schedules()) {
+      if (s.taskType == 'custom' && ids.contains(s.colonyId)) (custom[s.colonyId] ??= []).add(s.id);
     }
+    DateTime? newest(String colonyId, String where, [List<Object?> args = const []]) {
+      final r = db.select(
+        """SELECT ts FROM records WHERE entity = 'colony_events' AND colony_id = ? AND ts IS NOT NULL AND $where
+           ORDER BY ts DESC LIMIT 1""",
+        [colonyId, ...args],
+      );
+      return r.isEmpty ? null : DateTime.fromMillisecondsSinceEpoch(r.first['ts'] as int);
+    }
+
+    const type = "json_extract(data, '\$.type')";
+    const category =
+        "$type = 'feeding' AND EXISTS (SELECT 1 FROM json_each(data, '\$.feeding.items') WHERE json_extract(value, '\$.category') = ?)";
     return {
-      for (final r in rows)
-        r['colony_id'] as String: LastCare(
-          feeding: t(r['feeding']),
-          protein: t(r['protein']),
-          carbohydrate: t(r['carbohydrate']),
-          water: t(r['water']),
-          cleaning: t(r['cleaning']),
-          check: t(r['chk']),
-          bySchedule: bySchedule[r['colony_id']] ?? const {},
+      for (final id in ids)
+        id: LastCare(
+          feeding: newest(id, "$type = 'feeding'"),
+          protein: newest(id, category, ['protein']),
+          carbohydrate: newest(id, category, ['carbohydrate']),
+          water: newest(id, "$type = 'water'"),
+          cleaning: newest(id, "$type = 'cleaning'"),
+          check: newest(id, "$type IN ('check', 'feeding', 'water', 'cleaning', 'census', 'brood')"),
+          bySchedule: {
+            for (final sid in custom[id] ?? const <String>[])
+              sid: ?newest(id, "json_extract(data, '\$.schedule_id') = ?", [sid]),
+          },
         ),
     };
   }
@@ -301,11 +302,13 @@ class ColonyRepository {
 
   Map<String, List<DueTask>> dueAll([List<Colony>? cols]) {
     cols ??= colonies();
-    final last = lastCare();
+    final active = cols.where((c) => c.isCareActive).toList();
+    final all = active.length == 1 ? schedules(colonyId: active.single.id) : schedules();
+    final last = lastCare(colonyIds: active.map((c) => c.id), schedules: all);
     final winter = openWinterRests();
     final soon = settings().dueSoonDays;
     final bySchedule = <String, List<Schedule>>{};
-    for (final s in schedules()) {
+    for (final s in all) {
       (bySchedule[s.colonyId] ??= []).add(s);
     }
     final t = now();
