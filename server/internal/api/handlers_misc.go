@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -306,6 +308,15 @@ func (s *Server) webApp(w http.ResponseWriter, r *http.Request) {
 			// Flutter file names carry no content hash: revalidate every time,
 			// but answer 304 when unchanged so reloads stay cheap.
 			etag := webETag(p, b)
+			// main.dart.js and canvaskit.wasm are ~6 MB each: gzip shrinks the
+			// first load after an update to about a third (compressed once).
+			gz := acceptsGzip(r) && compressible(p, b)
+			if gz {
+				b = webGzip(p, b)
+				etag = strings.TrimSuffix(etag, `"`) + `-gz"`
+				w.Header().Set("Content-Encoding", "gzip")
+			}
+			w.Header().Add("Vary", "Accept-Encoding")
 			w.Header().Set("ETag", etag)
 			w.Header().Set("Cache-Control", "no-cache")
 			if ct := mime.TypeByExtension(path.Ext(p)); ct != "" {
@@ -315,6 +326,7 @@ func (s *Server) webApp(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
+			w.Header().Set("Content-Length", strconv.Itoa(len(b)))
 			_, _ = w.Write(b)
 			return
 		}
@@ -327,7 +339,58 @@ func (s *Server) webApp(w http.ResponseWriter, r *http.Request) {
 	s.serveIndex(w, r, nil)
 }
 
-var webETags sync.Map // path → ETag (embedded files never change at runtime)
+var webETags sync.Map   // path → ETag (embedded files never change at runtime)
+var webGzipped sync.Map // path → gzip-compressed content
+
+func acceptsGzip(r *http.Request) bool {
+	for _, part := range strings.Split(r.Header.Get("Accept-Encoding"), ",") {
+		enc, q, _ := strings.Cut(strings.TrimSpace(part), ";")
+		if strings.EqualFold(strings.TrimSpace(enc), "gzip") && strings.ReplaceAll(q, " ", "") != "q=0" {
+			return true
+		}
+	}
+	return false
+}
+
+// compressible: text and WebAssembly worth compressing; images and fonts in
+// woff2 are compressed already.
+func compressible(p string, b []byte) bool {
+	switch path.Ext(p) {
+	case ".js", ".mjs", ".wasm", ".json", ".css", ".html", ".svg", ".txt", ".otf", ".ttf", ".map":
+		return len(b) > 1024
+	}
+	return false
+}
+
+func webGzip(p string, b []byte) []byte {
+	if v, ok := webGzipped.Load(p); ok {
+		return v.([]byte)
+	}
+	var buf bytes.Buffer
+	zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	_, _ = zw.Write(b)
+	_ = zw.Close()
+	webGzipped.Store(p, buf.Bytes())
+	return buf.Bytes()
+}
+
+// WarmWebCache compresses the large web files in the background at start,
+// so the first visitor after an update does not wait for it.
+func (s *Server) WarmWebCache() {
+	if s.web == nil {
+		return
+	}
+	_ = fs.WalkDir(s.web, ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		if b, err := fs.ReadFile(s.web, p); err == nil && compressible(p, b) {
+			webETag(p, b)
+			webGzip(p, b)
+		}
+		return nil
+	})
+}
 
 func webETag(p string, b []byte) string {
 	if v, ok := webETags.Load(p); ok {
