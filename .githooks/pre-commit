@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+# Same format checks as the CI – before the commit instead of a failed build.
+# Enable once:  git config core.hooksPath .githooks
+set -e
+root=$(git rev-parse --show-toplevel)
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+if echo "$staged" | grep -q '^app/.*\.dart$'; then
+  command -v dart >/dev/null || { echo "! dart nicht gefunden – Formatprüfung übersprungen"; exit 0; }
+  (cd "$root/app" && dart format --output=none --set-exit-if-changed lib test >/dev/null) || {
+    echo "✗ Dart-Formatierung: cd app && dart format lib test"; exit 1; }
+fi
+if echo "$staged" | grep -q '^server/.*\.go$'; then
+  out=$(cd "$root/server" && gofmt -l . 2>/dev/null || true)
+  [ -z "$out" ] || { echo "✗ gofmt: $out"; exit 1; }
+fi
