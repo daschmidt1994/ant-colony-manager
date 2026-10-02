@@ -15,7 +15,9 @@ final repositoryProvider = Provider<ColonyRepository?>((ref) {
   return ColonyRepository(ref.read(databaseProvider), userId: auth.user.id, onChanged: () => engine?.schedule());
 });
 
-/// A query on the local DB that re-runs whenever records change.
+/// A query on the local DB that re-runs whenever records change. Per-colony
+/// queries are autoDispose: a colony page that was left must not keep
+/// re-running its queries on every change.
 Stream<T> watchRepo<T>(Ref ref, T Function(ColonyRepository repo) query) => _watch(ref, query);
 
 Stream<T> _watch<T>(Ref ref, T Function(ColonyRepository repo) query) {
@@ -30,15 +32,15 @@ final archivedColoniesProvider = StreamProvider<List<Colony>>(
   (ref) => _watch(ref, (r) => r.colonies(includeArchived: true).where((c) => c.archived).toList()),
 );
 
-final colonyProvider = StreamProvider.family<Colony?, String>((ref, id) => _watch(ref, (r) => r.colony(id)));
+final colonyProvider = StreamProvider.autoDispose.family<Colony?, String>((ref, id) => _watch(ref, (r) => r.colony(id)));
 
-final colonyEventsProvider = StreamProvider.family<List<ColonyEvent>, String>(
+final colonyEventsProvider = StreamProvider.autoDispose.family<List<ColonyEvent>, String>(
   (ref, id) => _watch(ref, (r) => r.events(id)),
 );
 
-final colonyDueProvider = StreamProvider.family<List<DueTask>, String>((ref, id) => _watch(ref, (r) => r.due(id)));
+final colonyDueProvider = StreamProvider.autoDispose.family<List<DueTask>, String>((ref, id) => _watch(ref, (r) => r.due(id)));
 
-final colonyWinterProvider = StreamProvider.family<WinterRest?, String>(
+final colonyWinterProvider = StreamProvider.autoDispose.family<WinterRest?, String>(
   (ref, id) => _watch(ref, (r) => r.winterRest(id)),
 );
 
@@ -52,19 +54,19 @@ final foodItemsProvider = StreamProvider<List<FoodItem>>((ref) => _watch(ref, (r
 
 final locationsProvider = StreamProvider<List<Location>>((ref) => _watch(ref, (r) => r.locations()));
 
-final scanLinksProvider = StreamProvider.family<List<ScanLink>, String>(
+final scanLinksProvider = StreamProvider.autoDispose.family<List<ScanLink>, String>(
   (ref, id) => _watch(ref, (r) => r.scanLinks(id)),
 );
 
-final roleProvider = StreamProvider.family<String, String>((ref, id) => _watch(ref, (r) => r.roleOn(id)));
+final roleProvider = StreamProvider.autoDispose.family<String, String>((ref, id) => _watch(ref, (r) => r.roleOn(id)));
 
-final schedulesProvider = StreamProvider.family<List<Schedule>, String>(
+final schedulesProvider = StreamProvider.autoDispose.family<List<Schedule>, String>(
   (ref, id) => _watch(ref, (r) => r.schedules(colonyId: id)),
 );
 
 final speciesListProvider = StreamProvider<List<Species>>((ref) => _watch(ref, (r) => r.species()));
 
-final speciesProvider = StreamProvider.family<Species?, String>((ref, id) => _watch(ref, (r) => r.speciesById(id)));
+final speciesProvider = StreamProvider.autoDispose.family<Species?, String>((ref, id) => _watch(ref, (r) => r.speciesById(id)));
 
 /// Species names already used – suggestions for the colony form.
 final speciesSuggestionsProvider = StreamProvider<List<String>>(
@@ -85,7 +87,7 @@ final activeRoundProvider = StreamProvider<RoundProgress?>(
   }),
 );
 
-final roundSummaryProvider = StreamProvider.family<RoundSummary?, String>(
+final roundSummaryProvider = StreamProvider.autoDispose.family<RoundSummary?, String>(
   (ref, id) => _watch(ref, (r) => r.roundSummary(id)),
 );
 
@@ -93,7 +95,7 @@ final recentRoundsProvider = StreamProvider<List<RoundSummary>>(
   (ref) => _watch(ref, (r) => [for (final c in r.recentRounds()) ?r.roundSummary(c.id)]),
 );
 
-final colonyPhotosProvider = StreamProvider.family<List<Photo>, String>((ref, id) => _watch(ref, (r) => r.photos(id)));
+final colonyPhotosProvider = StreamProvider.autoDispose.family<List<Photo>, String>((ref, id) => _watch(ref, (r) => r.photos(id)));
 
 final settingsProvider = StreamProvider<UserSettings>((ref) => _watch(ref, (r) => r.settings()));
 
