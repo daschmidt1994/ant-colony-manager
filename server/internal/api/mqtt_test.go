@@ -325,6 +325,8 @@ func TestHomeAssistantActionsAndSensors(t *testing.T) {
 	}
 
 	// Home Assistant sensors: read via the REST API with the admin's token
+	// one reading: the same timestamp on every request, like the real Home Assistant
+	measured := time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)
 	ha := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer ha-token" {
 			w.WriteHeader(401)
@@ -334,7 +336,7 @@ func TestHomeAssistantActionsAndSensors(t *testing.T) {
 		case "/api/":
 			w.Write([]byte(`{"message":"API running."}`))
 		case "/api/states/sensor.formicarium_temperatur":
-			w.Write([]byte(`{"state":"24.6","last_updated":"` + time.Now().Add(-time.Minute).UTC().Format(time.RFC3339) + `"}`))
+			w.Write([]byte(`{"state":"24.6","last_updated":"` + measured + `"}`))
 		case "/api/states/sensor.formicarium_feuchte":
 			w.Write([]byte(`{"state":"unavailable"}`))
 		default:
